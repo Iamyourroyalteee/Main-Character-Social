@@ -247,17 +247,84 @@
     .friend-banner{display:none}
     .brand .wordmark{font-size:12.5px}
   }
+
+  /* Separate product surfaces: social rooms and avatar builder are distinct modes. */
+  html[data-mcs-mode="rooms"] #drawer,
+  html[data-mcs-mode="rooms"] #savebar,
+  html[data-mcs-mode="rooms"] #btnSaveTop,
+  html[data-mcs-mode="rooms"] #btnPNG,
+  html[data-mcs-mode="rooms"] #presRow,
+  html[data-mcs-mode="rooms"] #profileRow { display:none !important; }
+  html[data-mcs-mode="rooms"] main { display:block; }
+  html[data-mcs-mode="rooms"] #stage { width:100%; height:100%; }
+  html[data-mcs-mode="builder"] #roomLobby,
+  html[data-mcs-mode="builder"] #roomSwitcher,
+  html[data-mcs-mode="builder"] #roomHud,
+  html[data-mcs-mode="builder"] #roomA11y,
+  html[data-mcs-mode="builder"] #usePrompt,
+  html[data-mcs-mode="builder"] #photoFrame,
+  html[data-mcs-mode="builder"] #hotbar,
+  html[data-mcs-mode="builder"] .stage-hint,
+  html[data-mcs-mode="builder"] .friend-banner { display:none !important; }
+  html[data-mcs-mode="builder"] #drawer { display:block; }
+  html[data-mcs-mode="builder"] #savebar { display:flex; }
+  .mode-nav { display:flex; gap:6px; align-items:center; }
+  .mode-nav a { color:var(--txt); text-decoration:none; border:1px solid var(--line); background:var(--panel2); border-radius:9px; padding:7px 10px; font-size:11px; font-weight:800; white-space:nowrap; }
+  .mode-nav a[aria-current="page"] { border-color:var(--gold); color:var(--gold-hi); background:#292315; }
+  @media(max-width:620px){ .mode-nav a{padding:7px 8px;font-size:10px} header{gap:7px;padding:8px} .proto-tag{display:none} }
+
+
+  /* Visual catalog: Sims/VIO-inspired selection cards, with MCS styling. */
+  #drawer{flex:0 0 430px;max-width:46vw}
+  #tabs{display:flex;gap:6px;padding:14px 14px 10px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--line)}
+  #tabs::-webkit-scrollbar{display:none}
+  #tabs button{flex:0 0 auto;border-radius:10px;padding:9px 13px;font-size:12px;background:transparent;border-color:transparent;white-space:nowrap}
+  #tabs button.on{background:linear-gradient(180deg,#302916,#211d13);border-color:#79632b;color:#f4d77d;box-shadow:inset 0 -2px #d5ad45}
+  #panel{padding:15px 16px 20px}
+  .sec-cap{font-size:10px;letter-spacing:.14em;margin:17px 0 10px;color:#a9a5a0}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+  .grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .tile{min-width:0;min-height:0;padding:0;gap:0;overflow:hidden;border-radius:13px;background:#19191f;border:1px solid #35343b;display:flex;flex-direction:column;justify-content:flex-start;transition:border-color .16s,transform .16s,box-shadow .16s}
+  .tile:hover{border-color:#8b7133;transform:translateY(-2px)}
+  .tile.on{border-color:#dfbd5a;background:#282316;box-shadow:0 0 0 1px #dfbd5a,0 5px 18px #0007}
+  .tile-preview{height:112px;width:100%;position:relative;display:grid;place-items:center;overflow:hidden;background:radial-gradient(ellipse at 50% 35%,#55505b 0%,#302e37 46%,#1c1b22 100%)}
+  .tile-preview:before{content:"";position:absolute;width:82px;height:82px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#ffffff24,transparent 65%);top:-28px;right:-18px}
+  .tile-preview .tile-glyph{font-size:43px;line-height:1;filter:drop-shadow(0 8px 7px #0009);transform:translateY(3px)}
+  .tile-preview .tile-tone{position:absolute;bottom:8px;left:8px;width:20px;height:20px;border-radius:50%;border:2px solid #ffffffb0;box-shadow:0 2px 7px #0008}
+  .tile-preview.slot-hair{background:radial-gradient(ellipse at 50% 32%,#67504a,#30272a 56%,#1b1a20)}
+  .tile-preview.slot-top,.tile-preview.slot-outfit{background:radial-gradient(ellipse at 50% 30%,#4e5968,#292d38 58%,#1b1b22)}
+  .tile-preview.slot-bottom{background:radial-gradient(ellipse at 50% 30%,#565a68,#2b2d37 58%,#1b1b22)}
+  .tile-preview.slot-shoes{background:radial-gradient(ellipse at 50% 30%,#61564a,#302b29 58%,#1b1b22)}
+  .tile-preview.slot-hat,.tile-preview.slot-glasses,.tile-preview.slot-accessory,.tile-preview.slot-prop{background:radial-gradient(ellipse at 50% 30%,#5a5548,#302e29 58%,#1b1b22)}
+  .tile-name{display:block;width:100%;padding:10px 10px 11px;font-size:12px;line-height:1.25;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tile-meta{display:flex;align-items:center;justify-content:space-between;gap:6px;width:100%;padding:0 10px 9px;color:#a8a4a0;font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+  .tile .adult-badge{top:7px;left:7px;z-index:2}
+  .tile .crown{position:absolute;top:7px;right:7px;z-index:2}
+  .tile .sw{display:none}
+  .tile .none-x{font-size:30px}
+  .swatches{gap:9px}
+  .swatch{width:34px;height:34px}
+  @media(max-width:900px){#drawer{flex:0 0 390px;max-width:52vw}}
+  @media(max-width:620px){
+    #drawer{flex:1 1 auto;max-width:none;min-height:42vh;border-left:0;border-top:1px solid var(--line)}
+    #panel{padding:12px}
+    .tile-preview{height:96px}
+    #tabs{padding:10px 12px 8px}
+  }
+
 </style>
 </head>
 <body>
+<script>document.documentElement.dataset.mcsMode = new URLSearchParams(location.search).get("mode") === "builder" ? "builder" : "rooms";</script>
 
 <header>
   <div class="brand">
     <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 21 L7 10 L13 17 L16 6 L19 17 L25 10 L28 21 Z" fill="#d4af37" stroke="#f3d67b" stroke-width="1"/><rect x="4" y="23" width="24" height="3" rx="1.5" fill="#d4af37"/></svg>
     <div class="wordmark">MAIN CHARACTER <span>SOCIAL</span></div>
   </div>
-  <div class="proto-tag">Prototype — 3D avatar creator preview for Main Character Social</div>
+  <div class="proto-tag">Main Character Social — Avatar Experiences</div>
   <div class="spacer"></div>
+  <nav class="mode-nav" aria-label="Main Character Social modes"><a href="?mode=rooms" data-mode-link="rooms">Avatar Rooms</a><a href="?mode=builder" data-mode-link="builder">Avatar Builder</a></nav>
   <button class="hbtn" id="btnSaveTop" title="Serialize the current outfit">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7V3M8 21v-7h8v7"/></svg>
     Save look
@@ -287,7 +354,7 @@
     </div>
     <div id="roomA11y" aria-live="polite" role="status"></div>
     <div id="qualityHud">
-      <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--txt-dim)"><input type="checkbox" id="pbrToggle" style="accent-color:#d4af37"> PBR metals</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--txt-dim)"><input type="checkbox" id="pbrToggle" checked style="accent-color:#d4af37"> Realistic PBR</label>
       <select id="qualitySel" aria-label="Graphics quality">
         <option value="auto">Quality: Auto</option>
         <option value="ultra">Ultra (8K-quality source)</option>
@@ -357,6 +424,7 @@
 
 <div id="toast"></div>
 
+<script>document.querySelectorAll("[data-mode-link]").forEach(a=>{if(a.dataset.modeLink===document.documentElement.dataset.mcsMode)a.setAttribute("aria-current","page");});</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="MCSStudioLighting.js"></script>
 <script src="MCSGlamMaterialFactory.js"></script>
@@ -565,7 +633,8 @@ function glamRoleFor(meta){
   if (id.indexOf("gold") >= 0 || id.indexOf("chain") >= 0 || id.indexOf("crown") >= 0) return "gold";
   if (id.indexOf("chrome") >= 0 || id.indexOf("silver") >= 0) return "chrome";
   if (meta.slot === "glasses") return "chrome";
-  return null;
+  if (meta.slot === "top" || meta.slot === "bottom" || meta.slot === "outfit" || meta.slot === "shoes" || meta.slot === "hat" || meta.slot === "accessory" || meta.slot === "prop") return "fabric";
+  return "fabric";
 }
 /* apply factory material to a part list without touching per-item colors:
    the factory material carries the SAME tint the item builder used. */
@@ -978,7 +1047,7 @@ const ZONE_NAMES = ["torso","armsUpper","armsLower","legsUpper","legsLower","fee
 function buildBody(){
   const B = {};   /* bones */
   const zones = {}; ZONE_NAMES.forEach(z=>zones[z]=[]);
-  const skinMat = toonMat(0xffffff);
+  const skinMat = glam ? glam.skin("#ffffff") : toonMat(0xffffff);
   const root = new THREE.Group(); B.root = root;
   const hips = new THREE.Group(); hips.position.y = 1.16; root.add(hips); B.hips = hips;
   const reg = (mesh, zone) => { if(zone) zones[zone].push(mesh); return mesh; };
@@ -2738,10 +2807,18 @@ function tile(label, opts){
   opts = opts || {};
   const b = h("button", "tile" + (opts.on ? " on" : ""));
   if (opts.pressed !== undefined) b.setAttribute("aria-pressed", String(!!opts.pressed));
-  if(opts.swatch){ const s = h("div", "sw"); s.style.background = opts.swatch; b.appendChild(s); }
+  const slot = opts.slot || "style";
+  const glyphs = {hair:"♛",top:"✦",bottom:"▤",outfit:"✧",shoes:"◒",hat:"♢",glasses:"◉",accessory:"✧",prop:"◇",style:"✧"};
+  const preview = h("div","tile-preview slot-"+slot);
+  const glyph = h("span","tile-glyph",opts.none ? "＋" : (glyphs[slot] || "✧"));
+  preview.appendChild(glyph);
+  if(opts.swatch){ const tone=h("span","tile-tone"); tone.style.background=opts.swatch; preview.appendChild(tone); }
+  b.appendChild(preview);
   if(opts.adult) b.appendChild(h("span", "adult-badge", "18+"));
   if(opts.premium) b.insertAdjacentHTML("beforeend", CROWN);
-  b.appendChild(h("span", null, label));
+  b.appendChild(h("span","tile-name",label));
+  const meta=h("span","tile-meta",opts.none ? "WARDROBE" : (opts.premium ? "EXCLUSIVE" : "COLLECTION"));
+  b.appendChild(meta);
   b.addEventListener("click", opts.onClick || (()=>{}));
   return b;
 }
@@ -2760,14 +2837,14 @@ function itemTiles(slot, opts){
   const grid = h("div", "grid");
   if(opts.none){
     const cur = outfit.slots[slot];
-    grid.appendChild(tile(opts.noneLabel || "None", { on: !cur, onClick: ()=> setSlot(slot, null) }));
+    grid.appendChild(tile(opts.noneLabel || "None", { slot, none:true, on: !cur, onClick: ()=> setSlot(slot, null) }));
   }
   Object.values(ITEMS).filter(it=> it.slot === slot && (isAdultProfile() || !it.is_adult)).forEach(it=>{
     const cur = outfit.slots[slot];
     const on = !!(cur && cur.itemId === it.id);
     const color = on ? cur.colorHex : (it.defaultTint || it.tints[0]);
     grid.appendChild(tile(it.name, {
-      on, premium: it.premium, adult: !!it.is_adult, swatch: color,
+      on, slot, premium: it.premium, adult: !!it.is_adult, swatch: color,
       onClick: ()=>{
         let colorHex = color;
         if(cur && it.tints.includes(cur.colorHex)) colorHex = cur.colorHex;
@@ -3359,9 +3436,8 @@ document.getElementById("qualitySel").addEventListener("change", (e)=>{
   if (e.target.value === "auto"){ Q.auto = true; applyTier(Q.autoTier); }
   else { Q.auto = false; applyTier(e.target.value); }
 });
-/* PBR path toggle — toon remains the default art direction; PBR is opt-in.
-   Order matters: flip mode, REASSIGN fresh materials onto player + friend
-   (tint preserved per mesh), THEN dispose unreferenced old materials. */
+/* PBR path toggle — realistic materials are the default; toon is the fallback.
+   Reassign every tagged avatar mesh and retire old materials only after swapping. */
 document.getElementById("pbrToggle").addEventListener("change", (e)=>{
   if (!glam) return;
   glam.setPBR(e.target.checked, scene, gradientMap);
@@ -3369,8 +3445,8 @@ document.getElementById("pbrToggle").addEventListener("change", (e)=>{
   const freed = glam.retireOldMaterials([player.root, friend.root]);
   syncBody(); syncFace();
   toast(e.target.checked
-    ? "PBR studio materials on — " + changed + " mesh materials now reflect the procedural environment."
-    : "Back to stylized toon — " + changed + " mesh materials reassigned.");
+    ? "PBR materials enabled — " + changed + " avatar meshes updated."
+    : "Toon fallback enabled — " + changed + " avatar meshes updated.");
 });
 
 const clock = new THREE.Clock();
