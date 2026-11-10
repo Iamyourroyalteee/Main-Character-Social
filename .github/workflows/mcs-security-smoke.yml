@@ -19,3 +19,5 @@ jobs:
           node-version: '22'
       - name: Run MCS security regression and inline JavaScript syntax checks
         run: node tests/security-smoke.cjs
+      - name: Run 3D avatar fail-closed safety smoke
+        run: node tests/avatar-3d-safety-smoke.cjs
