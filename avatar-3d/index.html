@@ -287,7 +287,7 @@
     </div>
     <div id="roomA11y" aria-live="polite" role="status"></div>
     <div id="qualityHud">
-      <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--txt-dim)"><input type="checkbox" id="pbrToggle" style="accent-color:#d4af37"> PBR metals</label>
+      <label style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--txt-dim)"><input type="checkbox" id="pbrToggle" checked style="accent-color:#d4af37"> Realistic PBR</label>
       <select id="qualitySel" aria-label="Graphics quality">
         <option value="auto">Quality: Auto</option>
         <option value="ultra">Ultra (8K-quality source)</option>
@@ -564,7 +564,8 @@ function glamRoleFor(meta){
   if (id.indexOf("gold") >= 0 || id.indexOf("chain") >= 0 || id.indexOf("crown") >= 0) return "gold";
   if (id.indexOf("chrome") >= 0 || id.indexOf("silver") >= 0) return "chrome";
   if (meta.slot === "glasses") return "chrome";
-  return null;
+  if (meta.slot === "top" || meta.slot === "bottom" || meta.slot === "outfit" || meta.slot === "shoes" || meta.slot === "hat" || meta.slot === "accessory" || meta.slot === "prop") return "fabric";
+  return "fabric";
 }
 /* apply factory material to a part list without touching per-item colors:
    the factory material carries the SAME tint the item builder used. */
@@ -977,7 +978,7 @@ const ZONE_NAMES = ["torso","armsUpper","armsLower","legsUpper","legsLower","fee
 function buildBody(){
   const B = {};   /* bones */
   const zones = {}; ZONE_NAMES.forEach(z=>zones[z]=[]);
-  const skinMat = toonMat(0xffffff);
+  const skinMat = glam ? glam.skin("#ffffff") : toonMat(0xffffff);
   const root = new THREE.Group(); B.root = root;
   const hips = new THREE.Group(); hips.position.y = 1.16; root.add(hips); B.hips = hips;
   const reg = (mesh, zone) => { if(zone) zones[zone].push(mesh); return mesh; };
@@ -3358,9 +3359,8 @@ document.getElementById("qualitySel").addEventListener("change", (e)=>{
   if (e.target.value === "auto"){ Q.auto = true; applyTier(Q.autoTier); }
   else { Q.auto = false; applyTier(e.target.value); }
 });
-/* PBR path toggle — toon remains the default art direction; PBR is opt-in.
-   Order matters: flip mode, REASSIGN fresh materials onto player + friend
-   (tint preserved per mesh), THEN dispose unreferenced old materials. */
+/* PBR path toggle — realistic materials are the default; toon is the fallback.
+   Reassign every tagged avatar mesh and retire old materials only after swapping. */
 document.getElementById("pbrToggle").addEventListener("change", (e)=>{
   if (!glam) return;
   glam.setPBR(e.target.checked, scene, gradientMap);
@@ -3368,8 +3368,8 @@ document.getElementById("pbrToggle").addEventListener("change", (e)=>{
   const freed = glam.retireOldMaterials([player.root, friend.root]);
   syncBody(); syncFace();
   toast(e.target.checked
-    ? "PBR studio materials on — " + changed + " mesh materials now reflect the procedural environment."
-    : "Back to stylized toon — " + changed + " mesh materials reassigned.");
+    ? "PBR materials enabled — " + changed + " avatar meshes updated."
+    : "Toon fallback enabled — " + changed + " avatar meshes updated.");
 });
 
 const clock = new THREE.Clock();

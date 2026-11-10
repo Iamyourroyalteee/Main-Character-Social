@@ -7,15 +7,15 @@
    A subsurface-look approximation for skin is provided via a guarded
    onBeforeCompile tweak (wrapped emissive rim) — this is an APPROXIMATION,
    not true subsurface scattering, and is labeled as such everywhere.
-   Stylized-toon remains the default art direction; PBR is opt-in via
-   MCSGlamMaterialFactory.setPBR(true) so the recovered look is preserved. */
+   PBR is the default material mode; toon remains an explicit fallback. */
 (function(root){
   "use strict";
   function factory(THREE, opts){
     opts = opts || {};
     var cache = {};
+    var owned = [];
     var disposed = false;
-    var PBR = false; /* toon by default — deliberate stylized art direction */
+    var PBR = true; /* realistic material mode is the default */
 
     /* ---------- procedural studio environment (equirect canvas) ---------- */
     var envTex = null;
@@ -119,7 +119,12 @@
           m = new cls(params);
           break;
         case "denim":
-          if (pbr){ params.roughness = 0.85; params.metalness = 0.0; }
+          if (pbr){ params.roughness = 0.86; params.metalness = 0.0; }
+          else { params.gradientMap = opts.gradientMap || null; }
+          m = new cls(params);
+          break;
+        case "fabric":
+          if (pbr){ params.roughness = 0.82; params.metalness = 0.0; params.clearcoat = 0.02; params.clearcoatRoughness = 0.9; }
           else { params.gradientMap = opts.gradientMap || null; }
           m = new cls(params);
           break;
@@ -135,6 +140,7 @@
           break;
       }
       if (pbr && env) m.envMap = env;
+      if (m) owned.push(m);
       return m;
     }
 
@@ -192,11 +198,13 @@
             if (o.isMesh && o.material) live[o.material.uuid] = 1;
           });
         });
-        var freed = 0;
-        Object.keys(cache).forEach(function(k){
-          var m = cache[k];
-          if (m && !live[m.uuid]){ m.dispose(); freed++; delete cache[k]; }
+        var freed = 0, keep = [];
+        owned.forEach(function(m){
+          if (m && live[m.uuid]) keep.push(m);
+          else if (m && m.dispose){ m.dispose(); freed++; }
         });
+        owned = keep;
+        Object.keys(cache).forEach(function(k){ if (!cache[k] || !live[cache[k].uuid]) delete cache[k]; });
         return freed;
       },
       skin: function(hex){
@@ -234,6 +242,13 @@
         m.userData.__role = "gold";
         cache[key] = m; return m;
       },
+      fabric: function(hex){
+        var key = "fabric" + (hex || "#ffffff");
+        if (cache[key]) return cache[key];
+        var m = makeMat("fabric", hex || "#ffffff", PBR ? studioEnvironment() : null);
+        m.userData.__role = "fabric";
+        cache[key] = m; return m;
+      },
       chrome: function(){
         var key = "chrome";
         if (cache[key]) return cache[key];
@@ -249,12 +264,14 @@
           case "denim": return this.denim(hex);
           case "gold": return this.gold();
           case "chrome": return this.chrome();
-          default: return null;
+          case "fabric": return this.fabric(hex);
+          default: return this.fabric(hex);
         }
       },
       dispose: function(){
         if (disposed) return; disposed = true;
-        Object.keys(cache).forEach(function(k){ if (cache[k] && cache[k].dispose) cache[k].dispose(); });
+        owned.forEach(function(m){ if (m && m.dispose) m.dispose(); });
+        owned = [];
         cache = {};
         if (envTex && envTex.dispose) envTex.dispose();
         envTex = null;
