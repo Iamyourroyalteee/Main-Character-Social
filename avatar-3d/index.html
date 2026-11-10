@@ -403,12 +403,12 @@ const SHAPES_MASC = [
 ];
 function shapeById(id){ return SHAPES_FEM.concat(SHAPES_MASC).find(s=>s.id===id) || SHAPES_FEM[1]; }
 
-/* M2A-body: teen accounts get conservative proportion ranges. The clamp pulls
-   the three sliders toward the middle (50%) — proportionate, non-sexualized —
-   and is re-applied on every outfit Apply, so a pasted adult string can't give
-   a teen an extreme silhouette. Adults keep the full slider range. */
+/* M2A-body: unverified and teen profiles get conservative proportion ranges.
+   The clamp pulls the three sliders toward the middle (50%) — proportionate,
+   non-sexualized — and is re-applied on every outfit Apply. Adult proportions
+   remain unavailable until a server-authoritative entitlement is wired. */
 function clampBodyForBand(body, ageBand){
-  if (ageBand !== "teen" || !body) return body;
+  if (isAdultProfile() || !body) return body;
   const mid = v => 0.5 + (Math.max(0, Math.min(1, v == null ? 0.5 : v)) - 0.5) * 0.5;
   body.hips = mid(body.hips); body.glutes = mid(body.glutes); body.waist = mid(body.waist);
   return body;
@@ -425,7 +425,7 @@ const outfit = {
      switcher flips it. It lives in this state object, so Save serializes
      it into the outfit string and Apply reads it back (see section 13 —
      a pasted string can never RAISE the band: the gate is sticky). */
-  profile: { ageBand: "adult" },
+  profile: { ageBand: "unknown" },
   body: { presentation:"fem", shape:"natural-f", bust:0.55, chest:0.35, hips:0.5, glutes:0.5, waist:0.5, skin: SKIN_TONES[4] },
   face: { eyes:"almond", brows:"arched", lipShape:"full", lipColor: LIP_COLORS[0], makeup:"softglam",
     /* Phase B sculpt — all 0.5 = the shipped default look */
@@ -464,7 +464,8 @@ const clone = o => JSON.parse(JSON.stringify(o));
    isAdultProfile() is THE check every gate reads: room entry, catalog
    visibility, direct equips, and batch applies. Teen = the After Dark
    lounge and every is_adult catalog piece are absent, not locked. */
-function isAdultProfile(){ return !outfit.profile || outfit.profile.ageBand !== "teen"; }
+/* Standalone prototype is fail-closed: client profile fields and the Adult/Teen demo switch are UX only. No server-authoritative age entitlement is wired here, so adult-only items and rooms remain unavailable. */
+function isAdultProfile(){ return false; }
 /* Safe-swap fallbacks (the 2D app's rule): when a batch apply (outfit
    string / profile switch) finds an is_adult piece on a Teen profile,
    the slot falls back to a safe default instead of equipping or
