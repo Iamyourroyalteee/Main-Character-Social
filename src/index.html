@@ -982,7 +982,47 @@ function proBadge(){return ' <span class="bd bd-gold" title="Main Character Soci
 function tierBadgeFor(p){if(!p)return "";if(p.tier==="pro")return proBadge();if(p.tier==="member")return memberBadge();return "";}
 function feeForSeller(seller,gross){return Math.round(gross*feePercentForSeller(seller)/100);}
 function myBuys(pid){return DB.sales.filter(x=>x.buyer===pid);}
-function ageFlags(p){if(!p)return{minor:false,under16:false};if(p.birthdate){const a=ageOf(p.birthdate);return{minor:a<18,under16:a<16};}if(p.age_band)return{minor:p.age_band!=="adult",under16:p.age_band==="under16"};return{minor:false,under16:false};}
+/* FAIL-CLOSED age handling (2026-11-10). SECURITY CONTEXT: profile.birthdate
+   and profile.age_band are CLIENT-SUPPLIED fields — the current RLS policy
+   allows broad private-row updates, so either can be forged by the user. This
+   function therefore treats them as UNTRUSTED: they can only ever DOWNGRADE an
+   account toward minor status, never raise it to adult.
+   - Unknown/missing/invalid/unparseable data => minor (fail-closed).
+   - Adult state is NOT granted here. It requires a trusted server-side age
+     claim / verified entitlement (pending backend work — see
+     avatar-3d/MCSAvatarLoader.js gateItem for the client hook design).
+   Until that exists, adult-only features stay locked by default regardless of
+   what a profile claims. The 3D prototype's demo Adult/Teen toggle is likewise
+   NOT age assurance. */
+function ageFlags(p){
+  if(!p)return{minor:true,under16:true,ageUnknown:true};
+  if(p.birthdate){
+    /* strict shape check first: 'not-a-date' can parse as a valid Date in some
+       engines once concatenated with a time, so validate YYYY-MM-DD-ish and
+       round-trip it before trusting ageOf. */
+    const bd=String(p.birthdate);
+    const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(bd);
+    if(!m) return{minor:true,under16:true,ageUnknown:true};
+    const rt=new Date(m[1]+"-"+m[2]+"-"+m[3]+"T12:00:00");
+    if(isNaN(rt.getTime())||rt.getMonth()+1!==+m[2]||rt.getDate()!==+m[3])
+      return{minor:true,under16:true,ageUnknown:true};
+    let a=NaN;
+    try{ a=ageOf(bd); }catch(e){ a=NaN; }
+    if(typeof a!=="number"||isNaN(a)) return{minor:true,under16:true,ageUnknown:true};
+    /* DOB is client-supplied: it can confirm minor status granularity but can
+       NEVER produce an adult result. True adult requires server verification. */
+    return{minor:true,under16:a<16,ageUnknown:false};
+  }
+  if(p.age_band){
+    /* UNTRUSTED (client-editable): a claimed "adult" band is NOT honored.
+       Any band value other than a recognized minor band fails closed to minor.
+       Recognized minor bands only refine the under-16 flag. */
+    if(p.age_band==="under16")return{minor:true,under16:true,ageUnknown:false};
+    if(p.age_band==="teen")return{minor:true,under16:false,ageUnknown:false};
+    return{minor:true,under16:true,ageUnknown:true};
+  }
+  return{minor:true,under16:true,ageUnknown:true};
+}
 function mySettings(){const m=meP();if(!m)return defaultSettings();if(!DB.settingsByPid[m.id])DB.settingsByPid[m.id]=defaultSettings();return DB.settingsByPid[m.id];}
 function followersOf(pid){return DB.follows.filter(f=>f.to===pid&&f.state==="following").length;}
 function followingOf(pid){return DB.follows.filter(f=>f.from===pid&&f.state==="following").length;}
