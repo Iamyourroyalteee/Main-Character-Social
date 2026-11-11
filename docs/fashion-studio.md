@@ -19,8 +19,11 @@ A Polyvore-inspired fashion composition studio, implemented as a separate experi
 - Saving a fashion collection currently uses browser-local storage. The avatar's own Save Look flow remains responsible for saving its character state. Account-level fashion collection persistence and social publishing require a subsequent authenticated app integration.
 - The existing shared avatar prototype remains subject to its draft PR release gates and real-device QA.
 
-## Route
-`/fashion-studio/index.html`
+## Routes
+- `/fashion-studio/index.html` — Fashion Studio experience
+- `/avatar-3d/index.html?mode=builder` — same-origin shared 3D avatar fitting room
+
+The Vercel application deploys from `src/`, so both experiences and their runtime assets are mirrored under `src/fashion-studio/` and `src/avatar-3d/`. The smoke test verifies the mirrors and the avatar page's zoom-safe viewport.
 
 ## Verification
 Run `node tests/fashion-studio-smoke.cjs`.
