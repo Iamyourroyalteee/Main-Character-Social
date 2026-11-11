@@ -21,10 +21,10 @@ assert.ok((html.match(/isAdultProfile\(\)/g) || []).length >= 5, "adult gate mus
 assert.match(html, /examples\/js\/loaders\/GLTFLoader\.js/, "prototype must load the Three.js r128 GLTFLoader dependency");
 assert.match(html, /GLTFLoader:\s*THREE\.GLTFLoader\s*\|\|\s*null/, "avatar engine must receive the loaded GLTFLoader constructor");
 assert.match(loader, /opts\.GLTFLoader\s*\|\|\s*null/, "loader must retain a graceful fallback when GLTFLoader is unavailable");
-assert.match(loader, /function validateAssetUrl\\(url\\)/, "GLTF asset URLs must be validated before loading");
-assert.match(loader, /javascript\\|data\\|blob\\|file/, "executable and local-only URL schemes must be rejected");
-assert.match(loader, /pending = pending\\.filter/, "completed GLTF requests must be removed from pending lifecycle tracking");
-assert.match(loader, /handle\\.cancelled \\|\\| !alive/, "cancelled or torn-down requests must not attach loaded assets");
+assert.match(loader, /function validateAssetUrl\(url\)/, "GLTF asset URLs must be validated before loading");
+assert.match(loader, /javascript|data|blob|file/, "executable and local-only URL schemes must be rejected");
+assert.match(loader, /pending = pending\.filter/, "completed GLTF requests must be removed from pending lifecycle tracking");
+assert.match(loader, /handle\.cancelled \|\| !alive/, "cancelled or torn-down requests must not attach loaded assets");
 console.log("PASS: 3D prototype age gate fails closed; unverified body proportions are clamped; loader entitlement defaults to deny.");
 /* Exercise the actual loader module with a controllable GLTFLoader mock. */
 const vm = require("node:vm");
