@@ -12,6 +12,7 @@ const assetSchema = JSON.parse(fs.readFileSync(path.join(__dirname, "../docs/3d-
 const assetManifest = JSON.parse(fs.readFileSync(path.join(__dirname, "../avatar-3d/assets/manifest.json"), "utf8"));
 const gltfFixture = JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures/minimal-pbr.gltf"), "utf8"));
 const browserSmoke = fs.readFileSync(path.join(__dirname, "../avatar-3d/asset-pipeline-smoke.html"), "utf8");
+const avatarAnimationRuntime = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSAvatarAnimationRuntime.js"), "utf8");
 assert.equal(assetSchema.$defs.asset.required.includes("provenance"), true, "asset schema must require provenance");
 assert.ok(assetSchema.$defs.asset.properties.materials, "asset schema must define per-material PBR texture bindings");
 assert.equal(assetManifest.schemaVersion, "1.0.0", "asset manifest must declare its schema version");
@@ -20,6 +21,10 @@ assert.equal(gltfFixture.asset.version, "2.0", "browser fixture must be a valid 
 assert.equal(gltfFixture.meshes.length, 1, "browser fixture must include a real mesh");
 assert.ok(browserSmoke.includes("engine.loadCatalogAsset"), "browser smoke page must exercise the catalog loader");
 assert.ok(browserSmoke.includes("assets/test-fixtures/minimal-pbr.gltf"), "browser smoke page must load the repository fixture");
+assert.ok(html.includes("MCSAvatarAnimationRuntime.js"), "prototype must load the shared skeletal animation runtime");
+assert.ok(html.includes("createAnimationController"), "prototype must expose an animation controller factory");
+assert.ok(browserSmoke.includes("MCSAvatarAnimationRuntime.create"), "browser smoke page must instantiate the animation runtime");
+assert.match(avatarAnimationRuntime, /AnimationMixer/, "animation runtime must use Three.js AnimationMixer");
 
 const gate = html.match(/function isAdultProfile\(\)\s*\{([\s\S]*?)\}/);
 assert.ok(gate, "3D prototype must define its adult-access gate");
