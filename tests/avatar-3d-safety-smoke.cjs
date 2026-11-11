@@ -216,7 +216,7 @@ const textureFactory = materialWindow.MCSGlamMaterialFactory.create({
   sRGBEncoding: 3001, LinearEncoding: 3000, DoubleSide: 2
 });
 let loadedMaps = null;
-textureFactory.loadTextureMaps({
+const textureRequest = textureFactory.loadTextureMaps({
   baseColor: "textures/base-color.png", normal: "textures/normal.png",
   roughness: "textures/roughness.png", metalness: "textures/metalness.png",
   ao: "textures/ao.png", emissive: "textures/emissive.png"
@@ -233,6 +233,8 @@ assert.equal(mappedMaterial.roughnessMap, loadedMaps.roughness);
 assert.equal(mappedMaterial.metalnessMap, loadedMaps.metalness);
 assert.equal(mappedMaterial.aoMap, loadedMaps.ao);
 assert.equal(mappedMaterial.emissiveMap, loadedMaps.emissive);
+textureRequest.cancel();
+assert.equal(disposedTextures, 0, "cancelling a completed texture request must not dispose maps already in use");
 let textureError = "";
 textureFactory.loadTextureMaps({ baseColor: "javascript:alert(1)" }, null, (message) => { textureError = message; });
 assert.match(textureError, /Invalid PBR texture map reference/, "unsafe texture URLs must be rejected");
