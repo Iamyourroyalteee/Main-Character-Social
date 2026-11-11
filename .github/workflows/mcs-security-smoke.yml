@@ -6,6 +6,7 @@ on:
       - 'src/avatar-3d/**'
       - 'avatar-3d/**'
       - 'tests/avatar-3d-safety-smoke.cjs'
+      - 'tests/avatar-runtime-hardening-smoke.cjs'
       - 'tests/avatar-account-bridge-smoke.cjs'
       - 'tests/security-smoke.cjs'
       - '.github/workflows/mcs-security-smoke.yml'
@@ -18,8 +19,8 @@ jobs:
   security-smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
       - name: Run MCS security regression and inline JavaScript syntax checks
@@ -28,3 +29,5 @@ jobs:
         run: node tests/avatar-account-bridge-smoke.cjs
       - name: Run 3D avatar fail-closed safety smoke
         run: node tests/avatar-3d-safety-smoke.cjs
+      - name: Run avatar animation and resource lifecycle regression tests
+        run: node tests/avatar-runtime-hardening-smoke.cjs
