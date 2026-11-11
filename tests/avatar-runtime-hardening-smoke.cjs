@@ -65,7 +65,13 @@ for(const key of Object.keys(counts)) assert.equal(counts[key],1,key+" must be d
 engine.teardown();
 const factorySource = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSGlamMaterialFactory.js"), "utf8");
 const factoryWindow = {};
-vm.runInNewContext(factorySource, {window:factoryWindow});
+const fakeCanvasContext = {
+  createLinearGradient(){return {addColorStop(){}};},
+  createRadialGradient(){return {addColorStop(){}};},
+  fillRect(){},beginPath(){},arc(){},fill(){}
+};
+const fakeDocument = {createElement(){return {width:0,height:0,getContext(){return fakeCanvasContext;}};}};
+vm.runInNewContext(factorySource, {window:factoryWindow,document:fakeDocument});
 function MockColor(hex){ this.hex=String(hex).replace("#",""); this.getHexString=()=>this.hex; }
 let createdPhysical = 0;
 class MockPhysicalMaterial {
