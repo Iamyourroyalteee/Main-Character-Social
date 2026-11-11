@@ -26,3 +26,62 @@ assert.match(loader, /javascript\\|data\\|blob\\|file/, "executable and local-on
 assert.match(loader, /pending = pending\\.filter/, "completed GLTF requests must be removed from pending lifecycle tracking");
 assert.match(loader, /handle\\.cancelled \\|\\| !alive/, "cancelled or torn-down requests must not attach loaded assets");
 console.log("PASS: 3D prototype age gate fails closed; unverified body proportions are clamped; loader entitlement defaults to deny.");
+/* Exercise the actual loader module with a controllable GLTFLoader mock. */
+const vm = require("node:vm");
+const sandboxWindow = {};
+vm.runInNewContext(loader, { window: sandboxWindow });
+let calls = [];
+let completeLoad;
+class MockGLTFLoader {
+  load(url, onLoad) { calls.push(url); completeLoad = onLoad; }
+}
+const disposed = { geometry: 0, material: 0, texture: 0 };
+function makeScene() {
+  const mesh = {
+    isMesh: true,
+    geometry: { dispose() { disposed.geometry++; } },
+    material: { map: { dispose() { disposed.texture++; } }, dispose() { disposed.material++; } }
+  };
+  return { traverse(fn) { fn(mesh); } };
+}
+function makeEngine() {
+  return sandboxWindow.MCSAvatarLoader.create({ GLTFLoader: MockGLTFLoader }, {
+    renderer: { domElement: { clientWidth: 10, clientHeight: 10 }, setSize() {} },
+    scene: {}, camera: { updateProjectionMatrix() {} }
+  });
+}
+const runtimeEngine = makeEngine();
+for (const badUrl of ["javascript:alert(1)", "data:model/gltf-binary;base64,AA==", "blob:https://example.com/id", "file:///tmp/model.glb", "//evil.example/model.glb"]) {
+  let failure = "";
+  runtimeEngine.loadGLTF(badUrl, () => assert.fail("unsafe URL must not load"), (message) => { failure = message; });
+  assert.match(failure, /Invalid asset URL/, "unsafe URL must be rejected before network loading");
+}
+assert.equal(calls.length, 0, "unsafe URLs must never reach GLTFLoader");
+for (const goodUrl of ["models/avatar.glb", "https://cdn.example.com/avatar.glb"]) {
+  runtimeEngine.loadGLTF(goodUrl, () => {}, () => assert.fail("valid URL should be accepted"));
+  assert.equal(calls.at(-1), goodUrl, "relative and HTTPS asset URLs should reach GLTFLoader");
+}
+const loadedScene = makeScene();
+let loaded = false;
+runtimeEngine.loadGLTF("models/valid.glb", (root) => { loaded = root === loadedScene; });
+completeLoad({ scene: loadedScene });
+assert.equal(loaded, true, "successful GLTF callback should deliver its scene");
+
+const cancelledEngine = makeEngine();
+const cancelledScene = makeScene();
+cancelledEngine.loadGLTF("models/cancelled.glb", () => assert.fail("cancelled load must not attach"), () => {});
+const cancelledCallback = completeLoad;
+cancelledEngine.cancelPending();
+cancelledCallback({ scene: cancelledScene });
+assert.ok(disposed.geometry > 0 && disposed.material > 0 && disposed.texture > 0,
+  "late results after cancellation must dispose owned GPU resources");
+
+const teardownEngine = makeEngine();
+const lateScene = makeScene();
+teardownEngine.loadGLTF("models/late.glb", () => assert.fail("teardown load must not attach"), () => {});
+const lateCallback = completeLoad;
+teardownEngine.teardown();
+lateCallback({ scene: lateScene });
+assert.equal(teardownEngine.isAlive(), false, "teardown must mark engine inactive");
+console.log("PASS: GLTF runtime mock rejects unsafe URLs, accepts relative/HTTPS URLs, delivers successful loads, and disposes late cancelled/torn-down results.");
+
