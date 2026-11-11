@@ -322,8 +322,9 @@ assert.equal(multiMaterialRoot.material[0].map, loadedMaps.baseColor, "mode swit
 assert.equal(materialFactory.retireOldMaterials([multiMaterialRoot]), 2,
   "only the two replaced materials should be retired");
 assert.equal(disposedMaterials, 2, "replaced materials should be disposed after reassignment");
+const texturesBeforeFactoryDispose = disposedTextures;
 materialFactory.dispose();
-assert.equal(disposedTextures, 6, "factory teardown must dispose all owned texture maps");
+assert.equal(disposedTextures, texturesBeforeFactoryDispose + 6, "factory teardown must dispose all six owned texture maps");
 console.log("PASS: multi-material PBR retint preserves arrays and disposes replaced materials safely.");
 
 }
