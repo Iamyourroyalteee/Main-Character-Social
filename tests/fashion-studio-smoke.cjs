@@ -34,10 +34,10 @@ for (const source of [rootAvatarHtml, deployedAvatarHtml]) {
   assert.doesNotMatch(source, /user-scalable=no|maximum-scale=1/, "avatar experience must not disable user zoom");
 }
 const avatarItemSlots = new Map(
-  [...deployedAvatarHtml.matchAll(/def\\(\\{\\s*id:"([^"]+)",\\s*name:"[^"]+",\\s*slot:"([^"]+)"/g)]
+  [...deployedAvatarHtml.matchAll(/def\(\{\s*id:"([^"]+)",\s*name:"[^"]+",\s*slot:"([^"]+)"/g)]
     .map(match => [match[1], match[2]])
 );
-const mappingMatch = html.match(/const map=(\\{[^\\n]+\\});/);
+const mappingMatch = html.match(/const map=(\{[^\n]+\});/);
 assert.ok(mappingMatch, "Fashion Studio must declare its avatar mapping table");
 const avatarMapping = vm.runInNewContext("(" + mappingMatch[1] + ")");
 for (const [pieceId, [slot, itemId]] of Object.entries(avatarMapping)) {
@@ -45,7 +45,7 @@ for (const [pieceId, [slot, itemId]] of Object.entries(avatarMapping)) {
 }
 
 const applyStart = html.indexOf("function applyMoodboardToModel()");
-const applyEnd = html.indexOf('\\n$("applyToModel").addEventListener', applyStart);
+const applyEnd = html.indexOf('\n$("applyToModel").addEventListener', applyStart);
 assert.ok(applyStart >= 0 && applyEnd > applyStart, "Fashion Studio must expose its fitting-room apply function");
 const applyFunctionSource = html.slice(applyStart, applyEnd);
 const testCatalog = {};
