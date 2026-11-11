@@ -35,6 +35,7 @@ assert.match(loader, /function validateAssetManifest\(manifest\)/, "the versione
 assert.match(loader, /asset id must be a stable lowercase identifier/, "asset IDs must be stable and normalized");
 assert.match(loader, /function loadCatalogAsset\(asset, onDone, onFail\)/, "validated catalog assets must have a managed loading path");
 assert.match(loader, /function applyMaterialBindings\(root, bindings, request, onDone, onFail\)/, "catalog imports must bind texture maps to named GLTF materials");
+assert.match(loader, /function cancelAssetRequests\(\)/, "engine teardown must cancel pending catalog and texture requests");
 assert.match(loader, /function validateModel\(root, limits\)/, "loaded model geometry and transforms must be validated");
 assert.match(loader, /if \(!root\)\{ if \(onFail\) onFail\("Invalid 3D model: empty GLTF scene"\)/, "empty GLTF scenes must fail closed");
 assert.match(loader, /unitScale = asset\.unit === "cm"/, "catalog model units must be normalized on import");
