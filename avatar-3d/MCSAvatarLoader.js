@@ -128,6 +128,52 @@
       return errs;
     }
 
+    /* ---------- validated asset manifest loading ---------- */
+    var manifestRequests = [];
+    function loadAssetManifest(url, onDone, onFail){
+      if (!validateAssetUrl(url)){
+        if (onFail) onFail("Invalid manifest URL — use a project-relative path or HTTPS URL");
+        return null;
+      }
+      if (typeof root.fetch !== "function"){
+        if (onFail) onFail("Asset manifest unavailable: this browser does not support fetch");
+        return null;
+      }
+      var request = { cancelled:false, controller:null };
+      if (typeof root.AbortController === "function") request.controller = new root.AbortController();
+      manifestRequests.push(request);
+      function settle(){ manifestRequests = manifestRequests.filter(function(item){ return item !== request; }); }
+      request.cancel = function(){
+        if (request.cancelled) return;
+        request.cancelled = true;
+        if (request.controller) { try { request.controller.abort(); } catch(e){} }
+        settle();
+      };
+      var options = request.controller ? { signal:request.controller.signal } : {};
+      root.fetch(url, options).then(function(response){
+        if (request.cancelled || !alive) return null;
+        if (!response || !response.ok) throw new Error("Asset manifest request failed (" + (response ? response.status : "no response") + ")");
+        return response.json();
+      }).then(function(manifest){
+        if (request.cancelled || !alive || manifest == null) return;
+        var errors = validateAssetManifest(manifest);
+        if (errors.length) throw new Error("Asset manifest rejected: " + errors.join("; "));
+        /* Only publish entries after the entire manifest has passed validation. */
+        var validated = { schemaVersion:manifest.schemaVersion, assets:manifest.assets.slice() };
+        settle();
+        if (onDone) onDone(validated);
+      }).catch(function(error){
+        if (request.cancelled || !alive) return;
+        settle();
+        if (onFail) onFail(error && error.message || String(error));
+      });
+      return request;
+    }
+    function cancelManifestRequests(){
+      manifestRequests.slice().forEach(function(request){ if (request && request.cancel) request.cancel(); });
+      manifestRequests = [];
+    }
+
     /* ---------- GLTF loading (optional; procedural remains default) ---------- */
     var loader = null;
     if (THREE_GLTF_LOADER) loader = new THREE_GLTF_LOADER();
@@ -355,6 +401,7 @@
       alive = false;
       cancelPending();
       cancelAssetRequests();
+      cancelManifestRequests();
       disposeLoadedAssets();
       disposables.forEach(function(d){ if (d && d.dispose) d.dispose(); });
       disposables = [];
@@ -449,7 +496,7 @@
 
     return {
       SLOTS: SLOTS, ZONES: ZONES, zoneRefs: zoneRefs,
-      validateItemSchema: validateItemSchema, validateAssetDescriptor: validateAssetDescriptor, validateAssetManifest: validateAssetManifest, validateModel: validateModel,
+      validateItemSchema: validateItemSchema, validateAssetDescriptor: validateAssetDescriptor, validateAssetManifest: validateAssetManifest, loadAssetManifest: loadAssetManifest, validateModel: validateModel,
       loadGLTF: loadGLTF, loadCatalogAsset: loadCatalogAsset, releaseAsset: releaseAsset, cancelPending: cancelPending,
       recomputeZoneRefs: recomputeZoneRefs, applyCulling: applyCulling,
       setSkinTone: setSkinTone,
