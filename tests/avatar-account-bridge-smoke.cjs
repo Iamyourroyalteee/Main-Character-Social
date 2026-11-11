@@ -19,6 +19,9 @@ for (const file of requiredAvatarFiles) {
   assert.ok(fs.existsSync(path.join(avatarRoot, file)), "deployed app root must contain avatar runtime file: " + file);
 }
 const embeddedAvatarHtml = fs.readFileSync(path.join(avatarRoot, "index.html"), "utf8");
+assert.match(embeddedAvatarHtml, /name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/, "avatar studio must preserve user zoom and safe-area layout");
+assert.doesNotMatch(embeddedAvatarHtml, /user-scalable=no|maximum-scale=1/, "avatar studio must not disable pinch zoom");
+assert.match(embeddedAvatarHtml, /@media \(pointer: coarse\)[\s\S]*?min-width:44px;min-height:44px/, "touch controls must meet the 44px minimum target");
 for (const script of ["MCSAvatarAnimationRuntime.js", "MCSAvatarLoader.js", "MCSCameraSetup.js", "MCSGlamMaterialFactory.js", "MCSStudioLighting.js"]) {
   assert.ok(embeddedAvatarHtml.includes(script), "embedded avatar runtime must load " + script);
 }
