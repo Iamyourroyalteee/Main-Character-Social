@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'src/index.html'
+      - 'src/avatar-3d/**'
       - 'avatar-3d/**'
       - 'tests/avatar-3d-safety-smoke.cjs'
       - 'tests/avatar-account-bridge-smoke.cjs'

@@ -5,6 +5,11 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const html = fs.readFileSync(path.join(__dirname, "../src/index.html"), "utf8");
+const avatarRoot = path.join(__dirname, "../src/avatar-3d");
+const avatarFiles = ["index.html","MCSAvatarLoader.js","MCSCameraSetup.js","MCSGlamMaterialFactory.js","MCSStudioLighting.js","MCSAvatarAnimationRuntime.js","assets/manifest.json"];
+for (const file of avatarFiles) assert.ok(fs.existsSync(path.join(avatarRoot,file)), "main-app deployment must include avatar asset: " + file);
+const embeddedAvatar = fs.readFileSync(path.join(avatarRoot,"index.html"),"utf8");
+for (const script of ["MCSStudioLighting.js","MCSGlamMaterialFactory.js","MCSCameraSetup.js","MCSAvatarLoader.js","MCSAvatarAnimationRuntime.js"]) assert.ok(embeddedAvatar.includes(script), "embedded avatar runtime must reference " + script);
 const marker = '<script id="mcs-avatar-account-bridge">';
 const start = html.indexOf(marker);
 assert.notEqual(start, -1, "main app must include the avatar account bridge");
