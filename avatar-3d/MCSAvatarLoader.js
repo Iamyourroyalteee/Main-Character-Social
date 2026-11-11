@@ -181,6 +181,7 @@
     /* ---------- ownership + disposal ---------- */
     function own(obj){ disposables.push(obj); return obj; }
     function disposeObject(root){
+      if (!root || typeof root.traverse !== "function") return;
       root.traverse(function(o){
         if (o.isMesh){
           if (o.geometry) o.geometry.dispose();
