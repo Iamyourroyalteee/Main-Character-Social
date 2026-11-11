@@ -99,6 +99,50 @@
       if (loader && loader.manager && loader.manager.abort) { try { loader.manager.abort(); } catch(e){} }
     }
 
+    function validateModel(root, limits){
+      limits = limits || {};
+      var errors = [], warnings = [], meshCount = 0, vertexCount = 0, triangleCount = 0;
+      if (!root || typeof root.traverse !== "function"){
+        return { valid:false, errors:["model root must be a Three.js Object3D"], warnings:warnings, meshCount:0, vertexCount:0, triangleCount:0 };
+      }
+      function finiteVector(v){
+        return !v || (Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z));
+      }
+      root.traverse(function(o){
+        if (o.position && !finiteVector(o.position)) errors.push("non-finite object position");
+        if (o.rotation && !finiteVector(o.rotation)) errors.push("non-finite object rotation");
+        if (o.scale && (!finiteVector(o.scale) || o.scale.x === 0 || o.scale.y === 0 || o.scale.z === 0)) errors.push("invalid object scale");
+        if (!o.isMesh) return;
+        meshCount++;
+        var geometry = o.geometry;
+        if (!geometry){ errors.push("mesh is missing geometry"); return; }
+        var attrs = geometry.attributes || {};
+        var position = attrs.position;
+        if (!position || !Number.isFinite(position.count) || position.count < 3){
+          errors.push("mesh is missing a valid position attribute");
+        } else {
+          vertexCount += position.count;
+          var indexCount = geometry.index && geometry.index.count;
+          triangleCount += Math.floor((indexCount || position.count) / 3);
+        }
+        if (!attrs.normal) warnings.push("mesh is missing vertex normals");
+        if (!attrs.uv) warnings.push("mesh is missing UV coordinates");
+        if (!o.material) warnings.push("mesh is missing a material");
+        if (geometry.computeBoundingBox && !geometry.boundingBox) geometry.computeBoundingBox();
+        if (geometry.boundingBox && geometry.boundingBox.min && geometry.boundingBox.max){
+          var b = geometry.boundingBox;
+          if (![b.min.x,b.min.y,b.min.z,b.max.x,b.max.y,b.max.z].every(Number.isFinite)){
+            errors.push("geometry bounds contain non-finite values");
+          }
+        }
+      });
+      if (!meshCount) errors.push("model contains no meshes");
+      if (limits.maxMeshes && meshCount > limits.maxMeshes) errors.push("mesh budget exceeded");
+      if (limits.maxVertices && vertexCount > limits.maxVertices) errors.push("vertex budget exceeded");
+      if (limits.maxTriangles && triangleCount > limits.maxTriangles) errors.push("triangle budget exceeded");
+      return { valid:errors.length === 0, errors:errors, warnings:warnings, meshCount:meshCount, vertexCount:vertexCount, triangleCount:triangleCount };
+    }
+
     function loadCatalogAsset(asset, onDone, onFail){
       var errors = validateAssetDescriptor(asset);
       if (errors.length){ if (onFail) onFail("Invalid asset descriptor: " + errors.join("; ")); return null; }
@@ -116,7 +160,13 @@
             var unitScale = asset.unit === "cm" ? 0.01 : (asset.unit === "mm" ? 0.001 : 1);
             root.scale.setScalar((asset.scale || 1) * unitScale);
           }
-          onDone && onDone(root, gltf, descriptor);
+          var report = validateModel(root, opts.modelLimits);
+          if (!report.valid){
+            disposeObject(root);
+            if (onFail) onFail("Invalid 3D model: " + report.errors.join("; "));
+            return;
+          }
+          onDone && onDone(root, gltf, descriptor, report);
         }, onFail);
       }).catch(function(err){
         if (!request.cancelled && alive && onFail) onFail(err && err.message || String(err));
@@ -241,7 +291,7 @@
 
     return {
       SLOTS: SLOTS, ZONES: ZONES, zoneRefs: zoneRefs,
-      validateItemSchema: validateItemSchema, validateAssetDescriptor: validateAssetDescriptor,
+      validateItemSchema: validateItemSchema, validateAssetDescriptor: validateAssetDescriptor, validateModel: validateModel,
       loadGLTF: loadGLTF, loadCatalogAsset: loadCatalogAsset, cancelPending: cancelPending,
       recomputeZoneRefs: recomputeZoneRefs, applyCulling: applyCulling,
       setSkinTone: setSkinTone,
