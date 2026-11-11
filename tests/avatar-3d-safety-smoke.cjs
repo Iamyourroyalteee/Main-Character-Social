@@ -32,6 +32,12 @@ assert.match(clamp[1], /isAdultProfile\(\)/, "unverified/teen profiles must use 
 
 assert.match(loader, /opts\.getEntitlement\s*\|\|\s*function\(\)\s*\{\s*return Promise\.resolve\(\{\s*adult:false/, "GLTF loader entitlement hook must default to deny");
 assert.ok((html.match(/isAdultProfile\(\)/g) || []).length >= 5, "adult gate must be consulted across the prototype");
+assert.match(html, /AVATAR_CHARACTER_STORAGE_KEY\s*=\s*"mcs_avatar_character_v1"/, "avatar look should have a stable local persistence key");
+assert.match(html, /function restoreCharacterLocally\(\)/, "saved character should be restored when either avatar experience loads");
+assert.match(html, /function persistCharacterLocally\(\)/, "avatar edits should persist without relying on the export string");
+assert.match(html, /function catalogArt\(slot, color, itemId\)/, "catalog cards should render category-specific visual artwork");
+assert.match(html, /catalog-search/, "wardrobe categories should expose item search");
+assert.match(html, /b\.setAttribute\("aria-pressed"/, "selectable wardrobe cards should expose selected state to assistive technology");
 
 assert.match(html, /examples\/js\/loaders\/GLTFLoader\.js/, "prototype must load the Three.js r128 GLTFLoader dependency");
 assert.match(html, /GLTFLoader:\s*THREE\.GLTFLoader\s*\|\|\s*null/, "avatar engine must receive the loaded GLTFLoader constructor");
