@@ -14,6 +14,7 @@
     opts = opts || {};
     var cache = {};
     var owned = [];
+    var ownedTextures = [];
     var disposed = false;
     var PBR = true; /* realistic material mode is the default */
 
@@ -84,6 +85,74 @@
       mat.needsUpdate = true;
     }
 
+    /* ---------- PBR texture maps: base color is sRGB; data maps are linear ---------- */
+    var MAP_FIELDS = {
+      baseColor:"map", normal:"normalMap", roughness:"roughnessMap",
+      metalness:"metalnessMap", ao:"aoMap", emissive:"emissiveMap"
+    };
+    function safeTextureUrl(url){
+      if (typeof url !== "string" || !url.trim()) return false;
+      var value = url.trim();
+      if (/^(javascript|data|blob|file):/i.test(value) || value.indexOf("//") === 0) return false;
+      if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return /^https:\/\//i.test(value);
+      return !/[\x00-\x1f]/.test(value);
+    }
+    function applyTextureMaps(material, maps){
+      if (!material || !maps) return material;
+      Object.keys(MAP_FIELDS).forEach(function(key){
+        var texture = maps[key];
+        if (!texture) return;
+        if ((key === "baseColor" || key === "emissive") && THREE.sRGBEncoding !== undefined) texture.encoding = THREE.sRGBEncoding;
+        else if (THREE.LinearEncoding !== undefined) texture.encoding = THREE.LinearEncoding;
+        material[MAP_FIELDS[key]] = texture;
+      });
+      material.needsUpdate = true;
+      return material;
+    }
+    function loadTextureMaps(refs, onDone, onFail){
+      var keys = Object.keys(refs || {});
+      var request = { cancelled:false, failed:false, textures:{} };
+      if (!keys.length){ onDone && onDone({}); return request; }
+      if (!THREE.TextureLoader){ onFail && onFail("TextureLoader is not available"); return request; }
+      var allowed = keys.filter(function(key){ return Object.prototype.hasOwnProperty.call(MAP_FIELDS,key); });
+      if (allowed.length !== keys.length || keys.some(function(key){ return !safeTextureUrl(refs[key]); })){
+        request.failed = true;
+        onFail && onFail("Invalid PBR texture map reference");
+        return request;
+      }
+      var remaining = keys.length;
+      function releaseTextures(){
+        Object.keys(request.textures).forEach(function(key){
+          var texture = request.textures[key];
+          if (texture && texture.dispose) texture.dispose();
+          ownedTextures = ownedTextures.filter(function(t){ return t !== texture; });
+        });
+        request.textures = {};
+      }
+      request.cancel = function(){ request.cancelled = true; releaseTextures(); };
+      function fail(err){
+        if (request.failed || request.cancelled) return;
+        request.failed = true;
+        releaseTextures();
+        onFail && onFail(err && err.message || String(err));
+      }
+      var textureLoader = new THREE.TextureLoader();
+      keys.forEach(function(key){
+        try {
+          textureLoader.load(refs[key], function(texture){
+            if (request.cancelled || request.failed){ if (texture && texture.dispose) texture.dispose(); return; }
+            if ((key === "baseColor" || key === "emissive") && THREE.sRGBEncoding !== undefined) texture.encoding = THREE.sRGBEncoding;
+            else if (THREE.LinearEncoding !== undefined) texture.encoding = THREE.LinearEncoding;
+            texture.needsUpdate = true;
+            request.textures[key] = texture;
+            ownedTextures.push(texture);
+            if (--remaining === 0) onDone && onDone(request.textures);
+          }, undefined, fail);
+        } catch(err){ fail(err); }
+      });
+      return request;
+    }
+
     /* ---------- material builders (role -> builder) ---------- */
     function makeMat(role, hex, env){
       var pbr = PBR && THREE.MeshPhysicalMaterial !== undefined;
@@ -146,6 +215,7 @@
 
     var API = {
       studioEnvironment: studioEnvironment,
+      loadTextureMaps: loadTextureMaps, applyTextureMaps: applyTextureMaps,
       /* env must be assigned by the app: scene.environment (r128 supports it for
          MeshStandard/Physical via envMap inheritance in newer versions; r128 needs
          per-material envMap, which we do in makeMat). */
@@ -181,6 +251,9 @@
             nm.alphaTest = old.alphaTest || 0;
             nm.side = old.side;
           }
+          ["map","normalMap","roughnessMap","metalnessMap","aoMap","emissiveMap","alphaMap"].forEach(function(key){
+            if (old[key]) nm[key] = old[key];
+          });
           count++;
           return nm;
         }
@@ -280,6 +353,8 @@
         if (disposed) return; disposed = true;
         owned.forEach(function(m){ if (m && m.dispose) m.dispose(); });
         owned = [];
+        ownedTextures.forEach(function(texture){ if (texture && texture.dispose) texture.dispose(); });
+        ownedTextures = [];
         cache = {};
         if (envTex && envTex.dispose) envTex.dispose();
         envTex = null;
