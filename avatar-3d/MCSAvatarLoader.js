@@ -94,6 +94,20 @@
               (lod.maxVertices != null && (!Number.isInteger(lod.maxVertices) || lod.maxVertices < 3))) errs.push("invalid LOD descriptor");
         });
       }
+      if (asset.materials != null){
+        var materialNames = Object.create(null);
+        if (!Array.isArray(asset.materials)) errs.push("materials must be an array");
+        else asset.materials.forEach(function(binding){
+          if (!binding || typeof binding.name !== "string" || !binding.name.trim()) errs.push("material binding requires a name");
+          else if (materialNames[binding.name]) errs.push("duplicate material binding: " + binding.name);
+          else materialNames[binding.name] = true;
+          if (!binding || allowedRoles.indexOf(binding.role) < 0) errs.push("invalid material binding role");
+          if (!binding || !binding.textures || typeof binding.textures !== "object" || Array.isArray(binding.textures) || !Object.keys(binding.textures).length) errs.push("material binding requires texture maps");
+          else Object.keys(binding.textures).forEach(function(key){
+            if (textureKeys.indexOf(key) < 0 || !validateAssetUrl(binding.textures[key])) errs.push("invalid material texture reference: " + key);
+          });
+        });
+      }
       return errs;
     }
 
@@ -196,6 +210,43 @@
       return { valid:errors.length === 0, errors:errors, warnings:warnings, meshCount:meshCount, vertexCount:vertexCount, triangleCount:triangleCount };
     }
 
+    function applyMaterialBindings(root, bindings, request, onDone, onFail){
+      if (!bindings || !bindings.length){ onDone && onDone(); return; }
+      var factory = opts.materialFactory;
+      if (!factory || !factory.loadTextureMaps || !factory.applyTextureMaps){
+        onFail && onFail("PBR material factory is unavailable for this asset");
+        return;
+      }
+      var index = 0;
+      function next(){
+        if (request.cancelled || !alive) return;
+        if (index >= bindings.length){ onDone && onDone(); return; }
+        var binding = bindings[index++], matches = 0;
+        root.traverse(function(o){
+          if (!o.isMesh || !o.material) return;
+          var mats = Array.isArray(o.material) ? o.material : [o.material];
+          mats.forEach(function(mat){ if (mat && mat.name === binding.name) matches++; });
+        });
+        if (!matches){ onFail && onFail("GLTF material not found: " + binding.name); return; }
+        var handle = factory.loadTextureMaps(binding.textures, function(maps){
+          if (request.cancelled || !alive) return;
+          root.traverse(function(o){
+            if (!o.isMesh || !o.material) return;
+            var mats = Array.isArray(o.material) ? o.material : [o.material];
+            mats.forEach(function(mat){
+              if (!mat || mat.name !== binding.name) return;
+              factory.applyTextureMaps(mat, maps);
+              mat.userData = mat.userData || {};
+              mat.userData.__role = binding.role;
+            });
+          });
+          next();
+        }, onFail);
+        if (handle) request.textureHandles.push(handle);
+      }
+      next();
+    }
+
     function loadCatalogAsset(asset, onDone, onFail){
       var errors = validateAssetDescriptor(asset);
       if (errors.length){ if (onFail) onFail("Invalid asset descriptor: " + errors.join("; ")); return null; }
@@ -206,7 +257,7 @@
         pivot: asset.pivot ? asset.pivot.slice() : null, pivotConvention: asset.pivotConvention || null,
         bounds: asset.bounds || null, materialRoles: (asset.materialRoles || []).slice(),
         textures: asset.textures || {}, lods: (asset.lods || []).slice(),
-        previewUrl: asset.previewUrl || null, provenance: asset.provenance
+        previewUrl: asset.previewUrl || null, provenance: asset.provenance, materials: (asset.materials || []).slice()
       };
       var request = { cancelled:false };
       gateItem(descriptor).then(function(allowed){
@@ -225,7 +276,12 @@
             if (onFail) onFail("Invalid 3D model: " + report.errors.join("; "));
             return;
           }
-          onDone && onDone(root, gltf, descriptor, report);
+          applyMaterialBindings(root, asset.materials, request, function(){
+            onDone && onDone(root, gltf, descriptor, report);
+          }, function(message){
+            disposeObject(root);
+            if (onFail) onFail(message);
+          });
         }, onFail);
       }).catch(function(err){
         if (!request.cancelled && alive && onFail) onFail(err && err.message || String(err));
