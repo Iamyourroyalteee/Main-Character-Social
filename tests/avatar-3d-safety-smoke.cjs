@@ -72,7 +72,7 @@ function makeScene() {
 function makeEngine(materialFactory) {
   return sandboxWindow.MCSAvatarLoader.create({ GLTFLoader: MockGLTFLoader }, {
     renderer: { domElement: { clientWidth: 10, clientHeight: 10 }, setSize() {} },
-    scene: {}, camera: { updateProjectionMatrix() {} }, materialFactory
+    scene: {}, camera: { updateProjectionMatrix() {} }, GLTFLoader: MockGLTFLoader, materialFactory
   });
 }
 const runtimeEngine = makeEngine();
