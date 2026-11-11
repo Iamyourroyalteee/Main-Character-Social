@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Main Character Social — 3D Avatar Creator Prototype</title>
 <style>
   :root{
@@ -318,6 +318,7 @@
   }
 
 </style>
+<style id="mcs-touch-accessibility">@media (pointer: coarse){button,[role="button"],.mode-nav a,.pick,.chip,.swatch,.swatch-lg{min-width:44px;min-height:44px}button,.mode-nav a,.pick,.chip{-webkit-tap-highlight-color:transparent;touch-action:manipulation}}</style>
 </head>
 <body>
 <script>document.documentElement.dataset.mcsMode = new URLSearchParams(location.search).get("mode") === "builder" ? "builder" : "rooms";</script>
@@ -3528,7 +3529,15 @@ function resize(){
   camera.aspect = w / hgt; camera.updateProjectionMatrix();
 }
 window.addEventListener("resize", ()=>{ resize(); fitCameraToAvatar(); });
-resize(); renderTabs(); renderPanel(); renderRoomSwitcher(); refreshString(); renderLobby();
+resize();
+/* PBR is checked by default: convert any legacy toon materials still present
+   on the initial player/friend avatars before the first rendered frame. */
+if (glam){
+  glam.setPBR(true, scene, gradientMap);
+  glam.retintEquipped([player.root, friend.root]);
+  glam.retireOldMaterials([player.root, friend.root]);
+}
+renderTabs(); renderPanel(); renderRoomSwitcher(); refreshString(); renderLobby();
 /* quality init (M2A) */
 Q.autoTier = detectTier();
 Q.tier = Q.autoTier;
