@@ -10,7 +10,8 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - [x] Remove completed requests from pending tracking and prevent cancelled/torn-down loads from attaching assets.
 - [ ] Add model validation for scale, transforms, pivots, normals, UVs, materials, and bounds.
 - [x] Add automated source-level coverage for GLTF dependency wiring, URL scheme rejection, pending-request cleanup, cancellation, and teardown guards.
-- [ ] Add runtime fixture tests for successful GLB loads, missing assets, malformed files, and GPU resource disposal.
+- [x] Add runtime-mocked tests for unsafe URL rejection, valid URL acceptance, successful callback delivery, and disposal after cancellation/teardown.
+- [ ] Add real GLB fixture tests for missing assets, malformed files, and GPU resource disposal.
 
 ## P1 — Character quality
 - [ ] Replace or augment procedural base characters with original/licensed rigged GLB assets.
@@ -45,6 +46,7 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - [ ] Profile draw calls, triangles, texture memory, loading time, and frame rate.
 - [ ] Validate touch controls and responsive layouts on iPad, phones, and desktop.
 - [ ] Add asset budgets, lazy loading, LODs, instancing, and disposal checks where justified.
+- [x] Add a GitHub Actions workflow to run the avatar 3D safety/loader smoke test on relevant PR and branch changes.
 - [ ] Run automated tests, lint/static checks, production build, and preview smoke tests.
 - [ ] Deploy only after all applicable release gates pass; verify the deployment after release.
 
@@ -60,4 +62,7 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 
 ## Run log
 - 2026-11-10: Initial baseline established. Confirmed GLTFLoader was not loaded or injected despite loader support. Implementation started on `fix/pbr-default-full-avatar-materials`.
-\n- 2026-11-10: Continued execution. Added GLTF URL allowlisting and request lifecycle guards; added source-level regression assertions. Runtime GLB fixture tests remain open. Added asset provenance, manifest, resource budgets, accessibility/loading, visual regression, device profiling, CI scanning, and backwards-compatibility requirements. Commits: `471e79d`, `17ea8c3`.\n
+
+- 2026-11-10: Continued execution. Added GLTF URL allowlisting and request lifecycle guards; added source-level regression assertions. Added runtime-mocked GLTF loader tests and a dedicated GitHub Actions workflow; actual binary GLB fixtures and browser/device validation remain open. Added asset provenance, manifest, resource budgets, accessibility/loading, visual regression, device profiling, CI scanning, and backwards-compatibility requirements. Commits: `471e79d`, `17ea8c3`.
+
+- 2026-11-11: Added runtime-mocked loader tests and CI workflow. Corrected regression assertion patterns before relying on the workflow. Waiting for the new GitHub Actions run to confirm execution.
