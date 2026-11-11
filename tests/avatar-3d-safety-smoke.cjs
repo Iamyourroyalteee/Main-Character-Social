@@ -199,7 +199,8 @@ async function runCatalogAssetTests() {
         geometry: {
           attributes: { position: { count: 3 }, normal: { count: 3 }, uv: { count: 3 } },
           index: { count: 3 },
-          boundingBox: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } }
+          boundingBox: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } },
+          dispose() { disposed.geometry++; }
         }
       });
     }
