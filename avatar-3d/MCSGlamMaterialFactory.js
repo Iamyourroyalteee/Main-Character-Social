@@ -72,15 +72,15 @@
         var mainIndex = shader.fragmentShader.indexOf(mainMarker);
         if (mainIndex < 0) throw new Error("MCS PBR SSS: fragment shader main() insertion point not found");
         shader.fragmentShader = shader.fragmentShader.slice(0, mainIndex) +
-          "uniform vec3 uSSS; /* MCS SSS approximation (NOT true SSS) */\\n" +
+          "uniform vec3 uSSS; /* MCS SSS approximation (NOT true SSS) */\n" +
           shader.fragmentShader.slice(mainIndex);
         var emissiveMarker = "#include <emissivemap_fragment>";
         if (shader.fragmentShader.indexOf(emissiveMarker) < 0) throw new Error("MCS PBR SSS: emissive shader chunk not found");
         shader.fragmentShader = shader.fragmentShader.replace(
           emissiveMarker,
-          emissiveMarker + "\\n" +
-          "/* MCS SSS approximation: warm wrap on grazing angles (NOT true SSS) */\\n" +
-          "float sssWrap = clamp(1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition))), 0.0, 1.0);\\n" +
+          emissiveMarker + "\n" +
+          "/* MCS SSS approximation: warm wrap on grazing angles (NOT true SSS) */\n" +
+          "float sssWrap = clamp(1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition))), 0.0, 1.0);\n" +
           "totalEmissiveRadiance += uSSS * pow(sssWrap, 2.2) * 0.35;"
         );
       };
