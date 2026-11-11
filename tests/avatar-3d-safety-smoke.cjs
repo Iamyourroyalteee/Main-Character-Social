@@ -287,6 +287,24 @@ failingFactory.loadTextureMaps({
 assert.match(textureLoadFailure, /texture decode failed/, "texture decode failures must be surfaced");
 assert.equal(disposedTextures, 1, "partially loaded texture sets must dispose their successful textures on failure");
 failingFactory.dispose();
+let lateTextureLoad = null;
+class DeferredTextureLoader {
+  load(url, onLoad) { lateTextureLoad = onLoad; }
+}
+const pendingFactory = materialWindow.MCSGlamMaterialFactory.create({
+  MeshPhysicalMaterial: MockMaterial, MeshToonMaterial: MockMaterial,
+  Color: MockColor, TextureLoader: DeferredTextureLoader,
+  sRGBEncoding: 3001, LinearEncoding: 3000
+});
+pendingFactory.loadTextureMaps({ baseColor: "textures/pending.png" }, () => {
+  assert.fail("factory teardown must cancel pending texture requests");
+}, () => {});
+const disposedBeforeLateLoad = disposedTextures;
+pendingFactory.dispose();
+lateTextureLoad(new MockTexture("textures/pending.png"));
+assert.equal(disposedTextures, disposedBeforeLateLoad + 1,
+  "late texture results after factory teardown must be disposed immediately");
+
 
 
 materialFactory.setPBR(false);
