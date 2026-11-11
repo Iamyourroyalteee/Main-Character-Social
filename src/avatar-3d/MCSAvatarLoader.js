@@ -383,18 +383,25 @@
     function own(obj){ disposables.push(obj); return obj; }
     function disposeObject(root){
       if (!root || typeof root.traverse !== "function") return;
+      /* GLTF scenes may share geometry, materials, and textures across meshes.
+         Dispose each owned GPU resource once per root, including AO maps. */
+      var seenGeometry = [], seenMaterials = [], seenTextures = [];
+      function disposeOnce(list, resource){
+        if (!resource || list.indexOf(resource) !== -1) return;
+        list.push(resource);
+        if (typeof resource.dispose === "function") resource.dispose();
+      }
       root.traverse(function(o){
-        if (o.isMesh){
-          if (o.geometry && o.geometry.dispose) o.geometry.dispose();
-          var mats = Array.isArray(o.material) ? o.material : [o.material];
-          mats.forEach(function(m){
-            if (!m) return;
-            ["map","normalMap","roughnessMap","metalnessMap","emissiveMap","alphaMap"].forEach(function(k){
-              if (m[k] && m[k].dispose) m[k].dispose();
-            });
-            if (m.dispose) m.dispose();
+        if (!o.isMesh) return;
+        disposeOnce(seenGeometry, o.geometry);
+        var mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach(function(m){
+          if (!m) return;
+          ["map","normalMap","roughnessMap","metalnessMap","aoMap","emissiveMap","alphaMap"].forEach(function(k){
+            disposeOnce(seenTextures, m[k]);
           });
-        }
+          disposeOnce(seenMaterials, m);
+        });
       });
     }
     function teardown(){
