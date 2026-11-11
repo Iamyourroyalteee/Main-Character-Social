@@ -15,6 +15,7 @@
     var cache = {};
     var owned = [];
     var ownedTextures = [];
+    var activeTextureRequests = [];
     var disposed = false;
     var PBR = true; /* realistic material mode is the default */
 
@@ -112,11 +113,13 @@
     function loadTextureMaps(refs, onDone, onFail){
       var keys = Object.keys(refs || {});
       var request = { cancelled:false, failed:false, completed:false, textures:{}, cancel:function(){ request.cancelled = true; } };
-      if (!keys.length){ onDone && onDone({}); return request; }
-      if (!THREE.TextureLoader){ request.failed = true; onFail && onFail("TextureLoader is not available"); return request; }
+      activeTextureRequests.push(request);
+      if (!keys.length){ request.completed = true; activeTextureRequests = activeTextureRequests.filter(function(r){ return r !== request; }); onDone && onDone({}); return request; }
+      if (!THREE.TextureLoader){ request.failed = true; activeTextureRequests = activeTextureRequests.filter(function(r){ return r !== request; }); onFail && onFail("TextureLoader is not available"); return request; }
       var allowed = keys.filter(function(key){ return Object.prototype.hasOwnProperty.call(MAP_FIELDS,key); });
       if (allowed.length !== keys.length || keys.some(function(key){ return !safeTextureUrl(refs[key]); })){
         request.failed = true;
+        activeTextureRequests = activeTextureRequests.filter(function(r){ return r !== request; });
         onFail && onFail("Invalid PBR texture map reference");
         return request;
       }
@@ -129,11 +132,12 @@
         });
         request.textures = {};
       }
-      request.cancel = function(){ if (request.completed) return; request.cancelled = true; releaseTextures(); };
+      request.cancel = function(){ if (request.completed) return; request.cancelled = true; releaseTextures(); activeTextureRequests = activeTextureRequests.filter(function(r){ return r !== request; }); };
       function fail(err){
         if (request.failed || request.cancelled) return;
         request.failed = true;
         releaseTextures();
+        activeTextureRequests = activeTextureRequests.filter(function(r){ return r !== request; });
         onFail && onFail(err && err.message || String(err));
       }
       var textureLoader = new THREE.TextureLoader();
@@ -147,7 +151,7 @@
             texture.needsUpdate = true;
             request.textures[key] = texture;
             ownedTextures.push(texture);
-            if (--remaining === 0){ request.completed = true; onDone && onDone(request.textures); }
+            if (--remaining === 0){ request.completed = true; activeTextureRequests = activeTextureRequests.filter(function(r){ return r !== request; }); onDone && onDone(request.textures); }
           }, undefined, fail);
         } catch(err){ fail(err); }
       });
@@ -354,6 +358,8 @@
         if (disposed) return; disposed = true;
         owned.forEach(function(m){ if (m && m.dispose) m.dispose(); });
         owned = [];
+        activeTextureRequests.slice().forEach(function(request){ if (request && request.cancel) request.cancel(); });
+        activeTextureRequests = [];
         ownedTextures.forEach(function(texture){ if (texture && texture.dispose) texture.dispose(); });
         ownedTextures = [];
         cache = {};
