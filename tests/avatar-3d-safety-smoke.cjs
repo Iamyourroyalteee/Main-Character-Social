@@ -348,6 +348,15 @@ assert.equal(disposedTextures, disposedBeforeLateLoad + 1,
 
 
 
+const roleFactory = materialWindow.MCSGlamMaterialFactory.create({
+  MeshPhysicalMaterial: MockMaterial, MeshToonMaterial: MockMaterial, Color: MockColor, DoubleSide: 2
+});
+roleFactory.setPBR(false);
+["skin","lips","hair","fabric","denim","metal","gold","chrome","glass","wood","stone","emissive","plastic","leather","rubber","water"].forEach((role) => {
+  const material = roleFactory.forRole(role, "#aabbcc");
+  assert.equal(material.userData.__role, role, "semantic material role should resolve: " + role);
+});
+roleFactory.dispose();
 materialFactory.setPBR(false);
 const oldFabric = materialFactory.fabric("#ffffff");
 oldFabric.map = loadedMaps.baseColor;
