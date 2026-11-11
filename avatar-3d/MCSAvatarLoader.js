@@ -42,6 +42,23 @@
       return errs;
     }
 
+    function validateAssetDescriptor(asset){
+      var errs = [];
+      if (!asset || typeof asset !== "object") return ["asset descriptor is not an object"];
+      if (typeof asset.id !== "string" || !asset.id.trim()) errs.push("missing asset id");
+      if (!asset.slot || !SLOT_SET[asset.slot]) errs.push("unknown asset slot");
+      if (!validateAssetUrl(asset.url)) errs.push("invalid asset URL");
+      if (asset.format !== "glb" && asset.format !== "gltf") errs.push("format must be glb or gltf");
+      if (asset.is_adult != null && typeof asset.is_adult !== "boolean") errs.push("is_adult must be boolean");
+      if (asset.hides != null && !Array.isArray(asset.hides)) errs.push("hides must be an array");
+      if (Array.isArray(asset.hides)) asset.hides.forEach(function(zone){
+        if (ZONES.indexOf(zone) < 0) errs.push("unknown hidden body zone: " + zone);
+      });
+      if (asset.scale != null && (!Number.isFinite(asset.scale) || asset.scale <= 0)) errs.push("scale must be a positive finite number");
+      if (asset.unit != null && ["m","cm","mm"].indexOf(asset.unit) < 0) errs.push("unit must be m, cm, or mm");
+      return errs;
+    }
+
     /* ---------- GLTF loading (optional; procedural remains default) ---------- */
     var loader = null;
     if (THREE_GLTF_LOADER) loader = new THREE_GLTF_LOADER();
@@ -80,6 +97,32 @@
       pending.forEach(function(p){ p.cancelled = true; });
       pending = [];
       if (loader && loader.manager && loader.manager.abort) { try { loader.manager.abort(); } catch(e){} }
+    }
+
+    function loadCatalogAsset(asset, onDone, onFail){
+      var errors = validateAssetDescriptor(asset);
+      if (errors.length){ if (onFail) onFail("Invalid asset descriptor: " + errors.join("; ")); return null; }
+      var descriptor = {
+        id: asset.id, slot: asset.slot, is_adult: !!asset.is_adult,
+        hides: asset.hides || [], scale: asset.scale || 1, unit: asset.unit || "m"
+      };
+      var request = { cancelled:false };
+      gateItem(descriptor).then(function(allowed){
+        if (request.cancelled || !alive) return;
+        if (!allowed){ if (onFail) onFail("Asset access denied"); return; }
+        request.loadHandle = loadGLTF(asset.url, function(root, gltf){
+          if (request.cancelled || !alive){ if (root) disposeObject(root); return; }
+          if (asset.scale && root.scale && root.scale.setScalar) root.scale.setScalar(asset.scale);
+          onDone && onDone(root, gltf, descriptor);
+        }, onFail);
+      }).catch(function(err){
+        if (!request.cancelled && alive && onFail) onFail(err && err.message || String(err));
+      });
+      request.cancel = function(){
+        request.cancelled = true;
+        if (request.loadHandle) request.loadHandle.cancelled = true;
+      };
+      return request;
     }
 
     /* ---------- ownership + disposal ---------- */
