@@ -4,13 +4,13 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 
 ## P0 — Asset pipeline foundation
 - [x] Wire Three.js r128 GLTFLoader into the shared avatar engine.
-- [ ] Add schema-validated GLB/GLTF base-character and catalog-asset loading.
+- [x] Add schema-validated GLB/GLTF catalog-asset loading with stable IDs, supported slots/formats, safe URLs, age gating, and explicit units.
 - [x] Add safe cancellation guards, error handling, disposal, and graceful procedural fallback.
 - [x] Validate GLTF URLs: permit project-relative/HTTPS paths; reject executable, data, blob, file, and protocol-relative schemes.
 - [x] Remove completed requests from pending tracking and prevent cancelled/torn-down loads from attaching assets.
-- [ ] Add model validation for scale, transforms, pivots, normals, UVs, materials, and bounds.
+- [ ] Add full model validation for transforms, pivots, normals, UVs, material completeness, and bounds (catalog unit/scale normalization is now implemented).
 - [x] Add automated source-level coverage for GLTF dependency wiring, URL scheme rejection, pending-request cleanup, cancellation, and teardown guards.
-- [x] Add runtime-mocked tests for unsafe URL rejection, valid URL acceptance, successful callback delivery, and disposal after cancellation/teardown.
+- [x] Add runtime-mocked tests for unsafe URL rejection, valid URL acceptance, successful callback delivery, disposal after cancellation/teardown, catalog schema validation, GLB loading, unit normalization, and default-deny adult gating.
 - [ ] Add real GLB fixture tests for missing assets, malformed files, and GPU resource disposal.
 
 ## P1 — Character quality
@@ -66,3 +66,5 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - 2026-11-10: Continued execution. Added GLTF URL allowlisting and request lifecycle guards; added source-level regression assertions. Added runtime-mocked GLTF loader tests and a dedicated GitHub Actions workflow; actual binary GLB fixtures and browser/device validation remain open. Added asset provenance, manifest, resource budgets, accessibility/loading, visual regression, device profiling, CI scanning, and backwards-compatibility requirements. Commits: `471e79d`, `17ea8c3`.
 
 - 2026-11-11: Added runtime-mocked loader tests and CI workflow. Corrected regression assertion patterns before relying on the workflow. Waiting for the new GitHub Actions run to confirm execution.
+
+- 2026-11-11: Added a schema-validated catalog asset loading API, unit normalization (m/cm/mm), and default-deny adult asset gating. Added mocked runtime coverage for these paths. Real asset fixtures and full model bounds/UV/material validation remain open.
