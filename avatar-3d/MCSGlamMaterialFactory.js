@@ -167,23 +167,29 @@
       retintEquipped: function(roots){
         var env = PBR ? studioEnvironment() : null;
         var count = 0;
+        function retintOne(old){
+          if (!old) return old;
+          var role = old.userData && old.userData.__role;
+          if (!role) return old;
+          var hex = old.color && old.color.getHexString ? "#" + old.color.getHexString() : "#ffffff";
+          var nm = makeMat(role, hex, env);
+          if (!nm) return old;
+          nm.userData.__role = role;
+          /* preserve alpha/shadow flags the wardrobe set */
+          if (old.transparent !== undefined){
+            nm.transparent = old.transparent;
+            nm.alphaTest = old.alphaTest || 0;
+            nm.side = old.side;
+          }
+          count++;
+          return nm;
+        }
         (roots || []).forEach(function(root){
           if (!root) return;
           root.traverse(function(o){
             if (!o.isMesh || !o.material) return;
-            var role = o.material.userData && o.material.userData.__role;
-            if (!role) return;
-            var hex = "#" + o.material.color.getHexString();
-            var nm = makeMat(role, hex, env);
-            nm.userData.__role = role;
-            /* preserve alpha/shadow flags the wardrobe set */
-            if (o.material.transparent !== undefined){
-              nm.transparent = o.material.transparent;
-              nm.alphaTest = o.material.alphaTest || 0;
-              nm.side = o.material.side;
-            }
-            o.material = nm;
-            count++;
+            if (Array.isArray(o.material)) o.material = o.material.map(retintOne);
+            else o.material = retintOne(o.material);
           });
         });
         return count;
@@ -191,11 +197,13 @@
       /* dispose any factory materials no longer referenced by the given roots.
          Call ONLY after retintEquipped has swapped references. */
       retireOldMaterials: function(roots){
-        var live = {};
+        var live = Object.create(null);
         (roots || []).forEach(function(root){
           if (!root) return;
           root.traverse(function(o){
-            if (o.isMesh && o.material) live[o.material.uuid] = 1;
+            if (!o.isMesh || !o.material) return;
+            var mats = Array.isArray(o.material) ? o.material : [o.material];
+            mats.forEach(function(mat){ if (mat && mat.uuid) live[mat.uuid] = 1; });
           });
         });
         var freed = 0, keep = [];
