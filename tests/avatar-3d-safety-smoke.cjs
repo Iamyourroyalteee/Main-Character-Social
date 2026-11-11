@@ -10,10 +10,16 @@ assert.match(glam, /Array\.isArray\(o\.material\).*?map\(retintOne\)/s, "PBR fac
 assert.match(glam, /var mats = Array\.isArray\(o\.material\) \? o\.material : \[o\.material\]/, "PBR factory must track every material when retiring old materials");
 const assetSchema = JSON.parse(fs.readFileSync(path.join(__dirname, "../docs/3d-asset-manifest.schema.json"), "utf8"));
 const assetManifest = JSON.parse(fs.readFileSync(path.join(__dirname, "../avatar-3d/assets/manifest.json"), "utf8"));
+const gltfFixture = JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures/minimal-pbr.gltf"), "utf8"));
+const browserSmoke = fs.readFileSync(path.join(__dirname, "../avatar-3d/asset-pipeline-smoke.html"), "utf8");
 assert.equal(assetSchema.$defs.asset.required.includes("provenance"), true, "asset schema must require provenance");
 assert.ok(assetSchema.$defs.asset.properties.materials, "asset schema must define per-material PBR texture bindings");
 assert.equal(assetManifest.schemaVersion, "1.0.0", "asset manifest must declare its schema version");
 assert.equal(assetManifest.assets.length, 0, "unverified external models must not be added as placeholder assets");
+assert.equal(gltfFixture.asset.version, "2.0", "browser fixture must be a valid glTF 2.0 asset");
+assert.equal(gltfFixture.meshes.length, 1, "browser fixture must include a real mesh");
+assert.ok(browserSmoke.includes("engine.loadCatalogAsset"), "browser smoke page must exercise the catalog loader");
+assert.ok(browserSmoke.includes("../tests/fixtures/minimal-pbr.gltf"), "browser smoke page must load the repository fixture");
 
 const gate = html.match(/function isAdultProfile\(\)\s*\{([\s\S]*?)\}/);
 assert.ok(gate, "3D prototype must define its adult-access gate");
