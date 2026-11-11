@@ -291,9 +291,23 @@
       retintEquipped: function(roots){
         var env = PBR ? studioEnvironment() : null;
         var count = 0;
-        function retintOne(old){
+        function retintOne(old, mesh){
           if (!old) return old;
           var role = old.userData && old.userData.__role;
+          /* Procedural face details and a few legacy avatar parts are still
+             authored with toonMat() rather than the semantic factory. Convert
+             those remaining toon materials too, otherwise PBR mode is only
+             partially applied. Prefer mesh/material names for semantic roles;
+             use fabric as the safe neutral fallback for other avatar surfaces. */
+          if (!role && old.isMeshToonMaterial){
+            var label = String((mesh && mesh.name) || "") + " " + String(old.name || "");
+            label = label.toLowerCase();
+            if ((mesh && mesh.userData && mesh.userData.isSkin) || /skin|body|face|neck|torso|arm|leg|hand/.test(label)) role = "skin";
+            else if (/hair|brow|lash/.test(label)) role = "hair";
+            else if (/lip|mouth/.test(label)) role = "lips";
+            else if (/eye|pupil|iris/.test(label)) role = "plastic";
+            else role = "fabric";
+          }
           if (!role) return old;
           var hex = old.color && old.color.getHexString ? "#" + old.color.getHexString() : "#ffffff";
           var nm = makeMat(role, hex, env);
@@ -315,8 +329,8 @@
           if (!root) return;
           root.traverse(function(o){
             if (!o.isMesh || !o.material) return;
-            if (Array.isArray(o.material)) o.material = o.material.map(retintOne);
-            else o.material = retintOne(o.material);
+            if (Array.isArray(o.material)) o.material = o.material.map(function(mat){ return retintOne(mat, o); });
+            else o.material = retintOne(o.material, o);
           });
         });
         return count;
