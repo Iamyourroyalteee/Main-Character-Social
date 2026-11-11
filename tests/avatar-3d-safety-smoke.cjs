@@ -56,9 +56,9 @@ const vm = require("node:vm");
 const sandboxWindow = {};
 vm.runInNewContext(loader, { window: sandboxWindow });
 let calls = [];
-let completeLoad;
+let completeLoad, failLoad;
 class MockGLTFLoader {
-  load(url, onLoad) { calls.push(url); completeLoad = onLoad; }
+  load(url, onLoad, onProgress, onError) { calls.push(url); completeLoad = onLoad; failLoad = onError; }
 }
 const disposed = { geometry: 0, material: 0, texture: 0 };
 function makeScene() {
@@ -91,6 +91,12 @@ let loaded = false;
 runtimeEngine.loadGLTF("models/valid.glb", (root) => { loaded = root === loadedScene; });
 completeLoad({ scene: loadedScene });
 assert.equal(loaded, true, "successful GLTF callback should deliver its scene");
+let missingAssetError = "";
+runtimeEngine.loadGLTF("models/missing.glb", () => assert.fail("missing GLTF must not load"),
+  (message) => { missingAssetError = message; });
+failLoad(new Error("404 asset not found"));
+assert.match(missingAssetError, /404 asset not found/, "missing asset errors must reach the caller");
+
 
 const cancelledEngine = makeEngine();
 const cancelledScene = makeScene();
