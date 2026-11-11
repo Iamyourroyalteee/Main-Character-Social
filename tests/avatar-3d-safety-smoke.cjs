@@ -6,6 +6,8 @@ const path = require("node:path");
 const html = fs.readFileSync(path.join(__dirname, "../avatar-3d/index.html"), "utf8");
 const loader = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSAvatarLoader.js"), "utf8");
 const glam = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSGlamMaterialFactory.js"), "utf8");
+assert.match(glam, /Array\.isArray\(o\.material\).*?map\(retintOne\)/s, "PBR factory must retint each material in imported material arrays");
+assert.match(glam, /var mats = Array\.isArray\(o\.material\) \? o\.material : \[o\.material\]/, "PBR factory must track every material when retiring old materials");
 const assetSchema = JSON.parse(fs.readFileSync(path.join(__dirname, "../docs/3d-asset-manifest.schema.json"), "utf8"));
 const assetManifest = JSON.parse(fs.readFileSync(path.join(__dirname, "../avatar-3d/assets/manifest.json"), "utf8"));
 assert.equal(assetSchema.$defs.asset.required.includes("provenance"), true, "asset schema must require provenance");
