@@ -84,4 +84,46 @@ teardownEngine.teardown();
 lateCallback({ scene: lateScene });
 assert.equal(teardownEngine.isAlive(), false, "teardown must mark engine inactive");
 console.log("PASS: GLTF runtime mock rejects unsafe URLs, accepts relative/HTTPS URLs, delivers successful loads, and disposes late cancelled/torn-down results.");
+async function runCatalogAssetTests() {
+  const catalogEngine = makeEngine();
+  const invalid = catalogEngine.validateAssetDescriptor({
+    id: "", slot: "unknown", url: "javascript:alert(1)", format: "fbx"
+  });
+  assert.ok(invalid.length >= 4, "catalog schema must reject missing IDs, unknown slots, unsafe URLs, and unsupported formats");
+
+  const catalogScene = makeScene();
+  let catalogLoaded = false;
+  let catalogError = "";
+  catalogEngine.loadCatalogAsset({
+    id: "hat-demo", slot: "hat", url: "models/hat.glb",
+    format: "glb", is_adult: false, unit: "cm", scale: 2
+  }, (root, gltf, descriptor) => {
+    catalogLoaded = root === catalogScene && descriptor.id === "hat-demo";
+  }, (message) => { catalogError = message; });
+  await Promise.resolve();
+  assert.equal(calls.at(-1), "models/hat.glb", "valid catalog descriptors should load their GLB");
+  const scaleState = { value: null };
+  catalogScene.scale = { setScalar(value) { scaleState.value = value; } };
+  completeLoad({ scene: catalogScene });
+  assert.equal(catalogLoaded, true, "catalog load should return the loaded scene and validated descriptor");
+  assert.equal(scaleState.value, 0.02, "catalog import should normalize centimeters to meters and apply scale");
+
+  const adultCallsBefore = calls.length;
+  let adultDenied = "";
+  catalogEngine.loadCatalogAsset({
+    id: "adult-item", slot: "accessory", url: "models/adult.glb",
+    format: "glb", is_adult: true
+  }, () => assert.fail("adult asset must remain locked without trusted entitlement"),
+  (message) => { adultDenied = message; });
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.match(adultDenied, /Asset access denied/, "adult catalog assets must fail closed without entitlement");
+  assert.equal(calls.length, adultCallsBefore, "denied adult assets must never start a network load");
+  console.log("PASS: catalog descriptor validation, GLB loading, unit normalization, and default-deny adult gating.");
+}
+runCatalogAssetTests().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});
+
 
