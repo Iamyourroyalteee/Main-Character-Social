@@ -5,6 +5,11 @@ const path = require("node:path");
 
 const html = fs.readFileSync(path.join(__dirname, "../avatar-3d/index.html"), "utf8");
 const loader = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSAvatarLoader.js"), "utf8");
+const assetSchema = JSON.parse(fs.readFileSync(path.join(__dirname, "../docs/3d-asset-manifest.schema.json"), "utf8"));
+const assetManifest = JSON.parse(fs.readFileSync(path.join(__dirname, "../avatar-3d/assets/manifest.json"), "utf8"));
+assert.equal(assetSchema.$defs.asset.required.includes("provenance"), true, "asset schema must require provenance");
+assert.equal(assetManifest.schemaVersion, "1.0.0", "asset manifest must declare its schema version");
+assert.equal(assetManifest.assets.length, 0, "unverified external models must not be added as placeholder assets");
 
 const gate = html.match(/function isAdultProfile\(\)\s*\{([\s\S]*?)\}/);
 assert.ok(gate, "3D prototype must define its adult-access gate");
@@ -22,6 +27,8 @@ assert.match(html, /examples\/js\/loaders\/GLTFLoader\.js/, "prototype must load
 assert.match(html, /GLTFLoader:\s*THREE\.GLTFLoader\s*\|\|\s*null/, "avatar engine must receive the loaded GLTFLoader constructor");
 assert.match(loader, /opts\.GLTFLoader\s*\|\|\s*null/, "loader must retain a graceful fallback when GLTFLoader is unavailable");
 assert.match(loader, /function validateAssetDescriptor\(asset\)/, "catalog asset descriptors must be schema-validated");
+assert.match(loader, /function validateAssetManifest\(manifest\)/, "the versioned asset manifest must be validated");
+assert.match(loader, /asset id must be a stable lowercase identifier/, "asset IDs must be stable and normalized");
 assert.match(loader, /function loadCatalogAsset\(asset, onDone, onFail\)/, "validated catalog assets must have a managed loading path");
 assert.match(loader, /function validateModel\(root, limits\)/, "loaded model geometry and transforms must be validated");
 assert.match(loader, /if \(!root\)\{ if \(onFail\) onFail\("Invalid 3D model: empty GLTF scene"\)/, "empty GLTF scenes must fail closed");
@@ -96,6 +103,17 @@ async function runCatalogAssetTests() {
   });
   assert.ok(invalid.length >= 4, "catalog schema must reject missing IDs, unknown slots, unsafe URLs, and unsupported formats");
   assert.ok(invalid.includes("missing asset provenance"), "catalog imports must require owner/license/source/use provenance");
+
+  assert.equal(catalogEngine.validateAssetManifest(assetManifest).length, 0, "empty verified manifest should pass validation");
+  const duplicateAsset = {
+    id: "hat-demo", slot: "hat", url: "models/hat.glb", format: "glb",
+    provenance: { owner: "MCS", license: "Original", source: "internal", permittedUse: "commercial" }
+  };
+  const duplicateReport = catalogEngine.validateAssetManifest({
+    schemaVersion: "1.0.0", assets: [duplicateAsset, duplicateAsset]
+  });
+  assert.ok(duplicateReport.some((error) => error.includes("duplicate asset id")),
+    "manifest validator must reject duplicate stable asset IDs");
 
   const validModelReport = catalogEngine.validateModel(makeScene());
   assert.equal(validModelReport.valid, true, "valid geometry, normals, UVs, and bounds should pass model validation");
