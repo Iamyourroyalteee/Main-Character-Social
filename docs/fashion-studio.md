@@ -4,7 +4,8 @@ A Polyvore-inspired fashion composition studio, implemented as a separate experi
 
 ## Included in this milestone
 - Searchable, categorized wardrobe catalog.
-- Drag-and-drop / tap-to-add moodboard composition.
+- Drag-and-drop / tap-to-add moodboard composition, with keyboard selection, arrow-key positioning, and Delete/Backspace removal.
+- 44px minimum touch targets and visible keyboard focus indicators.
 - Move, resize, recolor, duplicate, and remove individual pieces.
 - Look naming, styling notes, autosaved draft, and local collections.
 - SVG moodboard export.
