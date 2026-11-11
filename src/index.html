@@ -1678,7 +1678,7 @@ function renderAvatar(){
   const m=meP();const DEMO={skin:"glow",hair:"waves",hair_color:"black",outfit:"satin",shoes:"heels",accessory:"hoops"};
   if(!m){return '<div class="pt"><h1 class="page">Create Your Avatar</h1><p class="small dim mt1">This is the Avatar Studio — dress up a character that\'s unmistakably you: skin tone, hair, outfit, shoes, extras. Here\'s the look it starts with:</p><div class="card card-goldfull card-lg mt5" style="display:flex;flex-direction:column;align-items:center;gap:1rem"><div class="stage" style="height:16rem;width:11rem">'+dressUpSVG(DEMO,235)+'</div><p class="small dim" style="max-width:28rem;text-align:center">Style families — ✨ Glam, 🖤 Emo, 🌈 Scene, 🌿 Casual, 🧢 Streetwear — plus mix-and-match pieces. Save as many looks as you want to your collection and post your favorites as content.</p><button type="button" class="btn btn-red" data-act="go" data-tab="profile">Create your profile to build your avatar</button></div><section class="card card-lg mt6" aria-label="Real photo option"><h2 class="sub">More of a real-photo person?</h2><p class="small dim mt1">You don\'t have to use a character at all. Once you have a profile, you can upload your OWN real photo as your profile picture — free for everyone — and fill your profile with your own photos and videos. Your face, your choice.</p></section></div>';}
   let h='<div class="pt"><h1 class="page">Create Your Avatar</h1><p class="small dim mt1">Build whichever avatar you want, '+esc(m.display_name)+" — then save it and it shows on your profile everywhere.</p>";
-  h+='<section class="card card-lg mt4" aria-label="3D Avatar Builder"><h2 class="sub">3D Avatar Builder</h2><p class="small dim mt1">Build your character in the shared 3D studio. Your saved character syncs to your MCS account when you are signed in; otherwise it stays on this device.</p><iframe id="mcs-avatar-3d-frame" title="Main Character Social 3D Avatar Builder" src="/avatar-3d/index.html?mode=builder&embedded=1" loading="eager" allow="fullscreen" style="display:block;width:100%;height:900px;min-height:760px;border:1px solid rgba(201,168,106,.35);border-radius:16px;background:#100d0c"></iframe></section>';
+  h+='<section class="card card-lg mt4" aria-label="Avatar experiences"><h2 class="sub">Your Avatar Studio</h2><p class="small dim mt1">Build your character or take that same saved character into a social room. Both experiences share your MCS avatar.</p><nav class="rowflex mt3" aria-label="Avatar experiences" style="gap:.6rem;flex-wrap:wrap"><button type="button" class="btn btn-gold" data-mcs-avatar-mode="builder" aria-pressed="true">Avatar Builder</button><button type="button" class="btn" data-mcs-avatar-mode="rooms" aria-pressed="false">Avatar Rooms</button></nav><iframe id="mcs-avatar-3d-frame" title="Main Character Social Avatar Builder and Rooms" src="/avatar-3d/index.html?mode=builder&embedded=1" loading="eager" allow="fullscreen" style="display:block;width:100%;height:900px;min-height:760px;border:1px solid rgba(201,168,106,.35);border-radius:16px;background:#100d0c;margin-top:1rem"></iframe></section>';
   h+='<div class="card card-goldfull mt4" style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap"><div class="stage" style="height:10rem;width:7rem;flex-shrink:0">'+dressUpSVG(m.av,148)+'</div><div style="min-width:200px" class="grow"><p class="kick" style="letter-spacing:.14em">Your saved avatar</p><p class="small dim mt1">This is the character on your profile right now. Change anything in the studio below and tap “Wear this look”.</p><p class="small mt2">On your profile as: <span style="font-weight:600">@'+esc(m.username)+"</span></p></div></div>";
   h+=renderAvatarStudio();
   /* Look collection */
@@ -4981,6 +4981,24 @@ renderSettings=function(){var h=av36origSettings2();var m=meP();if(m&&UI.setting
     var character = profile && profile.avatar3d && profile.avatar3d.v === 1 ? profile.avatar3d : null;
     try{ source.postMessage({type:"MCS_AVATAR_LOAD",hasAccount:accountReady,ageBand:"teen",character:character}, window.location.origin); }catch(e){}
   }
+  document.addEventListener("click", function(event){
+    var button = event.target && event.target.closest ? event.target.closest("[data-mcs-avatar-mode]") : null;
+    if(!button) return;
+    var mode = button.getAttribute("data-mcs-avatar-mode");
+    if(mode !== "builder" && mode !== "rooms") return;
+    var f = frame();
+    if(!f) return;
+    document.querySelectorAll("[data-mcs-avatar-mode]").forEach(function(node){
+      var selected = node === button;
+      node.setAttribute("aria-pressed", String(selected));
+      node.classList.toggle("btn-gold", selected);
+    });
+    var next = new URL(f.getAttribute("src") || "/avatar-3d/index.html", window.location.origin);
+    next.searchParams.set("mode", mode);
+    next.searchParams.set("embedded", "1");
+    f.setAttribute("title", mode === "rooms" ? "Main Character Social Avatar Rooms" : "Main Character Social Avatar Builder");
+    f.src = next.pathname + next.search;
+  });
   window.addEventListener("message", async function(event){
     var f = frame();
     if(!f || event.origin !== window.location.origin || event.source !== f.contentWindow) return;
