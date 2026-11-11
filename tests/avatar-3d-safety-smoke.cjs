@@ -5,6 +5,7 @@ const path = require("node:path");
 
 const html = fs.readFileSync(path.join(__dirname, "../avatar-3d/index.html"), "utf8");
 const loader = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSAvatarLoader.js"), "utf8");
+const glam = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSGlamMaterialFactory.js"), "utf8");
 const assetSchema = JSON.parse(fs.readFileSync(path.join(__dirname, "../docs/3d-asset-manifest.schema.json"), "utf8"));
 const assetManifest = JSON.parse(fs.readFileSync(path.join(__dirname, "../avatar-3d/assets/manifest.json"), "utf8"));
 assert.equal(assetSchema.$defs.asset.required.includes("provenance"), true, "asset schema must require provenance");
@@ -181,6 +182,40 @@ async function runCatalogAssetTests() {
   assert.match(adultDenied, /Asset access denied/, "adult catalog assets must fail closed without entitlement");
   assert.equal(calls.length, adultCallsBefore, "denied adult assets must never start a network load");
   console.log("PASS: catalog descriptor validation, GLB loading, unit normalization, and default-deny adult gating.");
+const materialWindow = {};
+vm.runInNewContext(glam, { window: materialWindow });
+let materialId = 0, disposedMaterials = 0;
+function MockColor(hex) {
+  this.hex = String(hex).replace("#", "");
+  this.getHexString = () => this.hex;
+}
+class MockMaterial {
+  constructor(params) {
+    this.color = params.color;
+    this.userData = {};
+    this.uuid = "mock-material-" + (++materialId);
+    this.dispose = () => { disposedMaterials++; };
+  }
+}
+const materialFactory = materialWindow.MCSGlamMaterialFactory.create({
+  MeshPhysicalMaterial: MockMaterial, MeshToonMaterial: MockMaterial,
+  Color: MockColor, DoubleSide: 2
+});
+materialFactory.setPBR(false);
+const oldFabric = materialFactory.fabric("#ffffff");
+const oldGold = materialFactory.gold();
+const multiMaterialRoot = {
+  traverse(fn) { fn({ isMesh: true, material: [oldFabric, oldGold] }); }
+};
+assert.equal(materialFactory.retintEquipped([multiMaterialRoot]), 2,
+  "PBR mode switching must retint every role-tagged material in a multi-material mesh");
+assert.ok(Array.isArray(multiMaterialRoot.material), "multi-material assignments must remain arrays");
+assert.notEqual(multiMaterialRoot.material[0], oldFabric, "old material references must be replaced");
+assert.equal(materialFactory.retireOldMaterials([multiMaterialRoot]), 2,
+  "only the two replaced materials should be retired");
+assert.equal(disposedMaterials, 2, "replaced materials should be disposed after reassignment");
+console.log("PASS: multi-material PBR retint preserves arrays and disposes replaced materials safely.");
+
 }
 runCatalogAssetTests().catch((error) => {
   console.error(error);
