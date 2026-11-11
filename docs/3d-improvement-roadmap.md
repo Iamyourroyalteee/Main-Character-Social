@@ -89,3 +89,5 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - 2026-11-10: Extended catalog request lifecycle tracking through material texture binding; engine teardown now cancels pending texture requests and disposes uncommitted models. Added a runtime-mocked teardown regression test.
 
 - 2026-11-10: Expanded the semantic PBR factory with material builders for glass, wood, stone, plastic, leather, rubber, water, emissive, and generic metal; added role mapping tests. Environment-wide role assignment remains open.
+
+- 2026-11-10: Latest branch work is committed to PR #10 (`d1e2136`). The newest available Vercel preview is still on earlier commit `80508c1`; a manual preview redeploy was blocked by Vercel's daily API deployment quota (402, retry after 24 hours). Production remains unchanged. GitHub Actions workflow is configured, but no PR-triggered run is visible through the available status endpoint; automated test execution is not yet claimed.
