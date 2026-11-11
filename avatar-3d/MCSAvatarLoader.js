@@ -45,18 +45,35 @@
     /* ---------- GLTF loading (optional; procedural remains default) ---------- */
     var loader = null;
     if (THREE_GLTF_LOADER) loader = new THREE_GLTF_LOADER();
+    function validateAssetUrl(url){
+      if (typeof url !== "string" || !url.trim()) return false;
+      var value = url.trim();
+      /* Permit project-relative paths and HTTPS assets. Reject executable,
+         data/blob URLs and protocol-relative URLs to avoid unsafe asset origins. */
+      if (/^(javascript|data|blob|file):/i.test(value) || /^\\/\\//.test(value)) return false;
+      if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return /^https:\/\//i.test(value);
+      return !/[\\u0000-\\u001f]/.test(value);
+    }
     function loadGLTF(url, onDone, onFail){
+      if (!validateAssetUrl(url)){ if (onFail) onFail("Invalid asset URL — use a project-relative path or HTTPS URL"); return null; }
       if (!loader){ if (onFail) onFail("GLTFLoader not available — procedural pipeline stays active"); return null; }
       var handle = { cancelled:false };
       pending.push(handle);
-      loader.load(url, function(gltf){
-        handle.cancelled = true;
-        if (!alive) { disposeObject(gltf.scene); return; }
-        onDone && onDone(gltf.scene, gltf);
-      }, undefined, function(err){
-        handle.cancelled = true;
-        onFail && onFail(err && err.message || String(err));
-      });
+      function settle(){ pending = pending.filter(function(p){ return p !== handle; }); }
+      try {
+        loader.load(url, function(gltf){
+          settle();
+          if (handle.cancelled || !alive) { if (gltf && gltf.scene) disposeObject(gltf.scene); return; }
+          onDone && onDone(gltf.scene, gltf);
+        }, undefined, function(err){
+          settle();
+          if (handle.cancelled || !alive) return;
+          onFail && onFail(err && err.message || String(err));
+        });
+      } catch(err) {
+        settle();
+        if (!handle.cancelled && alive && onFail) onFail(err && err.message || String(err));
+      }
       return handle;
     }
     function cancelPending(){
