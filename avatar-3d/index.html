@@ -3513,7 +3513,25 @@ const engine = window.MCSAvatarLoader ? MCSAvatarLoader.create(THREE, {
   zones: ZONE_NAMES,
   getItem: (id)=> ITEMS[id] || null
 }) : null;
-if (engine){ window.__mcsEngine = engine; engine.recomputeZoneRefs(player.wardrobe.dict); engine.applyCulling(player, engine.zoneRefs); }
+if (engine){
+  window.__mcsEngine = engine;
+  engine.recomputeZoneRefs(player.wardrobe.dict);
+  engine.applyCulling(player, engine.zoneRefs);
+  /* Catalog entries stay unavailable until the complete manifest validates. */
+  window.__mcsAssetCatalog = [];
+  window.__mcsAssetCatalogStatus = "loading";
+  engine.loadAssetManifest("assets/manifest.json", function(manifest){
+    window.__mcsAssetCatalog = manifest.assets;
+    window.__mcsAssetCatalogStatus = "ready";
+    window.dispatchEvent(new CustomEvent("mcs:asset-catalog-ready", { detail:{ count:manifest.assets.length } }));
+  }, function(error){
+    window.__mcsAssetCatalog = [];
+    window.__mcsAssetCatalogStatus = "error";
+    window.__mcsAssetCatalogError = error;
+    console.error("[MCS] Asset catalog was not exposed:", error);
+    window.dispatchEvent(new CustomEvent("mcs:asset-catalog-error", { detail:{ message:error } }));
+  });
+}
 
 /* QA / integration hooks */
 window.MCS = { THREE, scene, camera, renderer, player, friend, outfit, FRIEND_OUTFIT,
