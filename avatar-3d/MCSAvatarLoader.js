@@ -170,8 +170,11 @@
       var errors = validateAssetDescriptor(asset);
       if (errors.length){ if (onFail) onFail("Invalid asset descriptor: " + errors.join("; ")); return null; }
       var descriptor = {
-        id: asset.id, slot: asset.slot, is_adult: !!asset.is_adult,
-        hides: asset.hides || [], scale: asset.scale || 1, unit: asset.unit || "m"
+        id: asset.id, slot: asset.slot, version: asset.version || "1.0.0",
+        is_adult: !!asset.is_adult, hides: (asset.hides || []).slice(),
+        scale: asset.scale || 1, unit: asset.unit || "m",
+        pivot: asset.pivot ? asset.pivot.slice() : null,
+        previewUrl: asset.previewUrl || null, provenance: asset.provenance
       };
       var request = { cancelled:false };
       gateItem(descriptor).then(function(allowed){
