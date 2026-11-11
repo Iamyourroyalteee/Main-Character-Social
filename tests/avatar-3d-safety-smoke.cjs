@@ -124,6 +124,40 @@ async function runCatalogAssetTests() {
   assert.ok(invalid.includes("missing asset provenance"), "catalog imports must require owner/license/source/use provenance");
 
   assert.equal(catalogEngine.validateAssetManifest(assetManifest).length, 0, "empty verified manifest should pass validation");
+
+  /* The running prototype must expose catalog entries only after whole-manifest validation. */
+  let manifestDelivered = null;
+  let manifestFailure = "";
+  sandboxWindow.fetch = async () => ({ ok:true, status:200, json:async () => assetManifest });
+  const manifestRequest = catalogEngine.loadAssetManifest("assets/manifest.json",
+    (manifest) => { manifestDelivered = manifest; },
+    (message) => { manifestFailure = message; });
+  assert.ok(manifestRequest && typeof manifestRequest.cancel === "function", "manifest request must be cancellable");
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.deepEqual(Array.from(manifestDelivered.assets), [], "valid empty manifest should publish an empty catalog");
+  assert.equal(manifestFailure, "", "valid manifest should not report an error");
+
+  let rejectedManifest = false;
+  sandboxWindow.fetch = async () => ({ ok:true, status:200, json:async () => ({
+    schemaVersion:"1.0.0", assets:[{ id:"bad", slot:"hat", url:"javascript:alert(1)", format:"glb" }]
+  }) });
+  catalogEngine.loadAssetManifest("assets/manifest.json", () => {
+    assert.fail("invalid manifest must never publish catalog entries");
+  }, (message) => { rejectedManifest = /Asset manifest rejected/.test(message); });
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(rejectedManifest, true, "invalid full manifest must return actionable validation errors");
+
+  let httpFailure = "";
+  sandboxWindow.fetch = async () => ({ ok:false, status:404 });
+  catalogEngine.loadAssetManifest("assets/manifest.json", () => assert.fail("404 manifest must not publish"),
+    (message) => { httpFailure = message; });
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.match(httpFailure, /404/, "manifest HTTP failures must be surfaced");
+
   const duplicateAsset = {
     id: "hat-demo", slot: "hat", url: "models/hat.glb", format: "glb",
     provenance: { owner: "MCS", license: "Original", source: "internal", permittedUse: "commercial" }
