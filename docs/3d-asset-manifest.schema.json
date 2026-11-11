@@ -251,9 +251,80 @@
               }
             }
           }
+        },
+        "materials": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "role",
+              "textures"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "role": {
+                "enum": [
+                  "skin",
+                  "hair",
+                  "fabric",
+                  "denim",
+                  "metal",
+                  "gold",
+                  "chrome",
+                  "glass",
+                  "wood",
+                  "stone",
+                  "emissive",
+                  "plastic",
+                  "leather",
+                  "rubber",
+                  "water"
+                ]
+              },
+              "textures": {
+                "$ref": "#/$defs/textureMaps"
+              }
+            }
+          }
         }
       },
       "additionalProperties": false
+    },
+    "textureMaps": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": false,
+      "properties": {
+        "baseColor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "normal": {
+          "type": "string",
+          "minLength": 1
+        },
+        "roughness": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metalness": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ao": {
+          "type": "string",
+          "minLength": 1
+        },
+        "emissive": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     }
   }
 }
