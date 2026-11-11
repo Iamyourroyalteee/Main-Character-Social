@@ -121,6 +121,14 @@ async function runCatalogAssetTests() {
   assert.equal(catalogLoaded, true, "catalog load should return the loaded scene and validated descriptor");
   assert.equal(scaleState.value, 0.02, "catalog import should normalize centimeters to meters and apply scale");
 
+  let malformedError = "";
+  catalogEngine.loadCatalogAsset({
+    id: "broken-model", slot: "hat", url: "models/broken.glb", format: "glb"
+  }, () => assert.fail("malformed model must not be attached"), (message) => { malformedError = message; });
+  await Promise.resolve();
+  completeLoad({ scene: null });
+  assert.match(malformedError, /Invalid 3D model/, "empty/malformed GLTF scenes must fail safely without crashing disposal");
+
   const adultCallsBefore = calls.length;
   let adultDenied = "";
   catalogEngine.loadCatalogAsset({
