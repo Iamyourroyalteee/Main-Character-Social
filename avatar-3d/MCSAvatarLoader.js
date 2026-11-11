@@ -25,7 +25,8 @@
     /* ---------- state ---------- */
     var alive = true;
     var disposables = [];   /* geometries/materials/textures we own */
-    var pending = [];       /* in-flight loads, cancellable */
+    var pending = [];       /* in-flight GLTF loads, cancellable */
+    var assetRequests = []; /* full catalog requests, including texture binding */
     var zoneRefs = {};      /* zone -> count of garments covering it (reference counts) */
     ZONES.forEach(function(z){ zoneRefs[z] = 0; });
 
@@ -247,6 +248,14 @@
       next();
     }
 
+    function finishAssetRequest(request){
+      assetRequests = assetRequests.filter(function(item){ return item !== request; });
+    }
+    function cancelAssetRequests(){
+      assetRequests.slice().forEach(function(request){ if (request && request.cancel) request.cancel(); });
+      assetRequests = [];
+    }
+
     function loadCatalogAsset(asset, onDone, onFail){
       var errors = validateAssetDescriptor(asset);
       if (errors.length){ if (onFail) onFail("Invalid asset descriptor: " + errors.join("; ")); return null; }
@@ -257,15 +266,32 @@
         pivot: asset.pivot ? asset.pivot.slice() : null, pivotConvention: asset.pivotConvention || null,
         bounds: asset.bounds || null, materialRoles: (asset.materialRoles || []).slice(),
         textures: asset.textures || {}, lods: (asset.lods || []).slice(),
-        previewUrl: asset.previewUrl || null, provenance: asset.provenance, materials: (asset.materials || []).slice()
+        previewUrl: asset.previewUrl || null, provenance: asset.provenance,
+        materials: (asset.materials || []).slice()
       };
-      var request = { cancelled:false, textureHandles:[] };
+      var request = { cancelled:false, completed:false, textureHandles:[], loadedRoot:null };
+      assetRequests.push(request);
+      function fail(message){
+        if (request.cancelled || request.completed) return;
+        request.loadedRoot = null;
+        finishAssetRequest(request);
+        if (onFail) onFail(message && message.message || String(message));
+      }
+      request.cancel = function(){
+        if (request.cancelled || request.completed) return;
+        request.cancelled = true;
+        if (request.loadHandle) request.loadHandle.cancelled = true;
+        request.textureHandles.forEach(function(handle){ if (handle && handle.cancel) handle.cancel(); });
+        if (request.loadedRoot){ disposeObject(request.loadedRoot); request.loadedRoot = null; }
+        finishAssetRequest(request);
+      };
       gateItem(descriptor).then(function(allowed){
         if (request.cancelled || !alive) return;
-        if (!allowed){ if (onFail) onFail("Asset access denied"); return; }
+        if (!allowed){ fail("Asset access denied"); return; }
         request.loadHandle = loadGLTF(asset.url, function(root, gltf){
           if (request.cancelled || !alive){ if (root) disposeObject(root); return; }
-          if (!root){ if (onFail) onFail("Invalid 3D model: empty GLTF scene"); return; }
+          if (!root){ fail("Invalid 3D model: empty GLTF scene"); return; }
+          request.loadedRoot = root;
           if (root.scale && root.scale.setScalar){
             var unitScale = asset.unit === "cm" ? 0.01 : (asset.unit === "mm" ? 0.001 : 1);
             root.scale.setScalar((asset.scale || 1) * unitScale);
@@ -273,27 +299,30 @@
           var report = validateModel(root, opts.modelLimits);
           if (!report.valid){
             disposeObject(root);
-            if (onFail) onFail("Invalid 3D model: " + report.errors.join("; "));
+            request.loadedRoot = null;
+            fail("Invalid 3D model: " + report.errors.join("; "));
             return;
           }
           applyMaterialBindings(root, asset.materials, request, function(){
+            if (request.cancelled || !alive){
+              disposeObject(root);
+              request.loadedRoot = null;
+              finishAssetRequest(request);
+              return;
+            }
+            request.completed = true;
+            request.loadedRoot = null;
+            finishAssetRequest(request);
             onDone && onDone(root, gltf, descriptor, report);
           }, function(message){
             disposeObject(root);
-            if (onFail) onFail(message);
+            request.loadedRoot = null;
+            fail(message);
           });
-        }, onFail);
-      }).catch(function(err){
-        if (!request.cancelled && alive && onFail) onFail(err && err.message || String(err));
-      });
-      request.cancel = function(){
-        request.cancelled = true;
-        if (request.loadHandle) request.loadHandle.cancelled = true;
-        request.textureHandles.forEach(function(handle){ if (handle && handle.cancel) handle.cancel(); });
-      };
+        }, fail);
+      }).catch(fail);
       return request;
     }
-
     /* ---------- ownership + disposal ---------- */
     function own(obj){ disposables.push(obj); return obj; }
     function disposeObject(root){
@@ -315,6 +344,7 @@
     function teardown(){
       alive = false;
       cancelPending();
+      cancelAssetRequests();
       disposables.forEach(function(d){ if (d && d.dispose) d.dispose(); });
       disposables = [];
     }
