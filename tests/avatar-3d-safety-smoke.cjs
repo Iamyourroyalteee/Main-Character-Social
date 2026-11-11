@@ -44,7 +44,7 @@ assert.match(loader, /function applyMaterialBindings\(root, bindings, request, o
 assert.match(loader, /function cancelAssetRequests\(\)/, "engine teardown must cancel pending catalog and texture requests");
 assert.match(loader, /function releaseAsset\(root\)/, "completed catalog roots must have an explicit disposal path");
 assert.match(loader, /function validateModel\(root, limits\)/, "loaded model geometry and transforms must be validated");
-assert.match(loader, /if \(!root\)\{ if \(onFail\) onFail\("Invalid 3D model: empty GLTF scene"\)/, "empty GLTF scenes must fail closed");
+assert.match(loader, /if \(!root\)\{ fail\("Invalid 3D model: empty GLTF scene"\)/, "empty GLTF scenes must fail closed");
 assert.match(loader, /unitScale = asset\.unit === "cm"/, "catalog model units must be normalized on import");
 assert.match(loader, /function validateAssetUrl\(url\)/, "GLTF asset URLs must be validated before loading");
 assert.match(loader, /javascript|data|blob|file/, "executable and local-only URL schemes must be rejected");
