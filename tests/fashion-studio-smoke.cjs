@@ -8,9 +8,8 @@ for (const marker of [
   'id="board"', 'id="catalog"', 'id="inspector"', 'id="save"', 'id="export"',
   'id="avatarFrame"', 'id="applyToModel"', 'id="collectionGrid"',
   'data-view="board"', 'data-view="model"', 'data-view="collections"',
-  'mcs-fashion-collections', 'MCS_FASHION',
+  'mcs-fashion-collections',
 ]) {
-  if (marker === "MCS_FASHION") continue; // No cross-window message protocol is used; same-origin API access is deliberate.
   assert.ok(html.includes(marker), "Fashion Studio is missing " + marker);
 }
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
@@ -21,6 +20,8 @@ assert.match(html, /function renderBoard\(/, "moodboard must render placed piece
 assert.match(html, /function renderCollections\(/, "saved looks must be browsable");
 assert.match(html, /function exportSvg\(/, "moodboard must export");
 assert.match(html, /api\.player\.applyOutfit\(api\.outfit\)/, "moodboard must apply supported pieces through the shared 3D avatar engine");
+assert.match(html, /meta\.slot!==slot/, "moodboard mappings must match the avatar catalog slot");
+assert.match(html, /nearestSupportedTint\(p\.color,meta\.tints\)/, "moodboard colors must use supported persistent avatar tints");
 assert.match(html, /\/avatar-3d\/index\.html\?mode=builder/, "3D fitting room must use the shared avatar builder route");
 assert.match(html, /localStorage\.setItem\("mcs-fashion-collections"/, "collections must persist locally");
 console.log("PASS: Fashion Studio markup, inline JavaScript syntax, moodboard, collections, export, and shared 3D avatar integration checks.");
