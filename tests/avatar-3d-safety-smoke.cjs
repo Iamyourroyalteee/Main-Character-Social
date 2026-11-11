@@ -11,6 +11,7 @@ assert.match(glam, /var mats = Array\.isArray\(o\.material\) \? o\.material : \[
 const assetSchema = JSON.parse(fs.readFileSync(path.join(__dirname, "../docs/3d-asset-manifest.schema.json"), "utf8"));
 const assetManifest = JSON.parse(fs.readFileSync(path.join(__dirname, "../avatar-3d/assets/manifest.json"), "utf8"));
 assert.equal(assetSchema.$defs.asset.required.includes("provenance"), true, "asset schema must require provenance");
+assert.ok(assetSchema.$defs.asset.properties.materials, "asset schema must define per-material PBR texture bindings");
 assert.equal(assetManifest.schemaVersion, "1.0.0", "asset manifest must declare its schema version");
 assert.equal(assetManifest.assets.length, 0, "unverified external models must not be added as placeholder assets");
 
@@ -33,6 +34,7 @@ assert.match(loader, /function validateAssetDescriptor\(asset\)/, "catalog asset
 assert.match(loader, /function validateAssetManifest\(manifest\)/, "the versioned asset manifest must be validated");
 assert.match(loader, /asset id must be a stable lowercase identifier/, "asset IDs must be stable and normalized");
 assert.match(loader, /function loadCatalogAsset\(asset, onDone, onFail\)/, "validated catalog assets must have a managed loading path");
+assert.match(loader, /function applyMaterialBindings\(root, bindings, request, onDone, onFail\)/, "catalog imports must bind texture maps to named GLTF materials");
 assert.match(loader, /function validateModel\(root, limits\)/, "loaded model geometry and transforms must be validated");
 assert.match(loader, /if \(!root\)\{ if \(onFail\) onFail\("Invalid 3D model: empty GLTF scene"\)/, "empty GLTF scenes must fail closed");
 assert.match(loader, /unitScale = asset\.unit === "cm"/, "catalog model units must be normalized on import");
