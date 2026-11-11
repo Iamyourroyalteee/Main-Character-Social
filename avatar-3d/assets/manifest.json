@@ -1,5 +1,6 @@
 {
-  "$schema": "../../docs/3d-asset-manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Validate this manifest with ../../docs/3d-asset-manifest.schema.json",
   "schemaVersion": "1.0.0",
   "assets": []
 }
