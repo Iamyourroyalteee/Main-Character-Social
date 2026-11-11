@@ -45,7 +45,10 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 ## P2 — Creator and social integration
 - [ ] Keep Avatar Builder and Avatar Rooms as separate experiences.
 - [ ] Share one avatar engine and canonical character/outfit data model.
-- [ ] Connect wardrobe, Set Builder, room editor, and social experiences through stable asset IDs.
+- [ ] Connect wardrobe, Set Builder, room editor, Fashion Studio, and social experiences through stable asset IDs.
+- [ ] Replace Fashion Studio emoji moodboard tiles with verified original/licensed product imagery and stable production 3D asset IDs.
+- [ ] Support true layered garment/accessory composition or explicit per-slot conflict resolution across Fashion Studio and Avatar Builder.
+- [ ] Add authenticated Fashion Studio collection persistence and social publishing.
 - [ ] Add persistent saved characters and looks using existing approved data boundaries.
 - [ ] Keep age-gated access fail-closed until trusted server-side entitlement is available.
 
@@ -109,3 +112,5 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - 2026-11-10: Release-state recheck: PR #10 head is `09dc4225`, still draft/open/unmerged. The latest avatar-prototype preview is READY on `d81fff69`, behind the PR head; the latest app preview is READY on `a16230bc`. The latest production app deployment is READY on main commit `eabf89c`, while the corresponding avatar-prototype production deployment is CANCELED. PR-head commit statuses still report Vercel deployment rate-limit failures and no PR-triggered GitHub Actions run is returned. No merge or production change was made in this audit.
 
 - 2026-11-10: Added `MCSAvatarAnimationRuntime.js` and exposed it through `window.MCS.createAnimationController`. The runtime detects SkinnedMesh skeletons and morph targets; supports named GLTF animation clips, crossfades, bounded playback speed, seek, pause/resume, stop, facial morph controls, and idempotent disposal. Added mocked runtime regression tests and wired the browser smoke page to instantiate/update/dispose the controller. The smoke fixture itself intentionally has zero skeletons and zero clips, so this verifies the runtime integration surface—not a production rig or actual animated character. Production Animation Lab UI/preset integration and a verified rigged avatar remain outstanding.
+
+- 2026-11-11: Cross-project audit inspected PR #10 and stacked PR #12, the main-app preview, dedicated avatar preview, Fashion Studio source, 3D runtime mirrors, asset manifest, QA artifacts, and GitHub Actions. Found and fixed the Fashion Studio sunglasses slot mapping, outfit/separates precedence, and silent same-slot replacement; added runtime regression simulations and catalog mapping validation. Synchronized the dedicated prototype's root avatar runtime with the main-app `src/avatar-3d` mirror, including the zoom-safe viewport, shared-resource disposal, PBR shader uniform insertion, and animation-clip validation. Added CI path coverage for both source trees. Production remains unchanged; browser/WebGL and iPad validation remain release gates.
