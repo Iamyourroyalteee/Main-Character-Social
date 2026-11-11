@@ -17,6 +17,13 @@ assert.ok(scripts.length >= 1, "Fashion Studio must contain its interaction runt
 scripts.forEach((source, index) => new vm.Script(source, { filename: "fashion-studio-inline-" + index }));
 assert.match(html, /function addPiece\(/, "catalog pieces must be addable");
 assert.match(html, /function renderBoard\(/, "moodboard must render placed pieces");
+assert.match(html, /el\.type="button"/, "placed moodboard pieces must be keyboard-focusable buttons");
+assert.match(html, /aria-pressed/, "placed moodboard pieces must expose selected state to assistive technology");
+assert.match(html, /addEventListener\("keydown"/, "moodboard pieces must support keyboard interaction");
+assert.match(html, /ArrowLeft.*ArrowRight.*ArrowUp.*ArrowDown/s, "moodboard pieces must support keyboard repositioning");
+assert.match(html, /Backspace/, "moodboard pieces must support keyboard removal");
+assert.match(html, /button\{cursor:pointer;color:inherit;min-width:44px;min-height:44px\}/, "studio buttons must meet 44px touch target minimums");
+assert.match(html, /\.placed:focus-visible/, "keyboard focus must remain visibly indicated");
 assert.match(html, /function renderCollections\(/, "saved looks must be browsable");
 assert.match(html, /function exportSvg\(/, "moodboard must export");
 assert.match(html, /api\.player\.applyOutfit\(api\.outfit\)/, "moodboard must apply supported pieces through the shared 3D avatar engine");
