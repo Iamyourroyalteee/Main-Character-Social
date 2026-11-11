@@ -61,10 +61,12 @@
       });
       if (asset.scale != null && (!Number.isFinite(asset.scale) || asset.scale <= 0)) errs.push("scale must be a positive finite number");
       if (asset.unit != null && ["m","cm","mm"].indexOf(asset.unit) < 0) errs.push("unit must be m, cm, or mm");
+      if (asset.category != null && (typeof asset.category !== "string" || !asset.category.trim())) errs.push("category must be a non-empty string");
       if (asset.version != null && !/^\d+\.\d+\.\d+$/.test(asset.version)) errs.push("version must use semantic x.y.z format");
       if (asset.pivot != null && (!Array.isArray(asset.pivot) || asset.pivot.length !== 3 || !asset.pivot.every(Number.isFinite))) errs.push("pivot must contain three finite coordinates");
       if (asset.previewUrl != null && !validateAssetUrl(asset.previewUrl)) errs.push("invalid preview URL");
       if (asset.pivotConvention != null && ["origin-center","origin-bottom-center","custom"].indexOf(asset.pivotConvention) < 0) errs.push("invalid pivot convention");
+      if (asset.pivotConvention === "custom" && !asset.pivot) errs.push("custom pivot convention requires pivot coordinates");
       if (asset.bounds != null){
         var bounds = asset.bounds;
         if (!bounds || !Array.isArray(bounds.min) || !Array.isArray(bounds.max) ||
@@ -88,7 +90,8 @@
         if (!Array.isArray(asset.lods)) errs.push("lods must be an array");
         else asset.lods.forEach(function(lod){
           if (!lod || !validateAssetUrl(lod.url) || ["glb","gltf"].indexOf(lod.format) < 0 ||
-              !Number.isInteger(lod.maxTriangles) || lod.maxTriangles < 1) errs.push("invalid LOD descriptor");
+              !Number.isInteger(lod.maxTriangles) || lod.maxTriangles < 1 ||
+              (lod.maxVertices != null && (!Number.isInteger(lod.maxVertices) || lod.maxVertices < 3))) errs.push("invalid LOD descriptor");
         });
       }
       return errs;
