@@ -95,6 +95,7 @@ async function runCatalogAssetTests() {
     id: "", slot: "unknown", url: "javascript:alert(1)", format: "fbx"
   });
   assert.ok(invalid.length >= 4, "catalog schema must reject missing IDs, unknown slots, unsafe URLs, and unsupported formats");
+  assert.ok(invalid.includes("missing asset provenance"), "catalog imports must require owner/license/source/use provenance");
 
   const validModelReport = catalogEngine.validateModel(makeScene());
   assert.equal(validModelReport.valid, true, "valid geometry, normals, UVs, and bounds should pass model validation");
@@ -110,7 +111,8 @@ async function runCatalogAssetTests() {
   let catalogError = "";
   catalogEngine.loadCatalogAsset({
     id: "hat-demo", slot: "hat", url: "models/hat.glb",
-    format: "glb", is_adult: false, unit: "cm", scale: 2
+    format: "glb", is_adult: false, unit: "cm", scale: 2,
+    provenance: { owner: "MCS", license: "Original", source: "internal", permittedUse: "commercial" }
   }, (root, gltf, descriptor) => {
     catalogLoaded = root === catalogScene && descriptor.id === "hat-demo";
   }, (message) => { catalogError = message; });
@@ -124,7 +126,8 @@ async function runCatalogAssetTests() {
 
   let malformedError = "";
   catalogEngine.loadCatalogAsset({
-    id: "broken-model", slot: "hat", url: "models/broken.glb", format: "glb"
+    id: "broken-model", slot: "hat", url: "models/broken.glb", format: "glb",
+    provenance: { owner: "MCS", license: "Original", source: "internal", permittedUse: "commercial" }
   }, () => assert.fail("malformed model must not be attached"), (message) => { malformedError = message; });
   await Promise.resolve();
   completeLoad({ scene: null });
@@ -134,7 +137,8 @@ async function runCatalogAssetTests() {
   let adultDenied = "";
   catalogEngine.loadCatalogAsset({
     id: "adult-item", slot: "accessory", url: "models/adult.glb",
-    format: "glb", is_adult: true
+    format: "glb", is_adult: true,
+    provenance: { owner: "MCS", license: "Original", source: "internal", permittedUse: "commercial" }
   }, () => assert.fail("adult asset must remain locked without trusted entitlement"),
   (message) => { adultDenied = message; });
   await Promise.resolve();
