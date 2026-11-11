@@ -96,13 +96,13 @@ const skinMaterial = factory.skin("#c08050");
 assert.equal(typeof skinMaterial.onBeforeCompile,"function");
 const shaderFixture = {
   uniforms:{},
-  fragmentShader:"#include <emissivemap_fragment>\\nvoid main() {\\n  vec3 totalEmissiveRadiance = vec3(0.0);\\n}"
+  fragmentShader:"#include <emissivemap_fragment>\nvoid main() {\n  vec3 totalEmissiveRadiance = vec3(0.0);\n}"
 };
 skinMaterial.onBeforeCompile(shaderFixture);
 const uniformAt = shaderFixture.fragmentShader.indexOf("uniform vec3 uSSS;");
 const mainAt = shaderFixture.fragmentShader.indexOf("void main() {");
 assert.ok(uniformAt >= 0 && uniformAt < mainAt,"uSSS uniform must be declared at global scope before main()");
-assert.match(shaderFixture.fragmentShader,/totalEmissiveRadiance \\+= uSSS \\* pow\\(sssWrap, 2\\.2\\) \\* 0\\.35;/,"SSS shader use must match vec3 uniform");
+assert.ok(shaderFixture.fragmentShader.includes("totalEmissiveRadiance += uSSS * pow(sssWrap, 2.2) * 0.35;"),"SSS shader use must match vec3 uniform");
 assert.ok(shaderFixture.uniforms.uSSS,"SSS color uniform must be bound");
 factory.dispose();
 console.log("PASS: animation clips, track timing, morph indices, AO texture disposal, and shared GLTF resource cleanup.");
