@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - "fashion-studio/**"
+      - "src/fashion-studio/**"
+      - "src/avatar-3d/**"
       - "tests/fashion-studio-smoke.cjs"
       - ".github/workflows/fashion-studio-smoke.yml"
   push:
