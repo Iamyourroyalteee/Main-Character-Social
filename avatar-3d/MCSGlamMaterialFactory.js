@@ -404,6 +404,7 @@
         switch(role){
           case "skin": return this.skin(hex);
           case "lips": return this.lipGloss(hex);
+          case "lips": return this.lipGloss(hex);
           case "hair": return this.hairCard(hex);
           case "denim": return this.denim(hex);
           case "gold": return this.gold();
