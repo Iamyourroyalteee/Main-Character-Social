@@ -268,8 +268,7 @@ async function runCatalogAssetTests() {
     provenance: { owner: "MCS", license: "Original", source: "internal", permittedUse: "commercial" }
   }, () => assert.fail("adult asset must remain locked without trusted entitlement"),
   (message) => { adultDenied = message; });
-  await Promise.resolve();
-  await Promise.resolve();
+  for (let i = 0; i < 6; i++) await Promise.resolve();
   assert.match(adultDenied, /Asset access denied/, "adult catalog assets must fail closed without entitlement");
   assert.equal(calls.length, adultCallsBefore, "denied adult assets must never start a network load");
   console.log("PASS: catalog descriptor validation, GLB loading, unit normalization, and default-deny adult gating.");
