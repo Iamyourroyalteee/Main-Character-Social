@@ -212,6 +212,55 @@
           else { params.gradientMap = opts.gradientMap || null; params.color = new THREE.Color(0xcfd6e2); }
           m = new cls(params);
           break;
+        case "metal":
+          params.roughness = pbr ? 0.32 : 0.5; params.metalness = pbr ? 0.85 : 0.0;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
+        case "wood":
+          params.roughness = 0.76; params.metalness = 0.0;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
+        case "stone":
+          params.roughness = 0.94; params.metalness = 0.0;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
+        case "plastic":
+          params.roughness = 0.32; params.metalness = 0.0; params.clearcoat = pbr ? 0.35 : 0;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
+        case "leather":
+          params.roughness = 0.68; params.metalness = 0.0; params.clearcoat = pbr ? 0.05 : 0;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
+        case "rubber":
+          params.roughness = 0.94; params.metalness = 0.0;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
+        case "glass":
+          params.roughness = pbr ? 0.08 : 0.2; params.metalness = 0.0;
+          params.transparent = true; params.opacity = 0.28; params.depthWrite = false; params.side = THREE.DoubleSide;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
+        case "water":
+          params.roughness = pbr ? 0.08 : 0.2; params.metalness = pbr ? 0.05 : 0.0;
+          params.transparent = true; params.opacity = 0.72; params.depthWrite = false; params.side = THREE.DoubleSide;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
+        case "emissive":
+          params.emissive = new THREE.Color(hex);
+          params.emissiveIntensity = 1.2;
+          params.roughness = 0.5; params.metalness = 0.0;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
       }
       if (pbr && env) m.envMap = env;
       if (m) owned.push(m);
@@ -342,6 +391,15 @@
         m.userData.__role = "chrome";
         cache[key] = m; return m;
       },
+      generic: function(role, hex){
+        var key = role + (hex || "#ffffff");
+        if (cache[key]) return cache[key];
+        var m = makeMat(role, hex || "#ffffff", PBR ? studioEnvironment() : null);
+        if (!m) return this.fabric(hex);
+        m.userData.__role = role;
+        cache[key] = m;
+        return m;
+      },
       forRole: function(role, hex){
         switch(role){
           case "skin": return this.skin(hex);
@@ -351,6 +409,7 @@
           case "gold": return this.gold();
           case "chrome": return this.chrome();
           case "fabric": return this.fabric(hex);
+          case "metal": case "glass": case "wood": case "stone": case "emissive": case "plastic": case "leather": case "rubber": case "water": return this.generic(role, hex);
           default: return this.fabric(hex);
         }
       },
