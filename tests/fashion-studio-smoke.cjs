@@ -4,6 +4,16 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const html = fs.readFileSync(path.join(__dirname, "../fashion-studio/index.html"), "utf8");
+const deployedFashionPath = path.join(__dirname, "../src/fashion-studio/index.html");
+assert.ok(fs.existsSync(deployedFashionPath), "Fashion Studio must be mirrored into the Vercel src deployment root");
+assert.equal(fs.readFileSync(deployedFashionPath, "utf8"), html, "deployed Fashion Studio route must match the tested source");
+const avatarRoot = path.join(__dirname, "../src/avatar-3d");
+for (const file of ["index.html", "MCSAvatarLoader.js", "MCSGlamMaterialFactory.js", "MCSCameraSetup.js", "MCSStudioLighting.js", "MCSAvatarAnimationRuntime.js", "assets/manifest.json", "asset-pipeline-smoke.html", "assets/test-fixtures/minimal-pbr.gltf"]) {
+  assert.ok(fs.existsSync(path.join(avatarRoot, file)), "main-app deployment must include avatar route asset: " + file);
+}
+const deployedAvatarHtml = fs.readFileSync(path.join(avatarRoot, "index.html"), "utf8");
+assert.match(deployedAvatarHtml, /name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/, "deployed avatar route must preserve zoom and safe-area behavior");
+assert.doesNotMatch(deployedAvatarHtml, /user-scalable=no|maximum-scale=1/, "avatar route must not disable user zoom");
 for (const marker of [
   'id="board"', 'id="catalog"', 'id="inspector"', 'id="save"', 'id="export"',
   'id="avatarFrame"', 'id="applyToModel"', 'id="collectionGrid"',
