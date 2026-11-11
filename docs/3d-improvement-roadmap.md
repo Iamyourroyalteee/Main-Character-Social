@@ -48,6 +48,16 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - [ ] Run automated tests, lint/static checks, production build, and preview smoke tests.
 - [ ] Deploy only after all applicable release gates pass; verify the deployment after release.
 
+## Additional requirements added during execution
+- [ ] Define an asset provenance register: owner/licence, source URL, attribution, permitted use, and modification rights for every imported model/texture/audio asset.
+- [ ] Define a canonical asset manifest with stable IDs, semantic version, slot/category, supported formats, bounds, units, pivot convention, material roles, texture references, LODs, and preview images.
+- [ ] Add secure asset-origin policy, MIME/extension validation, file-size limits, decompression/triangle/texture budgets, and timeout/retry policy.
+- [ ] Add offline/loading/error states, progress reporting, retry controls, and reduced-motion/accessibility behavior.
+- [ ] Add visual regression captures for representative avatars, wardrobe combinations, props, and each environment under fixed cameras/lighting.
+- [ ] Add cross-device GPU/memory profiling and context-loss/recovery checks for iPad, mobile, and desktop.
+- [ ] Add asset dependency/license scanning and duplicate/orphan asset detection to CI.
+- [ ] Add compatibility/version migration tests for existing saved looks and older catalog records.
+
 ## Run log
 - 2026-11-10: Initial baseline established. Confirmed GLTFLoader was not loaded or injected despite loader support. Implementation started on `fix/pbr-default-full-avatar-materials`.
 \n- 2026-11-10: Continued execution. Added GLTF URL allowlisting and request lifecycle guards; added source-level regression assertions. Runtime GLB fixture tests remain open. Added asset provenance, manifest, resource budgets, accessibility/loading, visual regression, device profiling, CI scanning, and backwards-compatibility requirements. Commits: `471e79d`, `17ea8c3`.\n
