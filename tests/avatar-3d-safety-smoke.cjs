@@ -42,10 +42,10 @@ const disposed = { geometry: 0, material: 0, texture: 0 };
 function makeScene() {
   const mesh = {
     isMesh: true,
-    geometry: { dispose() { disposed.geometry++; } },
+    geometry: { attributes: { position: { count: 3 }, normal: { count: 3 }, uv: { count: 3 } }, index: { count: 3 }, boundingBox: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } }, dispose() { disposed.geometry++; } },
     material: { map: { dispose() { disposed.texture++; } }, dispose() { disposed.material++; } }
   };
-  return { traverse(fn) { fn(mesh); } };
+  return { scale: { x: 1, y: 1, z: 1, setScalar(value) { this.x = this.y = this.z = value; } }, traverse(fn) { fn(mesh); } };
 }
 function makeEngine() {
   return sandboxWindow.MCSAvatarLoader.create({ GLTFLoader: MockGLTFLoader }, {
@@ -93,6 +93,15 @@ async function runCatalogAssetTests() {
     id: "", slot: "unknown", url: "javascript:alert(1)", format: "fbx"
   });
   assert.ok(invalid.length >= 4, "catalog schema must reject missing IDs, unknown slots, unsafe URLs, and unsupported formats");
+
+  const validModelReport = catalogEngine.validateModel(makeScene());
+  assert.equal(validModelReport.valid, true, "valid geometry, normals, UVs, and bounds should pass model validation");
+  const invalidModelReport = catalogEngine.validateModel({
+    traverse(fn) { fn({ isMesh: true, geometry: { attributes: { position: { count: 2 } } } }); }
+  });
+  assert.equal(invalidModelReport.valid, false, "models with invalid position geometry must fail validation");
+  const overBudgetReport = catalogEngine.validateModel(makeScene(), { maxVertices: 2 });
+  assert.equal(overBudgetReport.valid, false, "models exceeding configured vertex budgets must fail validation");
 
   const catalogScene = makeScene();
   let catalogLoaded = false;
