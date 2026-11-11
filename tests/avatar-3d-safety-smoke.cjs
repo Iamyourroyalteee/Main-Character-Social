@@ -16,7 +16,7 @@ assert.match(html, /MCS_AVATAR_READY/, "the embedded builder must announce readi
 assert.match(html, /MCS_AVATAR_LOAD/, "the embedded builder must restore account-saved characters");
 assert.match(html, /item\.is_adult/, "restored catalog items must retain adult-item gating");
 const glam = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSGlamMaterialFactory.js"), "utf8");
-assert.match(glam, /Array\\.isArray\\(o\\.material\\).*?map\\(function\\(mat\\)\\{ return retintOne\\(mat, o\\); \\}\\)/s, "PBR factory must retint each material in imported material arrays");
+assert.match(glam, /Array\.isArray\(o\.material\).*?map\(function\(mat\)\{ return retintOne\(mat, o\); \}\)/s, "PBR factory must retint each material in imported material arrays");
 assert.match(glam, /var mats = Array\.isArray\(o\.material\) \? o\.material : \[o\.material\]/, "PBR factory must track every material when retiring old materials");
 const assetSchema = JSON.parse(fs.readFileSync(path.join(__dirname, "../docs/3d-asset-manifest.schema.json"), "utf8"));
 const assetManifest = JSON.parse(fs.readFileSync(path.join(__dirname, "../avatar-3d/assets/manifest.json"), "utf8"));
