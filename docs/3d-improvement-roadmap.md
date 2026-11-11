@@ -5,7 +5,7 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 ## P0 — Asset pipeline foundation
 - [x] Wire Three.js r128 GLTFLoader into the shared avatar engine.
 - [x] Add schema-validated GLB/GLTF catalog-asset loading with stable IDs, supported slots/formats, safe URLs, age gating, and explicit units.
-- [x] Add safe cancellation guards, error handling, disposal, and graceful procedural fallback across GLTF and per-material texture requests, including engine teardown.
+- [x] Add safe cancellation guards, error handling, disposal, and graceful procedural fallback across GLTF and per-material texture requests, including engine teardown and explicit imported-root release.
 - [x] Validate GLTF URLs: permit project-relative/HTTPS paths; reject executable, data, blob, file, and protocol-relative schemes.
 - [x] Remove completed requests from pending tracking and prevent cancelled/torn-down loads from attaching assets.
 - [x] Validate imported mesh positions, finite transforms/scales, optional geometry bounds, and configurable mesh/vertex/triangle budgets; report missing normals, UVs, and materials.
