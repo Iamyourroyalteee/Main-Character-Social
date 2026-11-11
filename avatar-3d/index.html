@@ -3482,7 +3482,13 @@ function saveLook(){
   refreshString();
   outfit.face.__presetId = savedMarker;
   persistCharacterLocally();
-  outfitStrEl.select(); toast("Look saved on this device and ready to reuse.");
+  outfitStrEl.select();
+  if(window.parent !== window){
+    window.parent.postMessage({type:"MCS_AVATAR_SAVE",character:{v:1,body:clone(outfit.body),face:clone(outfit.face),slots:clone(outfit.slots)}},window.location.origin);
+    toast("Saving your character to Main Character Social…");
+  }else{
+    toast("Look saved on this device and ready to reuse.");
+  }
 }
 document.getElementById("btnSave").addEventListener("click", saveLook);
 document.getElementById("btnSaveTop").addEventListener("click", saveLook);
@@ -3635,6 +3641,36 @@ window.MCS = { THREE, scene, camera, renderer, player, friend, outfit, FRIEND_OU
   EMOTES, MAKEUP, SKIN_TONES, HAIR_COLORS,
   mainRoomGroup, loungeGroup, isAdultProfile, setProfile, switchRoom, ADULT_SAFE_FALLBACK,
   getCurrentRoom: ()=> currentRoom };
+window.addEventListener("message", function(event){
+  if(event.source !== window.parent || event.origin !== window.location.origin) return;
+  var data = event.data || {};
+  if(data.type === "MCS_AVATAR_LOAD" && data.hasAccount){
+    var saved = data.character && data.character.v === 1 ? data.character : null;
+    var source = saved || {};
+    var parsed = normalizeOutfit({v:1,profile:{ageBand:"teen"},body:source.body||{},face:source.face||{},slots:source.slots||{}});
+    parsed.profile.ageBand = "teen";
+    Object.keys(parsed.slots).forEach(function(slot){
+      var entry = parsed.slots[slot];
+      var item = entry && ITEMS[entry.itemId];
+      if(!item || item.slot !== slot || item.is_adult) parsed.slots[slot] = null;
+    });
+    outfit.profile.ageBand = "teen";
+    outfit.body = parsed.body;
+    outfit.face = parsed.face;
+    outfit.slots = parsed.slots;
+    delete outfit.face.effective; delete outfit.face.__presetId;
+    player.applyOutfit(outfit);
+    refreshString();
+    renderPanel();
+    renderRoomSwitcher();
+    toast(saved ? "Your MCS character has been loaded." : "A new teen-safe character is ready.");
+  }else if(data.type === "MCS_AVATAR_SAVE_RESULT"){
+    toast(data.ok ? (data.message || (data.scope === "account" ? "Saved to your MCS account." : "Saved on this device.")) : (data.message || "Character save failed."));
+  }
+});
+if(window.parent !== window){
+  window.parent.postMessage({type:"MCS_AVATAR_READY"},window.location.origin);
+}
 </script>
 </body>
 </html>

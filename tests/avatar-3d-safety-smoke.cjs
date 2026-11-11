@@ -4,7 +4,17 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const html = fs.readFileSync(path.join(__dirname, "../avatar-3d/index.html"), "utf8");
+const appHtml = fs.readFileSync(path.join(__dirname, "../src/index.html"), "utf8");
+assert.match(appHtml, /id="mcs-avatar-3d-frame"/, "the main app Avatar tab must embed the 3D builder");
+assert.match(appHtml, /src="\/avatar-3d\/index\.html\?mode=builder&embedded=1"/, "the embedded builder must use the same-origin app asset path");
+assert.match(appHtml, /mcs-avatar-account-bridge/, "the main app must install the account bridge");
+assert.match(appHtml, /MCS_AVATAR_SAVE/, "the main app must accept character save events from the embedded builder");
+assert.match(appHtml, /auth\.client\.from\("mcs_profiles"\)/, "signed-in character saves must use the existing profile row");
+assert.match(appHtml, /event\.origin !== window\.location\.origin/, "the account bridge must reject cross-origin messages");
 const loader = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSAvatarLoader.js"), "utf8");
+assert.match(html, /MCS_AVATAR_READY/, "the embedded builder must announce readiness to the parent app");
+assert.match(html, /MCS_AVATAR_LOAD/, "the embedded builder must restore account-saved characters");
+assert.match(html, /item\.is_adult/, "restored catalog items must retain adult-item gating");
 const glam = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSGlamMaterialFactory.js"), "utf8");
 assert.match(glam, /Array\.isArray\(o\.material\).*?map\(retintOne\)/s, "PBR factory must retint each material in imported material arrays");
 assert.match(glam, /var mats = Array\.isArray\(o\.material\) \? o\.material : \[o\.material\]/, "PBR factory must track every material when retiring old materials");
