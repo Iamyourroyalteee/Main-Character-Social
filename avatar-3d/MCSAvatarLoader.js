@@ -45,7 +45,7 @@
     function validateAssetDescriptor(asset){
       var errs = [];
       if (!asset || typeof asset !== "object") return ["asset descriptor is not an object"];
-      if (typeof asset.id !== "string" || !asset.id.trim()) errs.push("missing asset id");
+      if (typeof asset.id !== "string" || !/^[a-z0-9][a-z0-9._-]*$/.test(asset.id)) errs.push("asset id must be a stable lowercase identifier");
       if (!asset.slot || !SLOT_SET[asset.slot]) errs.push("unknown asset slot");
       if (!validateAssetUrl(asset.url)) errs.push("invalid asset URL");
       if (asset.format !== "glb" && asset.format !== "gltf") errs.push("format must be glb or gltf");
@@ -61,14 +61,14 @@
       });
       if (asset.scale != null && (!Number.isFinite(asset.scale) || asset.scale <= 0)) errs.push("scale must be a positive finite number");
       if (asset.unit != null && ["m","cm","mm"].indexOf(asset.unit) < 0) errs.push("unit must be m, cm, or mm");
-      if (asset.version != null && !/^\\d+\\.\\d+\\.\\d+$/.test(asset.version)) errs.push("version must use semantic x.y.z format");
+      if (asset.version != null && !/^\d+\.\d+\.\d+$/.test(asset.version)) errs.push("version must use semantic x.y.z format");
       if (asset.pivot != null && (!Array.isArray(asset.pivot) || asset.pivot.length !== 3 || !asset.pivot.every(Number.isFinite))) errs.push("pivot must contain three finite coordinates");
       if (asset.previewUrl != null && !validateAssetUrl(asset.previewUrl)) errs.push("invalid preview URL");
       return errs;
     }
 
     function validateAssetManifest(manifest){
-      var errs = [], seen = {};
+      var errs = [], seen = Object.create(null);
       if (!manifest || typeof manifest !== "object") return ["manifest must be an object"];
       if (manifest.schemaVersion !== "1.0.0") errs.push("unsupported manifest schemaVersion");
       if (!Array.isArray(manifest.assets)) return errs.concat(["manifest assets must be an array"]);
