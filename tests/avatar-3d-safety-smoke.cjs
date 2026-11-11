@@ -234,6 +234,26 @@ assert.equal(disposedTextures, 0, "cancelling a completed texture request must n
 let textureError = "";
 textureFactory.loadTextureMaps({ baseColor: "javascript:alert(1)" }, null, (message) => { textureError = message; });
 assert.match(textureError, /Invalid PBR texture map reference/, "unsafe texture URLs must be rejected");
+class FailingTextureLoader {
+  load(url, onLoad, progress, onError) {
+    if (url.includes("bad")) onError(new Error("texture decode failed"));
+    else onLoad(new MockTexture(url));
+  }
+}
+const failingFactory = materialWindow.MCSGlamMaterialFactory.create({
+  MeshPhysicalMaterial: MockMaterial, MeshToonMaterial: MockMaterial,
+  Color: MockColor, TextureLoader: FailingTextureLoader,
+  sRGBEncoding: 3001, LinearEncoding: 3000
+});
+let textureLoadFailure = "";
+failingFactory.loadTextureMaps({
+  baseColor: "textures/good.png", normal: "textures/bad.png"
+}, () => assert.fail("failed texture set must not be reported as complete"),
+(message) => { textureLoadFailure = message; });
+assert.match(textureLoadFailure, /texture decode failed/, "texture decode failures must be surfaced");
+assert.equal(disposedTextures, 1, "partially loaded texture sets must dispose their successful textures on failure");
+failingFactory.dispose();
+
 
 materialFactory.setPBR(false);
 const oldFabric = materialFactory.fabric("#ffffff");
