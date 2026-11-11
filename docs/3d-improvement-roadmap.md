@@ -28,7 +28,8 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - [x] Apply sRGB encoding to base-color/emissive maps and linear encoding to normal/roughness/metalness/AO maps.
 - [ ] Validate GLTF embedded texture preservation and GPU texture compression handling.
 - [x] Preserve multi-material GLTF mesh assignments and existing texture maps during PBR/toon mode switching; retire replaced materials only after reassignment.
-- [ ] Extend consistent PBR material roles to furniture, props, rooms, architecture, and set pieces.
+- [x] Add semantic PBR material builders for skin, lips, hair, fabric, denim, metal, gold, chrome, glass, wood, stone, emissive, plastic, leather, rubber, and water.
+- [ ] Apply consistent PBR roles to all furniture, props, rooms, architecture, and set pieces.
 - [ ] Improve environment lighting, shadows, reflections, and camera framing.
 - [ ] Retain an accessible low-cost/toon fallback for weaker devices.
 
@@ -86,3 +87,5 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - 2026-11-10: Wired the shared PBR material factory into the avatar loader and added named per-material texture bindings from manifest descriptors. Runtime-mocked coverage verifies texture maps attach to the intended GLTF material and role metadata is preserved.
 
 - 2026-11-10: Extended catalog request lifecycle tracking through material texture binding; engine teardown now cancels pending texture requests and disposes uncommitted models. Added a runtime-mocked teardown regression test.
+
+- 2026-11-10: Expanded the semantic PBR factory with material builders for glass, wood, stone, plastic, leather, rubber, water, emissive, and generic metal; added role mapping tests. Environment-wide role assignment remains open.
