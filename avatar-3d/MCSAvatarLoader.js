@@ -50,9 +50,9 @@
       var value = url.trim();
       /* Permit project-relative paths and HTTPS assets. Reject executable,
          data/blob URLs and protocol-relative URLs to avoid unsafe asset origins. */
-      if (/^(javascript|data|blob|file):/i.test(value) || /^\\/\\//.test(value)) return false;
+      if (/^(javascript|data|blob|file):/i.test(value) || value.indexOf("//") === 0) return false;
       if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return /^https:\/\//i.test(value);
-      return !/[\\u0000-\\u001f]/.test(value);
+      return !/[\x00-\x1f]/.test(value);
     }
     function loadGLTF(url, onDone, onFail){
       if (!validateAssetUrl(url)){ if (onFail) onFail("Invalid asset URL — use a project-relative path or HTTPS URL"); return null; }
