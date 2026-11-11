@@ -554,6 +554,64 @@ window.MCS_SUPABASE_ANON_KEY = "sb_publishable_hETwWHxbTha8uH2nYY9eRQ_hPbE4yvd";
 .explore-tile.hero{grid-column:span 2;grid-row:span 2}
 .explore-tile .tilehandle{position:absolute;left:6px;bottom:6px;z-index:2;display:inline-flex;align-items:center;gap:3px;background:rgba(0,0,0,.55);color:#f7f1e6;font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px;pointer-events:none}
 </style>
+
+<style id="mcs-social-layout-2026">
+/* Main Character Social — Meez x Instagram social-first layout */
+.mcs-social-home{padding-top:1.5rem}
+.social-welcome{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin:0 0 1rem}
+.social-eyebrow{font-size:.64rem;letter-spacing:.19em;font-weight:800;color:var(--gold);margin:0 0 .35rem}
+.social-avatar-cta{white-space:nowrap}
+.mcs-social-home .stories{padding:.9rem .2rem 1rem;margin:0 0 .65rem;border-top:1px solid rgba(255,255,255,.07);border-bottom:1px solid rgba(255,255,255,.07)}
+.social-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:1.25rem;align-items:start}
+.social-main{min-width:0}
+.social-feed-heading{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin:1.45rem 0 .85rem}
+.social-feed-list{display:flex;flex-direction:column;gap:1rem}
+.social-feed-list>li.card{padding:1rem;border-radius:18px;background:linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.012)),var(--surface);border-color:rgba(255,255,255,.085);box-shadow:0 12px 30px rgba(0,0,0,.12)}
+.social-feed-list .postmedia{border-radius:14px;overflow:hidden}
+.social-feed-list .postmedia img,.social-feed-list .postmedia video{object-fit:cover}
+.social-join{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-top:.6rem}
+.social-rail{display:none;gap:1rem;position:sticky;top:94px}
+.social-rail-card{padding:1rem}
+.social-rail-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.social-people{display:flex;flex-direction:column;gap:.8rem;margin-top:1rem}
+.social-people .person-row{margin:0;gap:.65rem}
+.social-trending{display:flex;flex-direction:column;gap:.85rem;margin-top:1rem}
+.social-trending li{display:flex;align-items:center;gap:.75rem}
+.social-trend-num{font-family:"Italiana",serif;font-size:1.3rem;color:var(--gold);opacity:.8}
+.social-room-card{background:radial-gradient(circle at 100% 0,rgba(201,168,106,.18),transparent 55%),var(--surface)}
+.social-room-card .btn{width:100%}
+@media(min-width:900px){
+ .wrap{max-width:1180px;width:auto;margin-left:240px;margin-right:24px;padding-left:2rem;padding-right:2rem;padding-bottom:4rem}
+ .topbar-in{max-width:none;margin-left:240px;margin-right:0;padding-left:2rem;padding-right:2rem}
+ .tabbar{position:fixed;left:0;right:auto;top:66px;bottom:0;width:220px;border-top:0;border-right:1px solid var(--border);padding:1.25rem .75rem env(safe-area-inset-bottom);background:#100b0d}
+ .tabbar-in{width:100%;max-width:none;margin:0;display:flex;flex-direction:column;gap:.4rem}
+ .tabbtn{display:flex;align-items:center;gap:.85rem;text-align:left;padding:.8rem .9rem;font-size:.9rem;border-radius:12px}
+ .tabbtn .emo{font-size:1.25rem;width:24px;margin:0}
+ .tabbtn.cur{background:rgba(201,168,106,.12);color:var(--gold)}
+ .tabbtn.mcs-createbtn{justify-content:flex-start}
+}
+@media(min-width:1180px){
+ .social-grid{grid-template-columns:minmax(0,1fr) 300px;gap:1.5rem}
+ .social-rail{display:grid}
+ .social-feed-list>li.card{padding:1.15rem}
+}
+@media(min-width:1400px){
+ .social-grid{grid-template-columns:minmax(0,680px) 320px;gap:2rem}
+ .social-feed-list{gap:1.2rem}
+}
+@media(max-width:899px){
+ .social-welcome{align-items:flex-start}
+ .social-avatar-cta{font-size:.72rem;padding:.55rem .7rem}
+ .social-join{align-items:flex-start;flex-direction:column}
+ .social-join .btn{width:100%}
+ .social-feed-heading{align-items:flex-end}
+}
+@media(max-width:380px){
+ .social-welcome{display:block}
+ .social-avatar-cta{margin-top:.85rem}
+ .social-feed-heading{align-items:flex-start;flex-direction:column}
+}
+</style>
 </head>
   <body>
     <div id="splash" aria-hidden="true"><div class="splash-in"><svg width="72" height="72" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#17110a" stroke="#c9a86a" stroke-width="1.5"/><path d="M14 42 L20 22 L28 34 L32 18 L36 34 L44 22 L50 42 Z" fill="#c9a86a"/><rect x="14" y="45" width="36" height="4" rx="2" fill="#d92323"/></svg><p class="splash-brand">MAIN CHARACTER SOCIAL</p><p class="splash-by">by Royal Tee</p><span class="splash-ring"></span></div></div>
@@ -1183,58 +1241,30 @@ function renderSaved(){
 }
 function renderPlay(){
   const m=meP();
-  if(!m){let h='<div class="pt"><h1 class="page">Home</h1><p class="small dim mt2">Challenges, outfit checks, trending looks, groups, and events live here. Create your profile in the Profile tab to jump in.</p>';h+=storiesRowHTML(null);const tr=trendingPosts();if(tr.length)h+='<section aria-label="Trending now" class="mt6"><h2 class="fd">Trending</h2><ul class="stack mt3">'+tr.slice(0,5).map(postCardHTML).join("")+"</ul></section>";return h+"</div>";}
-  let h='<div class="pt"><h1 class="page">Home</h1><p class="small dim mt1">The fun economy of Main Character Social: challenges, votes, spotlights, and the scene near you.</p>';h+=storiesRowHTML(m)+createBarHTML();
-  const mySpot=DB.spotlights.some(s=>s.pid===m.id&&new Date(s.ends)>new Date());
-  h+='<section aria-label="Spotlight" class="card card-goldfull card-lg mt6"><h2 class="sub">★ Spotlight</h2><p class="small dim mt1">Be featured at the top of everyone\'s home feed for 24 hours. $4.99 at public launch — free to activate during the launch preview, no charge today.</p>'+(mySpot?'<p class="inner mt3 small" style="font-weight:600;color:var(--gold)">You\'re in the Spotlight right now. Check your feed.</p>':'<button type="button" class="btn btn-red mt3" data-act="spotlight">Put me in the Spotlight — 24 hours</button>')+"</section>";
-  /* Daily challenge */
-  const dayIdx=dayOfYear()%CHALLENGE_PROMPTS.length;const prompt=CHALLENGE_PROMPTS[dayIdx];const today=dayKey(new Date());
-  if(DB.challenge.day!==today){const y=new Date();y.setDate(y.getDate()-1);let winner="";if(DB.challenge.day===dayKey(y)&&DB.challenge.entries.length){const best=DB.challenge.entries.map(id=>postById(id)).filter(Boolean).sort((a,b)=>b.likes.length-a.likes.length)[0];if(best){const au=personById(best.pid);winner=au?au.display_name:"";}}DB.challenge={day:today,entryPid:"",entries:[],yesterdayWinner:winner};save();}
-  const myMedia=DB.posts.filter(x=>x.pid===m.id);
-  h+='<section aria-label="Daily challenge" class="mt8"><h2 class="fd">Daily Challenge</h2><div class="card card-lg mt3"><p class="xs" style="font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:var(--gold)">Today · '+today+'</p><p class="mt2" style="font-size:1.125rem;font-weight:600;line-height:1.4">'+esc(prompt)+"</p>";
-  if(DB.challenge.yesterdayWinner)h+='<p class="small mt2" style="color:var(--gold)">🏆 Yesterday\'s featured winner: '+esc(DB.challenge.yesterdayWinner)+" — most-liked entry of the day.</p>";
-  const myEntry=DB.challenge.entries.map(postById).find(x=>x&&x.pid===m.id);
-  if(myEntry)h+='<p class="small mt3" style="font-weight:500">You\'re entered. Rally your likes — the most-liked entry is tomorrow\'s featured winner.</p>';
-  else if(myMedia.length===0)h+='<p class="small dim mt3">Post something in your Showcase first (Profile tab), then enter it here.</p>';
-  else h+='<form class="rowflex mt3" data-form="challenge"><label class="sr-only" for="challenge-pick">Pick one of your posts to enter</label><select id="challenge-pick" class="input grow" required data-challengepick="1"><option value="">Pick one of your posts…</option>'+myMedia.map(x=>'<option value="'+x.id+'"'+(UI.enterPostId===x.id?" selected":"")+">"+esc((x.caption||x.kind).slice(0,60))+"</option>").join("")+'</select><button type="submit" class="btn btn-red">Enter challenge</button></form>';
-  h+="</div>";
-  const entries=DB.challenge.entries.map(postById).filter(Boolean);
-  if(entries.length)h+='<ul class="stack mt3">'+entries.map(postCardHTML).join("")+"</ul>";
-  h+="</section>";
-  /* Trending */
-  const tr=trendingPosts();
-  h+='<section aria-label="Trending posts" class="mt8"><h2 class="fd">Trending</h2><p class="small dim mt1">The most-liked looks and reels across Main Character Social right now.</p>'+(tr.length===0?'<p class="small dim mt3">Nothing trending yet — likes decide this page, so go heart some looks.</p>':'<ul class="stack mt3">'+tr.map(postCardHTML).join("")+"</ul>")+"</section>";
-  /* Outfit check */
-  h+='<section aria-label="Outfit check" class="mt8"><h2 class="fd">Outfit Check</h2><p class="small dim mt1">Two fits enter. Your friends decide.</p><form class="card mt3" data-form="poll" style="display:grid;gap:.5rem"><div><label class="lbl" for="poll-q">Question</label><input id="poll-q" class="input mt1" maxlength="120" value="Which fit wins?" data-pollq="1"></div><div class="grid2"><div><label class="lbl" for="poll-a">Fit A</label><input id="poll-a" class="input mt1" required maxlength="200" placeholder="Describe fit A — or what makes it the one" data-polla="1"></div><div><label class="lbl" for="poll-b">Fit B</label><input id="poll-b" class="input mt1" required maxlength="200" placeholder="Describe fit B" data-pollb="1"></div></div><div><button type="submit" class="btn btn-red">Post outfit check</button></div></form>';
-  if(DB.polls.length)h+='<ul class="stack mt3">'+DB.polls.map(p=>{const au=personById(p.pid);const total=p.votesA.length+p.votesB.length;const pctA=total?Math.round(p.votesA.length/total*100):50;const myVote=p.votesA.includes(m.id)?"a":p.votesB.includes(m.id)?"b":"";return '<li class="card"><p class="small">'+(au?'<button type="button" class="linkbtn" data-act="openprofile" data-id="'+au.id+'">'+esc(au.display_name)+'</button>':'')+' <span class="dim">@'+esc(au?au.username:"")+' asks:</span></p><p class="fd mt1" style="font-size:1.25rem">'+esc(p.question)+'</p><div class="grid2 mt3">'+[["a",p.optionA,p.votesA.length,pctA],["b",p.optionB,p.votesB.length,100-pctA]].map(o=>'<button type="button" class="pick'+(myVote===o[0]?" sel":"")+'" style="padding:.75rem" data-act="vote" data-id="'+p.id+'" data-choice="'+o[0]+'" aria-pressed="'+(myVote===o[0])+'" aria-label="Vote for fit '+String(o[0]).toUpperCase()+': '+esc(o[1])+'"><span class="xs" style="display:block;font-weight:700;text-transform:uppercase;color:var(--gold)">Fit '+String(o[0]).toUpperCase()+" · "+o[2]+" votes ("+o[3]+'%)</span><span class="small" style="display:block;margin-top:.15rem">'+esc(o[1])+"</span></button>").join("")+"</div></li>";}).join("")+"</ul>";
-  h+="</section>";
-  /* Sounds */
-  h+='<section aria-label="Trending sound ideas" class="mt8"><h2 class="fd">Sound Finder</h2><p class="small dim mt1">Sound concepts that are built for reels right now — pair one with tonight\'s look.</p><ul class="stack mt3">'+SOUND_IDEAS.map(s=>'<li class="card"><p style="font-weight:600">♪ '+esc(s.title)+'</p><p class="inner mt2 small" style="font-weight:500;color:var(--goldsoft)">🎬 Hook (first 3 seconds): '+esc(s.hook)+'</p><p class="small dim mt1" style="line-height:1.6">'+esc(s.idea)+'</p><p class="xs mt1" style="font-weight:500;color:var(--gold)">Best for: '+esc(s.bestFor)+"</p></li>").join("")+"</ul></section>";
-  /* Groups */
-  const people=DB.profiles.filter(p=>!isBlockedByMe(p.id));
-  h+='<section aria-label="Interest groups" class="mt8"><h2 class="fd">Groups</h2><div class="chips mt3" role="group" aria-label="Choose a group">'+GROUPS.map(g=>'<button type="button" class="chip'+(UI.groupSel===g?" on":"")+'" data-act="group" data-v="'+esc(g)+'" aria-pressed="'+(UI.groupSel===g)+'">'+esc(g)+"</button>").join("")+"</div>";
-  if(UI.groupSel){const gmap={"Makeup":"Glam & Beauty","Hair":"Glam & Beauty"};const members=people.filter(p=>(p.interests||[]).includes(UI.groupSel)||(p.interests||[]).includes(gmap[UI.groupSel]||" "));h+='<div class="mt3">'+(members.length===0?'<p class="small dim">No members in '+esc(UI.groupSel)+' yet — add it to your interests in Edit Profile to be the first face here.</p>':'<ul class="plain">'+members.map(p=>'<li class="person-row" style="margin-top:.5rem">'+avatarHTML(p,40)+'<p class="small grow" style="min-width:0"><button type="button" class="linkbtn" data-act="openprofile" data-id="'+p.id+'">'+esc(p.display_name)+'</button>'+(tierBadgeFor(p))+' <span class="xs dim" style="display:block" class="truncate">@'+esc(p.username)+(p.city?" · <span style=\"display:inline-flex;vertical-align:-2px\">"+mcsIcon("pin",12)+"</span> "+esc(p.city):"")+(p.status?" — "+esc(p.status):"")+"</span></p></li>").join("")+"</ul>")+"</div>";}
-  h+="</section>";
-  /* Cities */
-  const cmap={};people.forEach(p=>{if(p.city)cmap[p.city]=(cmap[p.city]||0)+1;});const cities=Object.keys(cmap).sort((a,b)=>cmap[b]-cmap[a]);
-  h+='<section aria-label="City pages" class="mt8"><h2 class="fd">Cities</h2><p class="small dim mt1">Find your local scene — people on Main Character Social in each city.</p>';
-  if(cities.length===0)h+='<p class="small dim mt3">No cities yet — profiles with a city set will gather here.</p>';
-  else h+='<div class="chips mt3" role="group" aria-label="Choose a city">'+cities.map(c=>'<button type="button" class="chip'+(UI.citySel===c?" on":"")+'" data-act="city" data-v="'+esc(c)+'" aria-pressed="'+(UI.citySel===c)+'">'+esc(c)+" · "+cmap[c]+"</button>").join("")+"</div>";
-  if(UI.citySel)h+='<ul class="plain mt3">'+people.filter(p=>p.city===UI.citySel).map(p=>'<li class="person-row" style="margin-top:.5rem">'+avatarHTML(p,40)+'<p class="small grow" style="min-width:0"><button type="button" class="linkbtn" data-act="openprofile" data-id="'+p.id+'">'+esc(p.display_name)+'</button>'+(tierBadgeFor(p))+' <span class="xs dim" style="display:block">@'+esc(p.username)+" · "+followersOf(p.id)+" followers"+(p.status?" — "+esc(p.status):"")+"</span></p></li>").join("")+"</ul>";
-  h+="</section>";
-  /* Marketplace */
-  const mkt=DB.listings.filter(l=>!isBlockedByMe(l.pid));
-  h+='<section aria-label="Marketplace" class="mt8"><h2 class="fd">Marketplace</h2><p class="small dim mt1">Shop the community — art, beats, glam services, and digital drops. Enquire opens a DM with the seller. Pro sellers keep 85% of every sale; Premium and free sellers keep 70%.</p>';
-  if(mkt.length===0)h+='<p class="small dim mt3">Nothing listed yet — be the first to sell from Profile → My Shop.</p>';
-  else h+='<ul class="grid-shop plain mt3">'+mkt.map(l=>{const s=personById(l.pid);if(!s)return "";const mine=s.id===m.id;return '<li class="card" style="padding:0;overflow:hidden">'+(l.src?'<img src="'+l.src+'" alt="'+esc(l.title)+'" class="square">':'<div class="inner" style="display:flex;aspect-ratio:1/1;align-items:center;justify-content:center;padding:.75rem;text-align:center;border-radius:0"><span class="small" style="font-weight:600">'+esc(l.title)+'</span></div>')+'<div style="padding:.75rem"><p class="small" style="font-weight:600">'+esc(l.title)+'</p><p class="xs dim mt1">by '+esc(s.display_name)+'</p><p class="small gold-t mt1" style="font-weight:700">'+money(l.price_cents)+'</p>'+(l.status==="sold"?'<p class="xs rose-t mt1" style="font-weight:700;text-transform:uppercase">Sold</p>':(mine?priceFormHTML(l):'<button type="button" class="btn btn-red btn-xs mt2" data-act="enquire" data-id="'+s.id+'" data-title="'+esc(l.title)+'">Enquire</button><button type="button" class="btn btn-gold btn-xs mt2" data-act="buy" data-id="'+l.id+'">Buy '+money(l.price_cents)+'</button>'))+"</div></li>";}).join("")+"</ul>";
-  h+="</section>";
-  /* Events */
-  h+='<section aria-label="Events board" class="mt8"><h2 class="fd">Events Board</h2><p class="small dim mt1">Showcases, parties, auditions, and meetups posted by members.</p>';
-  if(isMember()){h+='<form class="card mt3" data-form="event-post" style="display:grid;gap:.5rem"><div><label class="lbl" for="ev-title">Event title</label><input id="ev-title" class="input mt1" required maxlength="120" placeholder="e.g. Velvet Lounge Showcase Night" data-evtitle="1"></div><div class="rowflex" style="align-items:flex-end"><div><label class="lbl" for="ev-kind">Type</label><select id="ev-kind" class="input mt1" style="width:auto" data-evkind="1">'+EVENT_KINDS.map(k=>'<option value="'+k.id+'">'+k.name+"</option>").join("")+'</select></div><div><label class="lbl" for="ev-date">Date &amp; time</label><input id="ev-date" type="datetime-local" class="input mt1" style="width:auto" data-evdate="1"></div><div class="grow"><label class="lbl" for="ev-city">City</label><input id="ev-city" class="input mt1" maxlength="60" data-evcity="1"></div></div><div><label class="lbl" for="ev-desc">Details</label><input id="ev-desc" class="input mt1" maxlength="500" placeholder="Dress code, how to join, what to bring…" data-evdesc="1"></div><div><button type="submit" class="btn btn-red">Post event</button></div></form>';}
-  else h+='<div class="card card-goldfull mt3"><p class="small" style="font-weight:500">🔒 Posting events is a Member perk — anyone can browse the board.</p><button type="button" class="btn btn-red mt2" data-act="upgrade">Become a Member — free during launch</button></div>';
-  if(DB.events.length===0)h+='<p class="small dim mt3">No events posted yet.</p>';
-  else h+='<ul class="stack mt3">'+DB.events.map(e=>{const au=personById(e.pid);const kind=(EVENT_KINDS.find(k=>k.id===e.kind)||{}).name||e.kind;return '<li class="card"><p class="small rowflex"><span class="bd bd-gold">'+esc(kind)+'</span><span style="font-weight:600">'+esc(e.title)+'</span></p><p class="xs dim mt1">Hosted by '+(au?'<button type="button" class="linkbtn" data-act="openprofile" data-id="'+au.id+'">'+esc(au.display_name)+'</button>':"")+" @"+esc(au?au.username:"")+(e.date?" · "+new Date(e.date).toLocaleString(undefined,{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):"")+(e.city?" · "+esc(e.city):"")+"</p>"+(e.description?'<p class="small mt2" style="line-height:1.6">'+esc(e.description)+"</p>":"")+"</li>";}).join("")+"</ul>";
-  return h+"</section></div>";
+  const allPosts=DB.posts.filter(function(p){return !p.held&&!isBlockedByMe(p.pid);}).slice().sort(function(a,b){return String(b.created_at||"").localeCompare(String(a.created_at||""));});
+  const creators=typeof featuredCreators==="function"?featuredCreators().filter(function(p){return !m||p.id!==m.id;}).slice(0,5):[];
+  const trending=typeof trendingPosts==="function"?trendingPosts().filter(function(p){return !p.held&&!isBlockedByMe(p.pid);}).slice(0,4):[];
+  let h='<div class="pt mcs-social-home">';
+  h+='<div class="social-welcome"><div><p class="social-eyebrow">YOUR PEOPLE · YOUR WORLD</p><h1 class="page">Home</h1><p class="small dim mt1">A place to show up, share your world, and find your people.</p></div><button type="button" class="btn btn-goldline social-avatar-cta" data-act="go" data-tab="avatar">✦ My avatar</button></div>';
+  h+=storiesRowHTML(m);
+  h+='<div class="social-grid"><section class="social-main" aria-label="Your social feed">';
+  if(m)h+=createBarHTML();
+  else h+='<div class="card social-join"><div><strong>Make this world yours.</strong><p class="small dim mt1">Create a profile to post, follow creators, and build your circle.</p></div><button type="button" class="btn btn-red" data-act="go" data-tab="profile">Join the community</button></div>';
+  h+='<div class="social-feed-heading"><div><h2 class="sub">Your feed</h2><p class="xs dim mt1">Fresh looks, moments, and updates from the community.</p></div><button type="button" class="btn btn-ghost btn-xs" data-act="go" data-tab="explore">Discover people ↗</button></div>';
+  if(allPosts.length)h+='<ul class="stack social-feed-list">'+allPosts.slice(0,18).map(feedItemHTML).join("")+'</ul>';
+  else h+='<div class="dashed mt3"><p style="font-weight:600">Your feed starts here.</p><p class="small dim mt1">Follow creators and share your first look to bring this space to life.</p><button type="button" class="btn btn-red mt3" data-act="go" data-tab="explore">Find people</button></div>';
+  h+='</section><aside class="social-rail" aria-label="Discover your community">';
+  h+='<section class="card social-rail-card"><div class="social-rail-head"><div><p class="social-eyebrow">MAKE CONNECTIONS</p><h2 class="sub">People to know</h2></div><button type="button" class="linkbtn xs" data-act="go" data-tab="explore">See all</button></div>';
+  if(creators.length)h+='<ul class="plain social-people">'+creators.map(function(p){return '<li class="person-row">'+avatarHTML(p,42)+'<span class="grow" style="min-width:0"><span class="small" style="font-weight:600;display:block">'+esc(p.display_name)+verifiedSeal(p,13)+'</span><span class="xs dim truncate" style="display:block">@'+esc(p.username)+'</span></span>'+(m?followButtonHTML(p,false):'<button type="button" class="btn btn-soft btn-xs" data-act="go" data-tab="profile">Join</button>')+'</li>';}).join("")+'</ul>';
+  else h+='<p class="small dim mt3">New creators will appear here as the community grows.</p>';
+  h+='</section>';
+  h+='<section class="card social-rail-card"><div class="social-rail-head"><div><p class="social-eyebrow">HAPPENING NOW</p><h2 class="sub">Trending</h2></div><button type="button" class="linkbtn xs" data-act="go" data-tab="explore">Explore</button></div>';
+  if(trending.length)h+='<ul class="plain social-trending">'+trending.map(function(p,i){const a=personById(p.pid);return '<li><span class="social-trend-num">0'+(i+1)+'</span><span class="grow" style="min-width:0"><span class="small" style="display:block;font-weight:600">'+esc((p.caption||"Community moment").slice(0,62))+'</span><span class="xs dim">'+(a?'by @'+esc(a.username):'Community post')+'</span></span></li>';}).join("")+'</ul>';
+  else h+='<p class="small dim mt3">The community is warming up. New posts will surface here.</p>';
+  h+='</section>';
+  h+='<section class="card social-room-card"><p class="social-eyebrow">STEP INTO THE WORLD</p><h2 class="sub mt1">Your avatar. Your scene.</h2><p class="small dim mt2">Build your look, then bring that identity into the places you hang out.</p><button type="button" class="btn btn-goldline mt3" data-act="go" data-tab="avatar">Open avatar studio ↗</button></section>';
+  h+='</aside></div></div>';
+  return h;
 }
 function trendScore(p,now){now=now||Date.now();const hrs=Math.max(0,(now-new Date(p.created_at).getTime())/3600000);const likes=(p.likes||[]).length;const saves=(p.saves||[]).length;return (likes+3*saves)/Math.pow(hrs+2,1.5);}
 function trendingPosts(){const now=Date.now();return DB.posts.filter(p=>!isBlockedByMe(p.pid)).slice().sort((a,b)=>trendScore(b,now)-trendScore(a,now)).slice(0,10);}
