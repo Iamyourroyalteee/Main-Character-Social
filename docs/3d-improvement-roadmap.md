@@ -68,3 +68,5 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - 2026-11-11: Added runtime-mocked loader tests and CI workflow. Corrected regression assertion patterns before relying on the workflow. Waiting for the new GitHub Actions run to confirm execution.
 
 - 2026-11-11: Added a schema-validated catalog asset loading API, unit normalization (m/cm/mm), and default-deny adult asset gating. Added mocked runtime coverage for these paths. Real asset fixtures and full model bounds/UV/material validation remain open.
+
+- 2026-11-11: Added imported model geometry/transform validation, configurable mesh/vertex/triangle budgets, and warnings for missing normals/UVs/materials. Pivot conventions and strict material/UV policies remain open.
