@@ -5,6 +5,7 @@ on:
       - 'src/index.html'
       - 'avatar-3d/**'
       - 'tests/avatar-3d-safety-smoke.cjs'
+      - 'tests/avatar-account-bridge-smoke.cjs'
       - 'tests/security-smoke.cjs'
       - '.github/workflows/mcs-security-smoke.yml'
   push:
@@ -22,5 +23,7 @@ jobs:
           node-version: '22'
       - name: Run MCS security regression and inline JavaScript syntax checks
         run: node tests/security-smoke.cjs
+      - name: Run avatar account bridge integration tests
+        run: node tests/avatar-account-bridge-smoke.cjs
       - name: Run 3D avatar fail-closed safety smoke
         run: node tests/avatar-3d-safety-smoke.cjs
