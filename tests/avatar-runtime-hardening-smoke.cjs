@@ -77,9 +77,10 @@ let createdPhysical = 0;
 class MockPhysicalMaterial {
   constructor(params){ this.color=params.color; this.userData={}; this.uuid="pbr-"+(++createdPhysical); this.dispose=function(){}; }
 }
+class MockCanvasTexture { constructor(canvas){this.canvas=canvas;} dispose(){} }
 const factory = factoryWindow.MCSGlamMaterialFactory.create({
   MeshPhysicalMaterial:MockPhysicalMaterial, MeshToonMaterial:MockPhysicalMaterial,
-  Color:MockColor, DoubleSide:2
+  Color:MockColor, CanvasTexture:MockCanvasTexture, EquirectangularReflectionMapping:1, DoubleSide:2
 });
 const legacyToon = {isMeshToonMaterial:true,name:"",userData:{},color:new MockColor("#c08050"),transparent:false};
 const legacyMesh = {isMesh:true,name:"",userData:{},material:legacyToon};
