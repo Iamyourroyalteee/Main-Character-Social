@@ -339,14 +339,14 @@
       if (!root || typeof root.traverse !== "function") return;
       root.traverse(function(o){
         if (o.isMesh){
-          if (o.geometry) o.geometry.dispose();
+          if (o.geometry && o.geometry.dispose) o.geometry.dispose();
           var mats = Array.isArray(o.material) ? o.material : [o.material];
           mats.forEach(function(m){
             if (!m) return;
             ["map","normalMap","roughnessMap","metalnessMap","emissiveMap","alphaMap"].forEach(function(k){
               if (m[k] && m[k].dispose) m[k].dispose();
             });
-            m.dispose();
+            if (m.dispose) m.dispose();
           });
         }
       });
