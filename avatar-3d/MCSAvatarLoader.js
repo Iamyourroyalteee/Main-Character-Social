@@ -75,7 +75,7 @@
             !bounds.min.concat(bounds.max).every(Number.isFinite) ||
             bounds.min.some(function(v,i){ return v > bounds.max[i]; })) errs.push("bounds must contain finite ordered min/max coordinates");
       }
-      var allowedRoles = ["skin","hair","fabric","denim","metal","gold","chrome","glass","wood","stone","emissive","plastic","leather","rubber","water"];
+      var allowedRoles = ["skin","lips","hair","fabric","denim","metal","gold","chrome","glass","wood","stone","emissive","plastic","leather","rubber","water"];
       if (asset.materialRoles != null){
         if (!Array.isArray(asset.materialRoles)) errs.push("materialRoles must be an array");
         else asset.materialRoles.forEach(function(role){ if (allowedRoles.indexOf(role) < 0) errs.push("unknown material role: " + role); });
