@@ -3,47 +3,255 @@
   "$id": "https://maincharactersocial.com/schemas/3d-asset-manifest.schema.json",
   "title": "Main Character Social 3D Asset Manifest",
   "type": "object",
-  "required": ["schemaVersion", "assets"],
+  "required": [
+    "schemaVersion",
+    "assets"
+  ],
   "properties": {
-    "schemaVersion": { "type": "string", "const": "1.0.0" },
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
     "assets": {
       "type": "array",
-      "items": { "$ref": "#/$defs/asset" }
+      "items": {
+        "$ref": "#/$defs/asset"
+      }
     }
   },
   "additionalProperties": false,
   "$defs": {
     "asset": {
       "type": "object",
-      "required": ["id", "slot", "url", "format", "provenance"],
+      "required": [
+        "id",
+        "slot",
+        "url",
+        "format",
+        "provenance"
+      ],
       "properties": {
-        "id": { "type": "string", "minLength": 1, "pattern": "^[a-z0-9][a-z0-9._-]*$" },
-        "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
-        "slot": { "enum": ["hair", "top", "bottom", "outfit", "shoes", "hat", "glasses", "accessory", "prop"] },
-        "url": { "type": "string", "minLength": 1 },
-        "format": { "enum": ["glb", "gltf"] },
-        "unit": { "enum": ["m", "cm", "mm"], "default": "m" },
-        "scale": { "type": "number", "exclusiveMinimum": 0 },
-        "is_adult": { "type": "boolean", "default": false },
-        "hides": { "type": "array", "uniqueItems": true, "items": { "enum": ["head", "torso", "armsUpper", "armsLower", "legsUpper", "legsLower", "feet", "hands"] } },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "slot": {
+          "enum": [
+            "hair",
+            "top",
+            "bottom",
+            "outfit",
+            "shoes",
+            "hat",
+            "glasses",
+            "accessory",
+            "prop"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "format": {
+          "enum": [
+            "glb",
+            "gltf"
+          ]
+        },
+        "unit": {
+          "enum": [
+            "m",
+            "cm",
+            "mm"
+          ],
+          "default": "m"
+        },
+        "scale": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "is_adult": {
+          "type": "boolean",
+          "default": false
+        },
+        "hides": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "head",
+              "torso",
+              "armsUpper",
+              "armsLower",
+              "legsUpper",
+              "legsLower",
+              "feet",
+              "hands"
+            ]
+          }
+        },
         "pivot": {
           "type": "array",
-          "items": { "type": "number" },
+          "items": {
+            "type": "number"
+          },
           "minItems": 3,
           "maxItems": 3
         },
-        "previewUrl": { "type": "string" },
+        "previewUrl": {
+          "type": "string"
+        },
         "provenance": {
           "type": "object",
-          "required": ["owner", "license", "source", "permittedUse"],
+          "required": [
+            "owner",
+            "license",
+            "source",
+            "permittedUse"
+          ],
           "properties": {
-            "owner": { "type": "string", "minLength": 1 },
-            "license": { "type": "string", "minLength": 1 },
-            "source": { "type": "string", "minLength": 1 },
-            "permittedUse": { "type": "string", "minLength": 1 },
-            "attribution": { "type": "string" }
+            "owner": {
+              "type": "string",
+              "minLength": 1
+            },
+            "license": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source": {
+              "type": "string",
+              "minLength": 1
+            },
+            "permittedUse": {
+              "type": "string",
+              "minLength": 1
+            },
+            "attribution": {
+              "type": "string"
+            }
           },
           "additionalProperties": false
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pivotConvention": {
+          "enum": [
+            "origin-center",
+            "origin-bottom-center",
+            "custom"
+          ]
+        },
+        "bounds": {
+          "type": "object",
+          "required": [
+            "min",
+            "max"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "min": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            "max": {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 3,
+              "maxItems": 3
+            }
+          }
+        },
+        "materialRoles": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "skin",
+              "hair",
+              "fabric",
+              "denim",
+              "metal",
+              "gold",
+              "chrome",
+              "glass",
+              "wood",
+              "stone",
+              "emissive",
+              "plastic",
+              "leather",
+              "rubber",
+              "water"
+            ]
+          }
+        },
+        "textures": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "baseColor": {
+              "type": "string"
+            },
+            "normal": {
+              "type": "string"
+            },
+            "roughness": {
+              "type": "string"
+            },
+            "metalness": {
+              "type": "string"
+            },
+            "ao": {
+              "type": "string"
+            },
+            "emissive": {
+              "type": "string"
+            }
+          }
+        },
+        "lods": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "url",
+              "format",
+              "maxTriangles"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "url": {
+                "type": "string",
+                "minLength": 1
+              },
+              "format": {
+                "enum": [
+                  "glb",
+                  "gltf"
+                ]
+              },
+              "maxTriangles": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "maxVertices": {
+                "type": "integer",
+                "minimum": 3
+              }
+            }
+          }
         }
       },
       "additionalProperties": false
