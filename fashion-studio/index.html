@@ -126,19 +126,30 @@ function applyMoodboardToModel(){
  try{
   const win=frame.contentWindow,api=win&&win.MCS;
   if(!api||!api.player||!api.outfit||!api.ITEMS){toast("Open the 3D Model tab and wait for the avatar to load first.");return}
-  const map={coat:["top","top-blazer"],dress:["outfit","outfit-slip"],shirt:["top","top-blouse"],denim:["bottom","bottom-wideleg"],skirt:["bottom","bottom-miniskirt"],knit:["top","top-sweater"],sneaker:["shoes","shoes-lowtop"],heel:["shoes","shoes-heels"],boot:["shoes","shoes-boots"],bag:["prop","prop-handbag"],clutch:["prop","prop-handbag"],backpack:["prop","prop-handbag"],necklace:["accessory","acc-chain"],earrings:["accessory","acc-chain"],ring:["accessory","acc-chain"],bracelet:["accessory","acc-chain"],sunglasses:["glasses","acc-shades"],scarf:["accessory","acc-chain"],hat:["hat","hat-bucket"],belt:["accessory","acc-chain"],watch:["accessory","acc-chain"],hair:["hair","hair-waves"]};
-  const slots=JSON.parse(JSON.stringify(api.outfit.slots));let unsupported=0;const appliedSlots=new Set();
+  const map={coat:["top","top-blazer"],dress:["outfit","outfit-slip"],shirt:["top","top-blouse"],denim:["bottom","bottom-wideleg"],skirt:["bottom","bottom-miniskirt"],knit:["top","top-sweater"],sneaker:["shoes","shoes-lowtop"],heel:["shoes","shoes-heels"],boot:["shoes","shoes-boots"],bag:["prop","prop-handbag"],clutch:["prop","prop-handbag"],backpack:["prop","prop-handbag"],necklace:["accessory","acc-chain"],earrings:["accessory","acc-chain"],ring:["accessory","acc-chain"],bracelet:["accessory","acc-chain"],sunglasses:["accessory","acc-shades"],scarf:["accessory","acc-chain"],hat:["hat","hat-bucket"],belt:["accessory","acc-chain"],watch:["accessory","acc-chain"],hair:["hair","hair-waves"]};
+  const slots=JSON.parse(JSON.stringify(api.outfit.slots));let unsupported=0,slotConflicts=0;const appliedSlots=new Set();
   placed.forEach(p=>{
    const target=map[p.itemId];if(!target){unsupported++;return}
    const [slot,itemId]=target,meta=api.ITEMS[itemId];
    if(!meta||meta.slot!==slot){unsupported++;return}
+   if(appliedSlots.has(slot))slotConflicts++;
    slots[slot]={itemId,colorHex:nearestSupportedTint(p.color,meta.tints)};
    appliedSlots.add(slot);
   });
-  if(slots.outfit){slots.top=null;slots.bottom=null}
+  let outfitConflict=0;
+  if(appliedSlots.has("outfit")&&(appliedSlots.has("top")||appliedSlots.has("bottom"))){
+   outfitConflict=(appliedSlots.has("top")?1:0)+(appliedSlots.has("bottom")?1:0);
+   slots.top=null;slots.bottom=null;
+   appliedSlots.delete("top");appliedSlots.delete("bottom");
+  }else if(!appliedSlots.has("outfit")&&(appliedSlots.has("top")||appliedSlots.has("bottom"))){
+   slots.outfit=null;
+  }
   api.outfit.slots=slots;api.player.applyOutfit(api.outfit);
-  const applied=appliedSlots.size;
-  toast(applied+" avatar wardrobe slots updated"+(unsupported?" · "+unsupported+" moodboard-only pieces skipped":"")+". Colors are matched to supported avatar tints. Save in the 3D creator to persist.");
+  const applied=appliedSlots.size,details=[];
+  if(unsupported)details.push(unsupported+" moodboard-only pieces skipped");
+  if(slotConflicts)details.push(slotConflicts+" earlier pieces replaced because the avatar supports one item per slot");
+  if(outfitConflict)details.push(outfitConflict+" separates skipped because a one-piece outfit takes priority");
+  toast(applied+" avatar wardrobe slots updated"+(details.length?" · "+details.join(" · "):"")+". Colors are matched to supported avatar tints. Save in the 3D creator to persist.");
  }catch(e){toast("Could not connect to the 3D fitting room. Open it directly and retry.")}
 }
 $("applyToModel").addEventListener("click",applyMoodboardToModel);
