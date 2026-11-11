@@ -64,6 +64,33 @@
       if (asset.version != null && !/^\d+\.\d+\.\d+$/.test(asset.version)) errs.push("version must use semantic x.y.z format");
       if (asset.pivot != null && (!Array.isArray(asset.pivot) || asset.pivot.length !== 3 || !asset.pivot.every(Number.isFinite))) errs.push("pivot must contain three finite coordinates");
       if (asset.previewUrl != null && !validateAssetUrl(asset.previewUrl)) errs.push("invalid preview URL");
+      if (asset.pivotConvention != null && ["origin-center","origin-bottom-center","custom"].indexOf(asset.pivotConvention) < 0) errs.push("invalid pivot convention");
+      if (asset.bounds != null){
+        var bounds = asset.bounds;
+        if (!bounds || !Array.isArray(bounds.min) || !Array.isArray(bounds.max) ||
+            bounds.min.length !== 3 || bounds.max.length !== 3 ||
+            !bounds.min.concat(bounds.max).every(Number.isFinite) ||
+            bounds.min.some(function(v,i){ return v > bounds.max[i]; })) errs.push("bounds must contain finite ordered min/max coordinates");
+      }
+      var allowedRoles = ["skin","hair","fabric","denim","metal","gold","chrome","glass","wood","stone","emissive","plastic","leather","rubber","water"];
+      if (asset.materialRoles != null){
+        if (!Array.isArray(asset.materialRoles)) errs.push("materialRoles must be an array");
+        else asset.materialRoles.forEach(function(role){ if (allowedRoles.indexOf(role) < 0) errs.push("unknown material role: " + role); });
+      }
+      var textureKeys = ["baseColor","normal","roughness","metalness","ao","emissive"];
+      if (asset.textures != null){
+        if (!asset.textures || typeof asset.textures !== "object" || Array.isArray(asset.textures)) errs.push("textures must be an object");
+        else Object.keys(asset.textures).forEach(function(key){
+          if (textureKeys.indexOf(key) < 0 || !validateAssetUrl(asset.textures[key])) errs.push("invalid texture reference: " + key);
+        });
+      }
+      if (asset.lods != null){
+        if (!Array.isArray(asset.lods)) errs.push("lods must be an array");
+        else asset.lods.forEach(function(lod){
+          if (!lod || !validateAssetUrl(lod.url) || ["glb","gltf"].indexOf(lod.format) < 0 ||
+              !Number.isInteger(lod.maxTriangles) || lod.maxTriangles < 1) errs.push("invalid LOD descriptor");
+        });
+      }
       return errs;
     }
 
@@ -170,10 +197,12 @@
       var errors = validateAssetDescriptor(asset);
       if (errors.length){ if (onFail) onFail("Invalid asset descriptor: " + errors.join("; ")); return null; }
       var descriptor = {
-        id: asset.id, slot: asset.slot, version: asset.version || "1.0.0",
-        is_adult: !!asset.is_adult, hides: (asset.hides || []).slice(),
-        scale: asset.scale || 1, unit: asset.unit || "m",
-        pivot: asset.pivot ? asset.pivot.slice() : null,
+        id: asset.id, slot: asset.slot, category: asset.category || asset.slot,
+        version: asset.version || "1.0.0", is_adult: !!asset.is_adult,
+        hides: (asset.hides || []).slice(), scale: asset.scale || 1, unit: asset.unit || "m",
+        pivot: asset.pivot ? asset.pivot.slice() : null, pivotConvention: asset.pivotConvention || null,
+        bounds: asset.bounds || null, materialRoles: (asset.materialRoles || []).slice(),
+        textures: asset.textures || {}, lods: (asset.lods || []).slice(),
         previewUrl: asset.previewUrl || null, provenance: asset.provenance
       };
       var request = { cancelled:false };
