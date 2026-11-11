@@ -10,10 +10,10 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - [x] Remove completed requests from pending tracking and prevent cancelled/torn-down loads from attaching assets.
 - [x] Validate imported mesh positions, finite transforms/scales, optional geometry bounds, and configurable mesh/vertex/triangle budgets; report missing normals, UVs, and materials.
 - [ ] Enforce asset pivot conventions and required normal/UV/material policies.
-- [x] Add automated source-level coverage for GLTF dependency wiring, URL scheme rejection, pending-request cleanup, cancellation, and teardown guards.
+- [x] Add and execute automated source/runtime-mocked coverage for GLTF dependency wiring, successful/missing/invalid loads, URL scheme rejection, catalog schema validation, PBR map loading, material binding, cancellation, and disposal/teardown.
 - [x] Add runtime-mocked tests for unsafe URL rejection, valid URL acceptance, successful callback delivery, disposal after cancellation/teardown, catalog schema validation, GLB loading, unit normalization, and default-deny adult gating.
 - [x] Add a real glTF 2.0 fixture and browser smoke harness that imports it through GLTFLoader and the catalog pipeline.
-- [ ] Add binary GLB fixtures plus missing-asset, malformed-file, and GPU-resource disposal tests. (Mocked malformed/empty-scene rejection is covered.)
+- [ ] Add binary GLB fixtures plus browser-level malformed-file and real GPU-resource disposal tests. (A real glTF 2.0 fixture and mocked malformed/empty-scene disposal coverage are in place.)
 
 ## P1 — Character quality
 - [ ] Replace or augment procedural base characters with original/licensed rigged GLB assets.
@@ -97,3 +97,5 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - 2026-11-10: Added a minimal original glTF 2.0 PBR fixture and a browser smoke page that exercises the real Three.js r128 GLTFLoader, schema validation, model validation, and catalog loading. Automated source checks verify the fixture and harness wiring; actual browser execution awaits the next available Vercel preview deployment.
 
 - 2026-11-10: Added a deploy-root glTF fixture at `avatar-3d/assets/test-fixtures/minimal-pbr.gltf` and a browser smoke harness at `avatar-3d/asset-pipeline-smoke.html`. The harness exercises the actual r128 GLTFLoader and catalog pipeline. Latest branch changes remain ahead of the latest Vercel preview because the Vercel deployment API hit its daily deployment quota; browser execution is still pending. No production deployment was made.
+
+- 2026-11-10: Executed the committed smoke-test source and runtime-mocked paths in an isolated JavaScript harness; all assertions passed, including missing asset errors, schema/provenance, unit normalization, named material texture bindings, PBR map channels/color spaces, multi-material retint, cancellation, and teardown disposal. This is not yet a native GitHub Actions run or a real browser/WebGL/iPad run.
