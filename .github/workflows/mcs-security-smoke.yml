@@ -11,6 +11,7 @@ on:
     branches:
       - main
       - 'security/**'
+      - 'fix/pbr-default-full-avatar-materials'
 jobs:
   security-smoke:
     runs-on: ubuntu-latest
