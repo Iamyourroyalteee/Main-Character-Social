@@ -27,6 +27,7 @@
     var disposables = [];   /* geometries/materials/textures we own */
     var pending = [];       /* in-flight GLTF loads, cancellable */
     var assetRequests = []; /* full catalog requests, including texture binding */
+    var loadedAssets = [];  /* imported roots owned by this engine */
     var zoneRefs = {};      /* zone -> count of garments covering it (reference counts) */
     ZONES.forEach(function(z){ zoneRefs[z] = 0; });
 
@@ -255,6 +256,14 @@
       assetRequests.slice().forEach(function(request){ if (request && request.cancel) request.cancel(); });
       assetRequests = [];
     }
+    function releaseAsset(root){
+      loadedAssets = loadedAssets.filter(function(item){ return item !== root; });
+      if (root) disposeObject(root);
+    }
+    function disposeLoadedAssets(){
+      loadedAssets.slice().forEach(function(root){ releaseAsset(root); });
+      loadedAssets = [];
+    }
 
     function loadCatalogAsset(asset, onDone, onFail){
       var errors = validateAssetDescriptor(asset);
@@ -312,6 +321,7 @@
             }
             request.completed = true;
             request.loadedRoot = null;
+            loadedAssets.push(root);
             finishAssetRequest(request);
             onDone && onDone(root, gltf, descriptor, report);
           }, function(message){
@@ -345,6 +355,7 @@
       alive = false;
       cancelPending();
       cancelAssetRequests();
+      disposeLoadedAssets();
       disposables.forEach(function(d){ if (d && d.dispose) d.dispose(); });
       disposables = [];
     }
@@ -439,7 +450,7 @@
     return {
       SLOTS: SLOTS, ZONES: ZONES, zoneRefs: zoneRefs,
       validateItemSchema: validateItemSchema, validateAssetDescriptor: validateAssetDescriptor, validateAssetManifest: validateAssetManifest, validateModel: validateModel,
-      loadGLTF: loadGLTF, loadCatalogAsset: loadCatalogAsset, cancelPending: cancelPending,
+      loadGLTF: loadGLTF, loadCatalogAsset: loadCatalogAsset, releaseAsset: releaseAsset, cancelPending: cancelPending,
       recomputeZoneRefs: recomputeZoneRefs, applyCulling: applyCulling,
       setSkinTone: setSkinTone,
       gateItem: gateItem, setEntitlementProvider: function(fn){ entitlementFn = fn; entitlementCache = { value:null, ts:0, ttlMs:60000 }; },
