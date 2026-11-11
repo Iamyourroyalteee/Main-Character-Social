@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "avatar-3d/**"
+      - "src/avatar-3d/**"
       - "tests/avatar-3d-safety-smoke.cjs"
       - ".github/workflows/avatar-3d-smoke.yml"
   push:
@@ -11,6 +12,7 @@ on:
       - "fix/pbr-default-full-avatar-materials"
     paths:
       - "avatar-3d/**"
+      - "src/avatar-3d/**"
       - "tests/avatar-3d-safety-smoke.cjs"
       - ".github/workflows/avatar-3d-smoke.yml"
 
