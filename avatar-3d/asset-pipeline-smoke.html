@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>MCS 3D Asset Pipeline Smoke Test</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#0b0b0e;color:#f2ead2;font:15px system-ui,sans-serif;min-height:100vh;display:grid;grid-template-rows:auto 1fr auto}
+  header,footer{padding:14px 18px;background:#141419;border-bottom:1px solid #5f4a20}
+  h1{font-size:16px;margin:0 0 4px;color:#f3d67b}
+  p{margin:0;color:#aaa18e;font-size:12px;line-height:1.5}
+  #stage{min-height:320px;position:relative}
+  canvas{width:100%;height:100%;display:block}
+  #status{padding:12px 18px;font:12px ui-monospace,monospace;color:#d9d0b8;white-space:pre-wrap}
+  #status.pass{color:#9fe0a7}#status.fail{color:#ff9b9b}
+</style>
+</head>
+<body>
+<header>
+  <h1>Main Character Social — 3D Asset Pipeline Test</h1>
+  <p>Loads a repository-owned glTF fixture through the same schema, lifecycle, and PBR material engine used by the avatar prototype.</p>
+</header>
+<main id="stage"><canvas id="gl"></canvas></main>
+<footer><div id="status">Starting WebGL and GLTFLoader…</div></footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="MCSGlamMaterialFactory.js"></script>
+<script src="MCSAvatarLoader.js"></script>
+<script>
+(function(){
+  const status = document.getElementById("status");
+  const canvas = document.getElementById("gl");
+  function report(message, kind){
+    status.textContent = message;
+    status.className = kind || "";
+  }
+  if (!window.THREE || !THREE.WebGLRenderer || !THREE.GLTFLoader || !window.MCSAvatarLoader){
+    report("FAIL: Three.js, GLTFLoader, or MCSAvatarLoader did not load.", "fail");
+    return;
+  }
+  let renderer, engine, glam;
+  try {
+    renderer = new THREE.WebGLRenderer({canvas:canvas, antialias:true, alpha:false});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.setSize(document.getElementById("stage").clientWidth, document.getElementById("stage").clientHeight, false);
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x181722);
+    const camera = new THREE.PerspectiveCamera(38, canvas.clientWidth / Math.max(1,canvas.clientHeight), 0.1, 50);
+    camera.position.set(0,0.55,3.4);
+    camera.lookAt(0,0.5,0);
+    scene.add(new THREE.HemisphereLight(0xffffff,0x4a3b2e,1.2));
+    const key = new THREE.DirectionalLight(0xffe4c0,1.5);
+    key.position.set(2,4,3); scene.add(key);
+    glam = MCSGlamMaterialFactory.create(THREE);
+    engine = MCSAvatarLoader.create(THREE,{
+      renderer:renderer, scene:scene, camera:camera,
+      GLTFLoader:THREE.GLTFLoader,
+      materialFactory:glam,
+      slots:["hair","top","bottom","outfit","shoes","hat","glasses","accessory","prop"],
+      zones:["head","torso","armsUpper","armsLower","legsUpper","legsLower","feet","hands"]
+    });
+    engine.loadCatalogAsset({
+      id:"fixture-pbr-triangle",
+      slot:"prop",
+      url:"assets/test-fixtures/minimal-pbr.gltf",
+      format:"gltf",
+      unit:"m",
+      scale:1,
+      is_adult:false,
+      provenance:{
+        owner:"Main Character Social",
+        license:"Original test fixture",
+        source:"tests/fixtures/minimal-pbr.gltf",
+        permittedUse:"Testing and validation"
+      }
+    },function(root,gltf,descriptor,validation){
+      scene.add(root);
+      report(
+        "PASS: real GLTFLoader imported the fixture.\n" +
+        "Asset: " + descriptor.id + "\n" +
+        "Meshes: " + validation.meshCount + " · Vertices: " + validation.vertexCount +
+        " · Triangles: " + validation.triangleCount + "\n" +
+        "PBR material: " + (root.getObjectByName("FixtureMesh") ? "scene graph present" : "loaded") +
+        "\nThis confirms browser-side glTF loading only; it is not an avatar rig or iPad performance certification.",
+        "pass"
+      );
+      function animate(){ requestAnimationFrame(animate); root.rotation.y += 0.003; renderer.render(scene,camera); }
+      animate();
+    },function(error){
+      report("FAIL: " + error, "fail");
+    });
+  } catch(error){
+    report("FAIL: " + (error && error.message || String(error)), "fail");
+  }
+  window.addEventListener("resize",function(){
+    if (!renderer) return;
+    const stage=document.getElementById("stage");
+    renderer.setSize(stage.clientWidth,stage.clientHeight,false);
+  });
+  window.addEventListener("pagehide",function(){
+    if (engine) engine.teardown();
+    if (glam) glam.dispose();
+    if (renderer) renderer.dispose();
+  });
+})();
+</script>
+</body>
+</html>
