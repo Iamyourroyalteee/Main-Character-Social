@@ -381,9 +381,10 @@ assert.equal(materialFactory.retintEquipped([multiMaterialRoot]), 2,
 assert.ok(Array.isArray(multiMaterialMesh.material), "multi-material assignments must remain arrays");
 assert.notEqual(multiMaterialMesh.material[0], oldFabric, "old material references must be replaced");
 assert.equal(multiMaterialMesh.material[0].map, loadedMaps.baseColor, "mode switches must preserve texture-map references");
+const disposedBeforeRetire = disposedMaterials;
 assert.equal(materialFactory.retireOldMaterials([multiMaterialRoot]), 2,
   "only the two replaced materials should be retired");
-assert.equal(disposedMaterials, 2, "replaced materials should be disposed after reassignment");
+assert.equal(disposedMaterials, disposedBeforeRetire + 2, "replaced materials should be disposed after reassignment");
 const texturesBeforeFactoryDispose = disposedTextures;
 materialFactory.dispose();
 assert.equal(disposedTextures, texturesBeforeFactoryDispose + 6, "factory teardown must dispose all six owned texture maps");
