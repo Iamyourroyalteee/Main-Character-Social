@@ -430,6 +430,65 @@ assert.equal(disposedMaterials, disposedBeforeRetire + 2, "replaced materials sh
 const texturesBeforeFactoryDispose = disposedTextures;
 materialFactory.dispose();
 assert.equal(disposedTextures, texturesBeforeFactoryDispose + 6, "factory teardown must dispose all six owned texture maps");
+
+// Skeletal animation runtime: clips, crossfades, morph targets, playback controls, and teardown.
+const animationRuntimeSource = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSAvatarAnimationRuntime.js"), "utf8");
+const animationWindow = {};
+vm.runInNewContext(animationRuntimeSource, { window: animationWindow });
+let mixerUpdates = 0, mixerStops = 0, mixerUncached = 0, actionPlays = 0, crossFades = 0;
+function MockAction(){
+  this.enabled = false;
+  this.reset = () => this;
+  this.setEffectiveWeight = () => this;
+  this.setEffectiveTimeScale = () => this;
+  this.play = () => { actionPlays++; return this; };
+  this.stop = () => this;
+  this.crossFadeTo = () => { crossFades++; return this; };
+  this.fadeOut = () => this;
+}
+class MockAnimationMixer {
+  constructor(root){ this.root = root; this.timeScale = 1; }
+  clipAction(){ return new MockAction(); }
+  update(delta){ mixerUpdates += delta; }
+  setTime(time){ this.time = time; }
+  stopAllAction(){ mixerStops++; }
+  uncacheRoot(){ mixerUncached++; }
+}
+const animationThree = { AnimationMixer:MockAnimationMixer };
+const morphInfluences = [0,0];
+const riggedRoot = {
+  traverse(fn){
+    fn({ isSkinnedMesh:true, skeleton:{} });
+    fn({ morphTargetDictionary:{ smile:0, blink:1 }, morphTargetInfluences:morphInfluences });
+  }
+};
+const animation = animationWindow.MCSAvatarAnimationRuntime.create(animationThree, riggedRoot, {
+  clips:[{name:"Idle",duration:2},{name:"Walk",duration:1},{name:"Walk",duration:1},{name:"",duration:1}]
+});
+assert.equal(animation.hasSkeleton, true, "runtime must detect skinned meshes");
+assert.equal(animation.skeletonCount, 1, "runtime must count skeletons");
+assert.equal(animation.clipCount, 2, "runtime must register unique named clips only");
+assert.equal(animation.play("Idle"), true, "known clip must play");
+assert.equal(animation.play("Walk", 0.25), true, "second clip must play");
+assert.equal(crossFades, 1, "clip changes should crossfade");
+animation.update(0.05);
+assert.equal(mixerUpdates, 0.05, "runtime should advance mixer by frame delta");
+animation.pause();
+assert.equal(animation.setSpeed(1.5), true, "runtime should accept bounded playback speed");
+animation.resume();
+assert.equal(animation.seek(0.75), true, "runtime should seek mixer time");
+assert.equal(animation.setMorphTarget("smile", 0.8), true, "runtime should set known facial morph target");
+assert.equal(morphInfluences[0], 0.8, "morph target influence should update");
+assert.equal(animation.setMorphTarget("unknown", 1), false, "unknown morph target should be rejected");
+assert.equal(animation.play("missing"), false, "unknown animation clip should be rejected");
+animation.stop();
+animation.dispose();
+animation.dispose();
+assert.equal(animation.isDisposed, true, "animation runtime should dispose idempotently");
+assert.equal(mixerUncached, 1, "animation runtime should uncache its model root");
+assert.throws(() => animation.play("Idle"), /disposed/, "disposed animation runtime must reject playback");
+console.log("PASS: skeletal animation runtime supports clips, crossfades, facial morphs, playback controls, and cleanup.");
+
 console.log("PASS: multi-material PBR retint preserves arrays and disposes replaced materials safely.");
 
 }
