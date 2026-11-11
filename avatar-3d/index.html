@@ -426,6 +426,7 @@
 
 <script>document.querySelectorAll("[data-mode-link]").forEach(a=>{if(a.dataset.modeLink===document.documentElement.dataset.mcsMode)a.setAttribute("aria-current","page");});</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="MCSStudioLighting.js"></script>
 <script src="MCSGlamMaterialFactory.js"></script>
 <script src="MCSCameraSetup.js"></script>
@@ -3506,6 +3507,7 @@ animate();
    lifecycle. Created here so ZONE_NAMES/ITEMS/wardrobe all exist. --- */
 const engine = window.MCSAvatarLoader ? MCSAvatarLoader.create(THREE, {
   renderer, scene, camera,
+  GLTFLoader: THREE.GLTFLoader || null,
   slots: ["hair","top","bottom","outfit","shoes","hat","glasses","accessory","prop"],
   zones: ZONE_NAMES,
   getItem: (id)=> ITEMS[id] || null
