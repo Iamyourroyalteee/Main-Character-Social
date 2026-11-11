@@ -19,7 +19,7 @@ assert.equal(assetManifest.assets.length, 0, "unverified external models must no
 assert.equal(gltfFixture.asset.version, "2.0", "browser fixture must be a valid glTF 2.0 asset");
 assert.equal(gltfFixture.meshes.length, 1, "browser fixture must include a real mesh");
 assert.ok(browserSmoke.includes("engine.loadCatalogAsset"), "browser smoke page must exercise the catalog loader");
-assert.ok(browserSmoke.includes("../tests/fixtures/minimal-pbr.gltf"), "browser smoke page must load the repository fixture");
+assert.ok(browserSmoke.includes("assets/test-fixtures/minimal-pbr.gltf"), "browser smoke page must load the repository fixture");
 
 const gate = html.match(/function isAdultProfile\(\)\s*\{([\s\S]*?)\}/);
 assert.ok(gate, "3D prototype must define its adult-access gate");
