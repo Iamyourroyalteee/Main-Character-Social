@@ -133,8 +133,7 @@ async function runCatalogAssetTests() {
     (manifest) => { manifestDelivered = manifest; },
     (message) => { manifestFailure = message; });
   assert.ok(manifestRequest && typeof manifestRequest.cancel === "function", "manifest request must be cancellable");
-  await Promise.resolve();
-  await Promise.resolve();
+  await new Promise((resolve) => setImmediate(resolve));
   assert.deepEqual(Array.from(manifestDelivered.assets), [], "valid empty manifest should publish an empty catalog");
   assert.equal(manifestFailure, "", "valid manifest should not report an error");
 
@@ -145,17 +144,14 @@ async function runCatalogAssetTests() {
   catalogEngine.loadAssetManifest("assets/manifest.json", () => {
     assert.fail("invalid manifest must never publish catalog entries");
   }, (message) => { rejectedManifest = /Asset manifest rejected/.test(message); });
-  await Promise.resolve();
-  await Promise.resolve();
-  await Promise.resolve();
+  await new Promise((resolve) => setImmediate(resolve));
   assert.equal(rejectedManifest, true, "invalid full manifest must return actionable validation errors");
 
   let httpFailure = "";
   sandboxWindow.fetch = async () => ({ ok:false, status:404 });
   catalogEngine.loadAssetManifest("assets/manifest.json", () => assert.fail("404 manifest must not publish"),
     (message) => { httpFailure = message; });
-  await Promise.resolve();
-  await Promise.resolve();
+  await new Promise((resolve) => setImmediate(resolve));
   assert.match(httpFailure, /404/, "manifest HTTP failures must be surfaced");
 
   const duplicateAsset = {
