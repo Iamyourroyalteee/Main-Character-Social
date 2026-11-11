@@ -49,6 +49,11 @@
       if (!asset.slot || !SLOT_SET[asset.slot]) errs.push("unknown asset slot");
       if (!validateAssetUrl(asset.url)) errs.push("invalid asset URL");
       if (asset.format !== "glb" && asset.format !== "gltf") errs.push("format must be glb or gltf");
+      var provenance = asset.provenance;
+      if (!provenance || typeof provenance !== "object") errs.push("missing asset provenance");
+      else ["owner","license","source","permittedUse"].forEach(function(key){
+        if (typeof provenance[key] !== "string" || !provenance[key].trim()) errs.push("missing provenance " + key);
+      });
       if (asset.is_adult != null && typeof asset.is_adult !== "boolean") errs.push("is_adult must be boolean");
       if (asset.hides != null && !Array.isArray(asset.hides)) errs.push("hides must be an array");
       if (Array.isArray(asset.hides)) asset.hides.forEach(function(zone){
