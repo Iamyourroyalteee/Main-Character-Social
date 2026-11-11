@@ -156,6 +156,7 @@
         if (!allowed){ if (onFail) onFail("Asset access denied"); return; }
         request.loadHandle = loadGLTF(asset.url, function(root, gltf){
           if (request.cancelled || !alive){ if (root) disposeObject(root); return; }
+          if (!root){ if (onFail) onFail("Invalid 3D model: empty GLTF scene"); return; }
           if (root.scale && root.scale.setScalar){
             var unitScale = asset.unit === "cm" ? 0.01 : (asset.unit === "mm" ? 0.001 : 1);
             root.scale.setScalar((asset.scale || 1) * unitScale);
