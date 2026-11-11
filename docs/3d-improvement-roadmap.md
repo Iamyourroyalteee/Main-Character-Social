@@ -5,7 +5,7 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 ## P0 — Asset pipeline foundation
 - [x] Wire Three.js r128 GLTFLoader into the shared avatar engine.
 - [x] Add schema-validated GLB/GLTF catalog-asset loading with stable IDs, supported slots/formats, safe URLs, age gating, and explicit units.
-- [x] Add safe cancellation guards, error handling, disposal, and graceful procedural fallback.
+- [x] Add safe cancellation guards, error handling, disposal, and graceful procedural fallback across GLTF and per-material texture requests, including engine teardown.
 - [x] Validate GLTF URLs: permit project-relative/HTTPS paths; reject executable, data, blob, file, and protocol-relative schemes.
 - [x] Remove completed requests from pending tracking and prevent cancelled/torn-down loads from attaching assets.
 - [x] Validate imported mesh positions, finite transforms/scales, optional geometry bounds, and configurable mesh/vertex/triangle budgets; report missing normals, UVs, and materials.
@@ -84,3 +84,5 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - 2026-11-10: Added PBR texture map loading/application helpers with safe URL validation, sRGB/linear encoding, cancellation/failure cleanup, and factory-owned texture disposal. Added runtime-mocked tests for all six map channels, color-space assignment, unsafe URL rejection, and partial-load cleanup. Binding manifest maps to individual imported GLTF material names remains open.
 
 - 2026-11-10: Wired the shared PBR material factory into the avatar loader and added named per-material texture bindings from manifest descriptors. Runtime-mocked coverage verifies texture maps attach to the intended GLTF material and role metadata is preserved.
+
+- 2026-11-10: Extended catalog request lifecycle tracking through material texture binding; engine teardown now cancels pending texture requests and disposes uncommitted models. Added a runtime-mocked teardown regression test.
