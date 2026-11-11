@@ -36,6 +36,7 @@ assert.match(loader, /asset id must be a stable lowercase identifier/, "asset ID
 assert.match(loader, /function loadCatalogAsset\(asset, onDone, onFail\)/, "validated catalog assets must have a managed loading path");
 assert.match(loader, /function applyMaterialBindings\(root, bindings, request, onDone, onFail\)/, "catalog imports must bind texture maps to named GLTF materials");
 assert.match(loader, /function cancelAssetRequests\(\)/, "engine teardown must cancel pending catalog and texture requests");
+assert.match(loader, /function releaseAsset\(root\)/, "completed catalog roots must have an explicit disposal path");
 assert.match(loader, /function validateModel\(root, limits\)/, "loaded model geometry and transforms must be validated");
 assert.match(loader, /if \(!root\)\{ if \(onFail\) onFail\("Invalid 3D model: empty GLTF scene"\)/, "empty GLTF scenes must fail closed");
 assert.match(loader, /unitScale = asset\.unit === "cm"/, "catalog model units must be normalized on import");
@@ -163,6 +164,9 @@ async function runCatalogAssetTests() {
   catalogScene.scale = { setScalar(value) { scaleState.value = value; } };
   completeLoad({ scene: catalogScene });
   assert.equal(catalogLoaded, true, "catalog load should return the loaded scene and validated descriptor");
+  const disposedBeforeRelease = disposed.geometry;
+  catalogEngine.releaseAsset(catalogScene);
+  assert.ok(disposed.geometry > disposedBeforeRelease, "released catalog roots must dispose their owned geometry");
   assert.equal(scaleState.value, 0.02, "catalog import should normalize centimeters to meters and apply scale");
 
   let malformedError = "";
