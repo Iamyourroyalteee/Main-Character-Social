@@ -111,7 +111,7 @@
     }
     function loadTextureMaps(refs, onDone, onFail){
       var keys = Object.keys(refs || {});
-      var request = { cancelled:false, failed:false, textures:{}, cancel:function(){ request.cancelled = true; } };
+      var request = { cancelled:false, failed:false, completed:false, textures:{}, cancel:function(){ request.cancelled = true; } };
       if (!keys.length){ onDone && onDone({}); return request; }
       if (!THREE.TextureLoader){ request.failed = true; onFail && onFail("TextureLoader is not available"); return request; }
       var allowed = keys.filter(function(key){ return Object.prototype.hasOwnProperty.call(MAP_FIELDS,key); });
@@ -129,7 +129,7 @@
         });
         request.textures = {};
       }
-      request.cancel = function(){ request.cancelled = true; releaseTextures(); };
+      request.cancel = function(){ if (request.completed) return; request.cancelled = true; releaseTextures(); };
       function fail(err){
         if (request.failed || request.cancelled) return;
         request.failed = true;
@@ -147,7 +147,7 @@
             texture.needsUpdate = true;
             request.textures[key] = texture;
             ownedTextures.push(texture);
-            if (--remaining === 0) onDone && onDone(request.textures);
+            if (--remaining === 0){ request.completed = true; onDone && onDone(request.textures); }
           }, undefined, fail);
         } catch(err){ fail(err); }
       });
