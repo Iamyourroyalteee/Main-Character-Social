@@ -59,7 +59,7 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 ## Additional requirements added during execution
 - [x] Require per-asset owner, license, source, and permitted-use provenance before any catalog asset can load.
 - [x] Define a versioned canonical asset manifest and JSON schema for stable IDs, versions, slots/categories, formats, bounds, units, pivots, material roles, texture references, LODs, and previews. The manifest remains empty until verified assets are available.
-- [ ] Load the manifest in the running prototype, validate the full manifest before exposing catalog entries, and surface actionable validation errors.
+- [x] Load the manifest in the running prototype, validate the full manifest before exposing catalog entries, and surface actionable validation errors.
 - [ ] Add secure asset-origin policy, MIME/extension validation, file-size limits, decompression/triangle/texture budgets, and timeout/retry policy.
 - [ ] Add offline/loading/error states, progress reporting, retry controls, and reduced-motion/accessibility behavior.
 - [ ] Add visual regression captures for representative avatars, wardrobe combinations, props, and each environment under fixed cameras/lighting.
@@ -99,3 +99,5 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - 2026-11-10: Added a deploy-root glTF fixture at `avatar-3d/assets/test-fixtures/minimal-pbr.gltf` and a browser smoke harness at `avatar-3d/asset-pipeline-smoke.html`. The harness exercises the actual r128 GLTFLoader and catalog pipeline. Latest branch changes remain ahead of the latest Vercel preview because the Vercel deployment API hit its daily deployment quota; browser execution is still pending. No production deployment was made.
 
 - 2026-11-10: Executed the committed smoke-test source and runtime-mocked paths in an isolated JavaScript harness; all assertions passed, including missing asset errors, schema/provenance, unit normalization, named material texture bindings, PBR map channels/color spaces, multi-material retint, cancellation, and teardown disposal. This is not yet a native GitHub Actions run or a real browser/WebGL/iPad run.
+
+- 2026-11-10: Integrated runtime manifest loading into the prototype. Catalog entries remain empty until the complete manifest passes validation; HTTP/JSON/schema failures are surfaced as actionable catalog errors, and in-flight manifest requests are cancellable on engine teardown. Added runtime tests for valid, invalid, and missing manifests. Browser/iPad execution remains a release gate.
