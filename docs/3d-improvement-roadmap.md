@@ -24,7 +24,7 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 
 ## P1 — PBR and rendering
 - [x] Add PBR texture-map loading/application helpers for base color, normal, roughness, metalness, AO, and emissive channels, including safe URL checks, cancellation, decode-failure cleanup, and owned-texture disposal.
-- [ ] Bind manifest texture references per material on imported GLTF meshes; preserve each material's texture roles through mode changes.
+- [x] Bind manifest texture references by GLTF material name, assign semantic material roles, and preserve texture maps through PBR/toon mode changes.
 - [x] Apply sRGB encoding to base-color/emissive maps and linear encoding to normal/roughness/metalness/AO maps.
 - [ ] Validate GLTF embedded texture preservation and GPU texture compression handling.
 - [x] Preserve multi-material GLTF mesh assignments and existing texture maps during PBR/toon mode switching; retire replaced materials only after reassignment.
@@ -82,3 +82,5 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - 2026-11-10: Fixed multi-material PBR retint/disposal for imported meshes and added a runtime-mocked regression test. Texture map loading and per-material texture binding remain open.
 
 - 2026-11-10: Added PBR texture map loading/application helpers with safe URL validation, sRGB/linear encoding, cancellation/failure cleanup, and factory-owned texture disposal. Added runtime-mocked tests for all six map channels, color-space assignment, unsafe URL rejection, and partial-load cleanup. Binding manifest maps to individual imported GLTF material names remains open.
+
+- 2026-11-10: Wired the shared PBR material factory into the avatar loader and added named per-material texture bindings from manifest descriptors. Runtime-mocked coverage verifies texture maps attach to the intended GLTF material and role metadata is preserved.
