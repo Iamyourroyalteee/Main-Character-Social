@@ -26,3 +26,5 @@ jobs:
           node-version: 20
       - name: Run avatar 3D safety and loader tests
         run: node tests/avatar-3d-safety-smoke.cjs
+      - name: Run avatar animation and resource lifecycle regression tests
+        run: node tests/avatar-runtime-hardening-smoke.cjs
