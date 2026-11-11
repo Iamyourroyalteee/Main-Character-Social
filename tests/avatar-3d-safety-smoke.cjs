@@ -115,6 +115,23 @@ async function runCatalogAssetTests() {
   assert.ok(duplicateReport.some((error) => error.includes("duplicate asset id")),
     "manifest validator must reject duplicate stable asset IDs");
 
+  const richAsset = {
+    id: "hat-rich", slot: "hat", url: "models/hat-rich.glb", format: "glb",
+    provenance: { owner: "MCS", license: "Original", source: "internal", permittedUse: "commercial" },
+    bounds: { min: [0, 0, 0], max: [1, 2, 1] },
+    pivot: [0, 0, 0], pivotConvention: "custom",
+    materialRoles: ["fabric"], textures: { baseColor: "textures/hat-base.png" },
+    lods: [{ url: "models/hat-low.glb", format: "glb", maxTriangles: 1200, maxVertices: 800 }]
+  };
+  assert.equal(catalogEngine.validateAssetDescriptor(richAsset).length, 0,
+    "valid bounds, pivot, material, texture, and LOD metadata should pass");
+  const badMetadata = catalogEngine.validateAssetDescriptor({
+    ...richAsset, bounds: { min: [2, 0, 0], max: [1, 1, 1] },
+    materialRoles: ["unknown-role"], textures: { normal: "javascript:alert(1)" },
+    pivotConvention: "custom", pivot: null
+  });
+  assert.ok(badMetadata.length >= 4, "invalid bounds, material roles, texture URLs, and custom pivots must be rejected");
+
   const validModelReport = catalogEngine.validateModel(makeScene());
   assert.equal(validModelReport.valid, true, "valid geometry, normals, UVs, and bounds should pass model validation");
   const invalidModelReport = catalogEngine.validateModel({
