@@ -27,6 +27,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="MCSGlamMaterialFactory.js"></script>
 <script src="MCSAvatarLoader.js"></script>
+<script src="MCSAvatarAnimationRuntime.js"></script>
 <script>
 (function(){
   const status = document.getElementById("status");
@@ -35,11 +36,11 @@
     status.textContent = message;
     status.className = kind || "";
   }
-  if (!window.THREE || !THREE.WebGLRenderer || !THREE.GLTFLoader || !window.MCSAvatarLoader){
+  if (!window.THREE || !THREE.WebGLRenderer || !THREE.GLTFLoader || !window.MCSAvatarLoader || !window.MCSAvatarAnimationRuntime){
     report("FAIL: Three.js, GLTFLoader, or MCSAvatarLoader did not load.", "fail");
     return;
   }
-  let renderer, engine, glam;
+  let renderer, engine, glam, animationController;
   try {
     renderer = new THREE.WebGLRenderer({canvas:canvas, antialias:true, alpha:false});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
@@ -77,6 +78,7 @@
       }
     },function(root,gltf,descriptor,validation){
       scene.add(root);
+      animationController = MCSAvatarAnimationRuntime.create(THREE, root, { clips:gltf.animations || [] });
       report(
         "PASS: real GLTFLoader imported the fixture.\n" +
         "Asset: " + descriptor.id + "\n" +
@@ -86,7 +88,7 @@
         "\nThis confirms browser-side glTF loading only; it is not an avatar rig or iPad performance certification.",
         "pass"
       );
-      function animate(){ requestAnimationFrame(animate); root.rotation.y += 0.003; renderer.render(scene,camera); }
+      function animate(){ requestAnimationFrame(animate); animationController.update(0.016); root.rotation.y += 0.003; renderer.render(scene,camera); }
       animate();
     },function(error){
       report("FAIL: " + error, "fail");
@@ -100,6 +102,7 @@
     renderer.setSize(stage.clientWidth,stage.clientHeight,false);
   });
   window.addEventListener("pagehide",function(){
+    if (animationController) animationController.dispose();
     if (engine) engine.teardown();
     if (glam) glam.dispose();
     if (renderer) renderer.dispose();
