@@ -241,8 +241,8 @@
 
     return {
       SLOTS: SLOTS, ZONES: ZONES, zoneRefs: zoneRefs,
-      validateItemSchema: validateItemSchema,
-      loadGLTF: loadGLTF, cancelPending: cancelPending,
+      validateItemSchema: validateItemSchema, validateAssetDescriptor: validateAssetDescriptor,
+      loadGLTF: loadGLTF, loadCatalogAsset: loadCatalogAsset, cancelPending: cancelPending,
       recomputeZoneRefs: recomputeZoneRefs, applyCulling: applyCulling,
       setSkinTone: setSkinTone,
       gateItem: gateItem, setEntitlementProvider: function(fn){ entitlementFn = fn; entitlementCache = { value:null, ts:0, ttlMs:60000 }; },
