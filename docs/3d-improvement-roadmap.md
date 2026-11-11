@@ -23,9 +23,11 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - [ ] Improve clothing fit, layered garments, shoes, accessories, and body-zone culling.
 
 ## P1 — PBR and rendering
-- [ ] Add texture-map loading and per-material binding for base color, normal, roughness, metalness, AO, and emissive channels.
-- [ ] Validate sRGB/linear color-space, GLTF texture preservation, and texture compression handling.
-- [x] Preserve multi-material GLTF mesh assignments during PBR/toon mode switching and retire replaced materials only after reassignment.
+- [x] Add PBR texture-map loading/application helpers for base color, normal, roughness, metalness, AO, and emissive channels, including safe URL checks and owned-texture disposal.
+- [ ] Bind manifest texture references per material on imported GLTF meshes; preserve each material's texture roles through mode changes.
+- [x] Apply sRGB encoding to base-color/emissive maps and linear encoding to normal/roughness/metalness/AO maps.
+- [ ] Validate GLTF embedded texture preservation and GPU texture compression handling.
+- [x] Preserve multi-material GLTF mesh assignments and existing texture maps during PBR/toon mode switching; retire replaced materials only after reassignment.
 - [ ] Extend consistent PBR material roles to furniture, props, rooms, architecture, and set pieces.
 - [ ] Improve environment lighting, shadows, reflections, and camera framing.
 - [ ] Retain an accessible low-cost/toon fallback for weaker devices.
@@ -78,3 +80,5 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - 2026-11-10: Added versioned manifest/schema, stable-ID and duplicate-ID checks, mandatory per-asset provenance, bounds/pivot/material/texture/LOD metadata validation, and test coverage. No third-party model was added without verifiable ownership/licensing.
 
 - 2026-11-10: Fixed multi-material PBR retint/disposal for imported meshes and added a runtime-mocked regression test. Texture map loading and per-material texture binding remain open.
+
+- 2026-11-10: Added PBR texture map loading/application helpers with safe URL validation, sRGB/linear encoding, cancellation/failure cleanup, and factory-owned texture disposal. Added runtime-mocked tests for all six map channels. Binding manifest maps to individual imported GLTF material names remains open.
