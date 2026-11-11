@@ -233,11 +233,6 @@ class MockMaterial {
     this.dispose = () => { disposedMaterials++; };
   }
 }
-const materialFactory = materialWindow.MCSGlamMaterialFactory.create({
-  MeshPhysicalMaterial: MockMaterial, MeshToonMaterial: MockMaterial,
-  Color: MockColor, TextureLoader: MockTextureLoader,
-  sRGBEncoding: 3001, LinearEncoding: 3000, DoubleSide: 2
-});
 class MockTexture {
   constructor(url) { this.url = url; this.dispose = () => { disposedTextures++; }; }
 }
@@ -245,6 +240,11 @@ let disposedTextures = 0;
 class MockTextureLoader {
   load(url, onLoad) { onLoad(new MockTexture(url)); }
 }
+const materialFactory = materialWindow.MCSGlamMaterialFactory.create({
+  MeshPhysicalMaterial: MockMaterial, MeshToonMaterial: MockMaterial,
+  Color: MockColor, TextureLoader: MockTextureLoader,
+  sRGBEncoding: 3001, LinearEncoding: 3000, DoubleSide: 2
+});
 let loadedMaps = null;
 const textureRequest = materialFactory.loadTextureMaps({
   baseColor: "textures/base-color.png", normal: "textures/normal.png",
@@ -266,7 +266,7 @@ assert.equal(mappedMaterial.emissiveMap, loadedMaps.emissive);
 textureRequest.cancel();
 assert.equal(disposedTextures, 0, "cancelling a completed texture request must not dispose maps already in use");
 let textureError = "";
-textureFactory.loadTextureMaps({ baseColor: "javascript:alert(1)" }, null, (message) => { textureError = message; });
+materialFactory.loadTextureMaps({ baseColor: "javascript:alert(1)" }, null, (message) => { textureError = message; });
 assert.match(textureError, /Invalid PBR texture map reference/, "unsafe texture URLs must be rejected");
 class FailingTextureLoader {
   load(url, onLoad, progress, onError) {
