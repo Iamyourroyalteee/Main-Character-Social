@@ -3528,7 +3528,15 @@ function resize(){
   camera.aspect = w / hgt; camera.updateProjectionMatrix();
 }
 window.addEventListener("resize", ()=>{ resize(); fitCameraToAvatar(); });
-resize(); renderTabs(); renderPanel(); renderRoomSwitcher(); refreshString(); renderLobby();
+resize();
+/* PBR is checked by default: convert any legacy toon materials still present
+   on the initial player/friend avatars before the first rendered frame. */
+if (glam){
+  glam.setPBR(true, scene, gradientMap);
+  glam.retintEquipped([player.root, friend.root]);
+  glam.retireOldMaterials([player.root, friend.root]);
+}
+renderTabs(); renderPanel(); renderRoomSwitcher(); refreshString(); renderLobby();
 /* quality init (M2A) */
 Q.autoTier = detectTier();
 Q.tier = Q.autoTier;
