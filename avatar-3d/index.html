@@ -436,6 +436,7 @@
 <script src="MCSGlamMaterialFactory.js"></script>
 <script src="MCSCameraSetup.js"></script>
 <script src="MCSAvatarLoader.js"></script>
+<script src="MCSAvatarAnimationRuntime.js"></script>
 <script>
 "use strict";
 /* =====================================================================
@@ -3628,6 +3629,8 @@ if (engine){
 
 /* QA / integration hooks */
 window.MCS = { THREE, scene, camera, renderer, player, friend, outfit, FRIEND_OUTFIT,
+  AnimationRuntime: window.MCSAvatarAnimationRuntime,
+  createAnimationController: (modelRoot, clips)=> window.MCSAvatarAnimationRuntime.create(THREE, modelRoot, { clips }),
   ITEMS, assetCache, alphaTexCache, SLOT_IDS, normalizeOutfit, setWaypoint, mover,
   EMOTES, MAKEUP, SKIN_TONES, HAIR_COLORS,
   mainRoomGroup, loungeGroup, isAdultProfile, setProfile, switchRoom, ADULT_SAFE_FALLBACK,
