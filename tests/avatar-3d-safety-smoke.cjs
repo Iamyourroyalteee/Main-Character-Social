@@ -203,8 +203,43 @@ const materialFactory = materialWindow.MCSGlamMaterialFactory.create({
   MeshPhysicalMaterial: MockMaterial, MeshToonMaterial: MockMaterial,
   Color: MockColor, DoubleSide: 2
 });
+class MockTexture {
+  constructor(url) { this.url = url; this.dispose = () => { disposedTextures++; }; }
+}
+let disposedTextures = 0;
+class MockTextureLoader {
+  load(url, onLoad) { onLoad(new MockTexture(url)); }
+}
+const textureFactory = materialWindow.MCSGlamMaterialFactory.create({
+  MeshPhysicalMaterial: MockMaterial, MeshToonMaterial: MockMaterial,
+  Color: MockColor, TextureLoader: MockTextureLoader,
+  sRGBEncoding: 3001, LinearEncoding: 3000, DoubleSide: 2
+});
+let loadedMaps = null;
+textureFactory.loadTextureMaps({
+  baseColor: "textures/base-color.png", normal: "textures/normal.png",
+  roughness: "textures/roughness.png", metalness: "textures/metalness.png",
+  ao: "textures/ao.png", emissive: "textures/emissive.png"
+}, (maps) => { loadedMaps = maps; }, (message) => assert.fail(message));
+assert.ok(loadedMaps, "all supported PBR texture maps should load");
+assert.equal(loadedMaps.baseColor.encoding, 3001, "base-color texture must use sRGB encoding");
+assert.equal(loadedMaps.emissive.encoding, 3001, "emissive texture must use sRGB encoding");
+assert.equal(loadedMaps.normal.encoding, 3000, "normal texture must use linear encoding");
+const mappedMaterial = {};
+textureFactory.applyTextureMaps(mappedMaterial, loadedMaps);
+assert.equal(mappedMaterial.map, loadedMaps.baseColor);
+assert.equal(mappedMaterial.normalMap, loadedMaps.normal);
+assert.equal(mappedMaterial.roughnessMap, loadedMaps.roughness);
+assert.equal(mappedMaterial.metalnessMap, loadedMaps.metalness);
+assert.equal(mappedMaterial.aoMap, loadedMaps.ao);
+assert.equal(mappedMaterial.emissiveMap, loadedMaps.emissive);
+let textureError = "";
+textureFactory.loadTextureMaps({ baseColor: "javascript:alert(1)" }, null, (message) => { textureError = message; });
+assert.match(textureError, /Invalid PBR texture map reference/, "unsafe texture URLs must be rejected");
+
 materialFactory.setPBR(false);
 const oldFabric = materialFactory.fabric("#ffffff");
+oldFabric.map = loadedMaps.baseColor;
 const oldGold = materialFactory.gold();
 const multiMaterialRoot = {
   traverse(fn) { fn({ isMesh: true, material: [oldFabric, oldGold] }); }
@@ -213,9 +248,12 @@ assert.equal(materialFactory.retintEquipped([multiMaterialRoot]), 2,
   "PBR mode switching must retint every role-tagged material in a multi-material mesh");
 assert.ok(Array.isArray(multiMaterialRoot.material), "multi-material assignments must remain arrays");
 assert.notEqual(multiMaterialRoot.material[0], oldFabric, "old material references must be replaced");
+assert.equal(multiMaterialRoot.material[0].map, loadedMaps.baseColor, "mode switches must preserve texture-map references");
 assert.equal(materialFactory.retireOldMaterials([multiMaterialRoot]), 2,
   "only the two replaced materials should be retired");
 assert.equal(disposedMaterials, 2, "replaced materials should be disposed after reassignment");
+textureFactory.dispose();
+assert.equal(disposedTextures, 6, "factory teardown must dispose all owned texture maps");
 console.log("PASS: multi-material PBR retint preserves arrays and disposes replaced materials safely.");
 
 }
