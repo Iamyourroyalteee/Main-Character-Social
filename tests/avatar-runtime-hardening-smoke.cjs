@@ -63,4 +63,23 @@ const meshB={isMesh:true,geometry:sharedGeometry,material:[sharedMaterial]};
 engine.disposeObject({traverse(fn){fn(meshA);fn(meshB);}});
 for(const key of Object.keys(counts)) assert.equal(counts[key],1,key+" must be disposed exactly once");
 engine.teardown();
+const factorySource = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSGlamMaterialFactory.js"), "utf8");
+const factoryWindow = {};
+vm.runInNewContext(factorySource, {window:factoryWindow});
+function MockColor(hex){ this.hex=String(hex).replace("#",""); this.getHexString=()=>this.hex; }
+let createdPhysical = 0;
+class MockPhysicalMaterial {
+  constructor(params){ this.color=params.color; this.userData={}; this.uuid="pbr-"+(++createdPhysical); this.dispose=function(){}; }
+}
+const factory = factoryWindow.MCSGlamMaterialFactory.create({
+  MeshPhysicalMaterial:MockPhysicalMaterial, MeshToonMaterial:MockPhysicalMaterial,
+  Color:MockColor, DoubleSide:2
+});
+const legacyToon = {isMeshToonMaterial:true,name:"",userData:{},color:new MockColor("#c08050"),transparent:false};
+const legacyMesh = {isMesh:true,name:"",userData:{},material:legacyToon};
+const converted = factory.retintEquipped([{traverse(fn){fn(legacyMesh);}}]);
+assert.equal(converted,1,"PBR toggle must convert untagged legacy toon materials on avatar meshes");
+assert.notEqual(legacyMesh.material,legacyToon);
+assert.equal(legacyMesh.material.userData.__role,"fabric","unclassified avatar surfaces should receive a safe PBR fabric role");
+factory.dispose();
 console.log("PASS: animation clips, track timing, morph indices, AO texture disposal, and shared GLTF resource cleanup.");
