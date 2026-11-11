@@ -209,7 +209,9 @@ async function runCatalogAssetTests() {
   assert.equal(bindingComplete, true, "catalog import should complete after per-material textures are bound");
   assert.equal(boundMaterial.map, boundTexture, "manifest texture maps should attach to the named GLTF material");
   assert.equal(boundMaterial.userData.__role, "fabric", "manifest material role should be assigned for later PBR mode changes");
+  const disposedBeforeBindingTeardown = disposed.geometry;
   bindingEngine.teardown();
+  assert.ok(disposed.geometry > disposedBeforeBindingTeardown, "engine teardown must dispose completed imported roots");
 
   let deferredMaterialCallback = null, deferredCancelCalled = false;
   const deferredFactory = {
