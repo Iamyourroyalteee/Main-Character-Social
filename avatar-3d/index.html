@@ -3508,6 +3508,7 @@ animate();
 const engine = window.MCSAvatarLoader ? MCSAvatarLoader.create(THREE, {
   renderer, scene, camera,
   GLTFLoader: THREE.GLTFLoader || null,
+  materialFactory: glam,
   slots: ["hair","top","bottom","outfit","shoes","hat","glasses","accessory","prop"],
   zones: ZONE_NAMES,
   getItem: (id)=> ITEMS[id] || null
