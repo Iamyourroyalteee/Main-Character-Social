@@ -12,7 +12,7 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - [ ] Enforce asset pivot conventions and required normal/UV/material policies.
 - [x] Add automated source-level coverage for GLTF dependency wiring, URL scheme rejection, pending-request cleanup, cancellation, and teardown guards.
 - [x] Add runtime-mocked tests for unsafe URL rejection, valid URL acceptance, successful callback delivery, disposal after cancellation/teardown, catalog schema validation, GLB loading, unit normalization, and default-deny adult gating.
-- [ ] Add real GLB fixture tests for missing assets, malformed files, and GPU resource disposal.
+- [ ] Add real GLB fixture tests for missing assets, malformed files, and GPU resource disposal. (Mocked malformed/empty-scene rejection is covered.)
 
 ## P1 — Character quality
 - [ ] Replace or augment procedural base characters with original/licensed rigged GLB assets.
@@ -71,3 +71,5 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - 2026-11-11: Added a schema-validated catalog asset loading API, unit normalization (m/cm/mm), and default-deny adult asset gating. Added mocked runtime coverage for these paths. Real asset fixtures and full model bounds/UV/material validation remain open.
 
 - 2026-11-11: Added imported model geometry/transform validation, configurable mesh/vertex/triangle budgets, and warnings for missing normals/UVs/materials. Pivot conventions and strict material/UV policies remain open.
+
+- 2026-11-11: Hardened disposal for empty/malformed GLTF scenes and added a regression test. Browser-side binary fixture validation remains a release gate.
