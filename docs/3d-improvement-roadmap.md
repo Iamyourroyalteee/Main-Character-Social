@@ -23,8 +23,9 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - [ ] Improve clothing fit, layered garments, shoes, accessories, and body-zone culling.
 
 ## P1 — PBR and rendering
-- [ ] Add texture-map support for base color, normal, roughness, metalness, AO, and emissive channels.
-- [ ] Validate color-space and texture compression handling.
+- [ ] Add texture-map loading and per-material binding for base color, normal, roughness, metalness, AO, and emissive channels.
+- [ ] Validate sRGB/linear color-space, GLTF texture preservation, and texture compression handling.
+- [x] Preserve multi-material GLTF mesh assignments during PBR/toon mode switching and retire replaced materials only after reassignment.
 - [ ] Extend consistent PBR material roles to furniture, props, rooms, architecture, and set pieces.
 - [ ] Improve environment lighting, shadows, reflections, and camera framing.
 - [ ] Retain an accessible low-cost/toon fallback for weaker devices.
@@ -66,12 +67,14 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 
 - 2026-11-10: Continued execution. Added GLTF URL allowlisting and request lifecycle guards; added source-level regression assertions. Added runtime-mocked GLTF loader tests and a dedicated GitHub Actions workflow; actual binary GLB fixtures and browser/device validation remain open. Added asset provenance, manifest, resource budgets, accessibility/loading, visual regression, device profiling, CI scanning, and backwards-compatibility requirements. Commits: `471e79d`, `17ea8c3`.
 
-- 2026-11-11: Added runtime-mocked loader tests and CI workflow. Corrected regression assertion patterns before relying on the workflow. Waiting for the new GitHub Actions run to confirm execution.
+- 2026-11-10: Added runtime-mocked loader tests and CI workflow. Corrected regression assertion patterns before relying on the workflow. Waiting for the new GitHub Actions run to confirm execution.
 
-- 2026-11-11: Added a schema-validated catalog asset loading API, unit normalization (m/cm/mm), and default-deny adult asset gating. Added mocked runtime coverage for these paths. Real asset fixtures and full model bounds/UV/material validation remain open.
+- 2026-11-10: Added a schema-validated catalog asset loading API, unit normalization (m/cm/mm), and default-deny adult asset gating. Added mocked runtime coverage for these paths. Real asset fixtures and full model bounds/UV/material validation remain open.
 
-- 2026-11-11: Added imported model geometry/transform validation, configurable mesh/vertex/triangle budgets, and warnings for missing normals/UVs/materials. Pivot conventions and strict material/UV policies remain open.
+- 2026-11-10: Added imported model geometry/transform validation, configurable mesh/vertex/triangle budgets, and warnings for missing normals/UVs/materials. Pivot conventions and strict material/UV policies remain open.
 
-- 2026-11-11: Hardened disposal for empty/malformed GLTF scenes and added a regression test. Browser-side binary fixture validation remains a release gate.
+- 2026-11-10: Hardened disposal for empty/malformed GLTF scenes and added a regression test. Browser-side binary fixture validation remains a release gate.
 
-- 2026-11-11: Added versioned manifest/schema, stable-ID and duplicate-ID checks, mandatory per-asset provenance, bounds/pivot/material/texture/LOD metadata validation, and test coverage. No third-party model was added without verifiable ownership/licensing.
+- 2026-11-10: Added versioned manifest/schema, stable-ID and duplicate-ID checks, mandatory per-asset provenance, bounds/pivot/material/texture/LOD metadata validation, and test coverage. No third-party model was added without verifiable ownership/licensing.
+
+- 2026-11-10: Fixed multi-material PBR retint/disposal for imported meshes and added a runtime-mocked regression test. Texture map loading and per-material texture binding remain open.
