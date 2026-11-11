@@ -68,7 +68,8 @@ function makeHarness(options = {}) {
     addEventListener(type, callback) { listeners[type] = callback; }
   };
   const document = {
-    getElementById(id) { return id === "mcs-avatar-3d-frame" ? frame : null; }
+    getElementById(id) { return id === "mcs-avatar-3d-frame" ? frame : null; },
+    addEventListener() {}
   };
   vm.runInNewContext(bridge, {
     window, document, meP: () => profile,
