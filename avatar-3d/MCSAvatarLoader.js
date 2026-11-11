@@ -259,7 +259,7 @@
         textures: asset.textures || {}, lods: (asset.lods || []).slice(),
         previewUrl: asset.previewUrl || null, provenance: asset.provenance, materials: (asset.materials || []).slice()
       };
-      var request = { cancelled:false };
+      var request = { cancelled:false, textureHandles:[] };
       gateItem(descriptor).then(function(allowed){
         if (request.cancelled || !alive) return;
         if (!allowed){ if (onFail) onFail("Asset access denied"); return; }
@@ -289,6 +289,7 @@
       request.cancel = function(){
         request.cancelled = true;
         if (request.loadHandle) request.loadHandle.cancelled = true;
+        request.textureHandles.forEach(function(handle){ if (handle && handle.cancel) handle.cancel(); });
       };
       return request;
     }
