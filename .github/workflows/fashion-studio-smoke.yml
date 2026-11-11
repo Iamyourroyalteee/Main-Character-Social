@@ -1,0 +1,23 @@
+name: Fashion Studio smoke tests
+on:
+  pull_request:
+    paths:
+      - "fashion-studio/**"
+      - "tests/fashion-studio-smoke.cjs"
+      - ".github/workflows/fashion-studio-smoke.yml"
+  push:
+    branches:
+      - "feature/fashion-creator-studio"
+    paths:
+      - "fashion-studio/**"
+      - "tests/fashion-studio-smoke.cjs"
+      - ".github/workflows/fashion-studio-smoke.yml"
+jobs:
+  fashion-studio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tests/fashion-studio-smoke.cjs
