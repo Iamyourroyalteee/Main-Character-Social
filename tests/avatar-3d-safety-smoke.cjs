@@ -59,10 +59,10 @@ function makeScene() {
   };
   return { scale: { x: 1, y: 1, z: 1, setScalar(value) { this.x = this.y = this.z = value; } }, traverse(fn) { fn(mesh); } };
 }
-function makeEngine() {
+function makeEngine(materialFactory) {
   return sandboxWindow.MCSAvatarLoader.create({ GLTFLoader: MockGLTFLoader }, {
     renderer: { domElement: { clientWidth: 10, clientHeight: 10 }, setSize() {} },
-    scene: {}, camera: { updateProjectionMatrix() {} }
+    scene: {}, camera: { updateProjectionMatrix() {} }, materialFactory
   });
 }
 const runtimeEngine = makeEngine();
@@ -170,6 +170,38 @@ async function runCatalogAssetTests() {
   await Promise.resolve();
   completeLoad({ scene: null });
   assert.match(malformedError, /Invalid 3D model/, "empty/malformed GLTF scenes must fail safely without crashing disposal");
+
+  const boundMaterial = { name: "BodySurface", userData: {} };
+  const boundTexture = { url: "textures/body.png" };
+  const bindingFactory = {
+    loadTextureMaps(refs, onDone) { onDone({ baseColor: boundTexture }); return { cancel() {} }; },
+    applyTextureMaps(material, maps) { material.map = maps.baseColor; material.needsUpdate = true; }
+  };
+  const bindingEngine = makeEngine(bindingFactory);
+  const boundRoot = {
+    scale: { setScalar(value) { this.value = value; } },
+    traverse(fn) {
+      fn({
+        isMesh: true, material: boundMaterial,
+        geometry: {
+          attributes: { position: { count: 3 }, normal: { count: 3 }, uv: { count: 3 } },
+          index: { count: 3 },
+          boundingBox: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } }
+        }
+      });
+    }
+  };
+  let bindingComplete = false;
+  bindingEngine.loadCatalogAsset({
+    id: "body-surface", slot: "outfit", url: "models/body.glb", format: "glb",
+    provenance: { owner: "MCS", license: "Original", source: "internal", permittedUse: "commercial" },
+    materials: [{ name: "BodySurface", role: "fabric", textures: { baseColor: "textures/body.png" } }]
+  }, () => { bindingComplete = true; }, (message) => assert.fail(message));
+  await Promise.resolve();
+  completeLoad({ scene: boundRoot });
+  assert.equal(bindingComplete, true, "catalog import should complete after per-material textures are bound");
+  assert.equal(boundMaterial.map, boundTexture, "manifest texture maps should attach to the named GLTF material");
+  assert.equal(boundMaterial.userData.__role, "fabric", "manifest material role should be assigned for later PBR mode changes");
 
   const adultCallsBefore = calls.length;
   let adultDenied = "";
