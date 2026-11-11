@@ -111,9 +111,9 @@
     }
     function loadTextureMaps(refs, onDone, onFail){
       var keys = Object.keys(refs || {});
-      var request = { cancelled:false, failed:false, textures:{} };
+      var request = { cancelled:false, failed:false, textures:{}, cancel:function(){ request.cancelled = true; } };
       if (!keys.length){ onDone && onDone({}); return request; }
-      if (!THREE.TextureLoader){ onFail && onFail("TextureLoader is not available"); return request; }
+      if (!THREE.TextureLoader){ request.failed = true; onFail && onFail("TextureLoader is not available"); return request; }
       var allowed = keys.filter(function(key){ return Object.prototype.hasOwnProperty.call(MAP_FIELDS,key); });
       if (allowed.length !== keys.length || keys.some(function(key){ return !safeTextureUrl(refs[key]); })){
         request.failed = true;
@@ -138,6 +138,7 @@
       }
       var textureLoader = new THREE.TextureLoader();
       keys.forEach(function(key){
+        if (request.cancelled || request.failed) return;
         try {
           textureLoader.load(refs[key], function(texture){
             if (request.cancelled || request.failed){ if (texture && texture.dispose) texture.dispose(); return; }
