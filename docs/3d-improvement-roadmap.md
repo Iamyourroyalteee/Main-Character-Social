@@ -109,3 +109,46 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - 2026-11-10: Release-state recheck: PR #10 head is `09dc4225`, still draft/open/unmerged. The latest avatar-prototype preview is READY on `d81fff69`, behind the PR head; the latest app preview is READY on `a16230bc`. The latest production app deployment is READY on main commit `eabf89c`, while the corresponding avatar-prototype production deployment is CANCELED. PR-head commit statuses still report Vercel deployment rate-limit failures and no PR-triggered GitHub Actions run is returned. No merge or production change was made in this audit.
 
 - 2026-11-10: Added `MCSAvatarAnimationRuntime.js` and exposed it through `window.MCS.createAnimationController`. The runtime detects SkinnedMesh skeletons and morph targets; supports named GLTF animation clips, crossfades, bounded playback speed, seek, pause/resume, stop, facial morph controls, and idempotent disposal. Added mocked runtime regression tests and wired the browser smoke page to instantiate/update/dispose the controller. The smoke fixture itself intentionally has zero skeletons and zero clips, so this verifies the runtime integration surface—not a production rig or actual animated character. Production Animation Lab UI/preset integration and a verified rigged avatar remain outstanding.
+
+
+## Execution sequence — parallel workstreams
+
+The Avatar Engine is the shared dependency, not a reason to block independent creator work. Keep Avatar Builder, Fashion Studio, and Avatar Rooms as separate product surfaces.
+
+### Workstream A — shared avatar foundation (critical path)
+- [ ] Freeze and document a versioned character/outfit payload contract with stable catalog IDs, body parameters, appearance, equipped items, and schema migration rules.
+- [ ] Verify one canonical restore/save path across embedded Avatar Builder, standalone Avatar Builder, Fashion Studio fitting room, and Avatar Rooms.
+- [ ] Verify signed-in persistence uses the existing authenticated profile boundary; keep local-only mode explicitly device-local.
+- [ ] Verify teen-safe defaults and server-authoritative adult entitlement on every restore and asset request.
+- [ ] Complete a real rigged GLB validation pass: skeleton hierarchy, skin weights, facial morphs, animation clips, deformation, and cleanup.
+- [ ] Complete browser/WebGL and iPad touch/performance QA before declaring the engine release-ready.
+
+### Workstream B — Avatar Builder (parallel after shared payload contract)
+- [ ] Finish the dedicated character-selection and customization experience.
+- [ ] Validate body/face/hair/skin/wardrobe customization and saved-look round trips.
+- [ ] Verify responsive, touch-friendly category browsing, selected states, and filters.
+
+### Workstream C — Fashion Studio (parallel; does not wait for full avatar polish)
+- [x] Establish the separate moodboard/editor surface and shared-engine fitting-room embed.
+- [ ] Expand the wardrobe catalog only with verified original/licensed assets and stable catalog IDs.
+- [ ] Connect board-to-avatar mapping to the canonical outfit payload contract.
+- [ ] Add account-backed collections, creator sharing/remixing, and publishing only after auth/data boundaries are reviewed.
+- [ ] Validate the complete fitting workflow on desktop and iPad.
+
+### Workstream D — Avatar Rooms (after shared payload contract; parallel environment work)
+- [ ] Keep Rooms as a distinct experience consuming the same saved character payload.
+- [ ] Audit room/environment assets and assign consistent PBR materials, lighting, and performance budgets.
+- [ ] Verify avatar entry, outfit changes, room interactions, and teen-safe room access.
+
+### Integration and release gates
+- [ ] No surface may fork its own incompatible character or outfit format.
+- [ ] No placeholder or unlicensed production assets.
+- [ ] No merge/promotion until automated checks, preview deployment, browser/WebGL checks, and iPad QA pass.
+- [ ] Do not change production settings, billing, or access controls as a workaround for preview/build restrictions.
+
+### 2026-11-11 execution update
+- Avatar Engine PBR/material/GLTF safety foundations and a mocked animation runtime are present in the PBR branch. The versioned asset manifest intentionally contains no unverified production assets.
+- The avatar prototype and main app each have READY Vercel previews on commit `cd3fe30acdbe1c53ecf3e369e2b458eb735db874`; this confirms deployment readiness, not visual/WebGL or iPad QA.
+- The PBR branch has a Vercel deployment for a later commit than the current PR #10 head metadata. Reconcile the branch/PR head and check statuses before treating PR #10 as release-ready.
+- Fashion Studio PR #12 remains a separate draft stacked on the PBR branch; no deployment exists for its exact head commit.
+- Next critical implementation task: formalize and test the canonical character/outfit payload contract and round-trip it across the embedded builder and other surfaces. Continue independent Fashion Studio and room-environment work in parallel.
