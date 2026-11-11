@@ -52,8 +52,8 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - [ ] Deploy only after all applicable release gates pass; verify the deployment after release.
 
 ## Additional requirements added during execution
-- [ ] Define an asset provenance register: owner/licence, source URL, attribution, permitted use, and modification rights for every imported model/texture/audio asset.
-- [ ] Define a canonical asset manifest with stable IDs, semantic version, slot/category, supported formats, bounds, units, pivot convention, material roles, texture references, LODs, and preview images.
+- [x] Require per-asset owner, license, source, and permitted-use provenance before any catalog asset can load.
+- [x] Define a versioned canonical asset manifest and JSON schema for stable IDs, versions, slots/categories, formats, bounds, units, pivots, material roles, texture references, LODs, and previews. The manifest remains empty until verified assets are available.
 - [ ] Add secure asset-origin policy, MIME/extension validation, file-size limits, decompression/triangle/texture budgets, and timeout/retry policy.
 - [ ] Add offline/loading/error states, progress reporting, retry controls, and reduced-motion/accessibility behavior.
 - [ ] Add visual regression captures for representative avatars, wardrobe combinations, props, and each environment under fixed cameras/lighting.
@@ -73,3 +73,5 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - 2026-11-11: Added imported model geometry/transform validation, configurable mesh/vertex/triangle budgets, and warnings for missing normals/UVs/materials. Pivot conventions and strict material/UV policies remain open.
 
 - 2026-11-11: Hardened disposal for empty/malformed GLTF scenes and added a regression test. Browser-side binary fixture validation remains a release gate.
+
+- 2026-11-11: Added versioned manifest/schema, stable-ID and duplicate-ID checks, mandatory per-asset provenance, bounds/pivot/material/texture/LOD metadata validation, and test coverage. No third-party model was added without verifiable ownership/licensing.
