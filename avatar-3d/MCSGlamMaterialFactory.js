@@ -7,15 +7,17 @@
    A subsurface-look approximation for skin is provided via a guarded
    onBeforeCompile tweak (wrapped emissive rim) — this is an APPROXIMATION,
    not true subsurface scattering, and is labeled as such everywhere.
-   Stylized-toon remains the default art direction; PBR is opt-in via
-   MCSGlamMaterialFactory.setPBR(true) so the recovered look is preserved. */
+   PBR is the default material mode; toon remains an explicit fallback. */
 (function(root){
   "use strict";
   function factory(THREE, opts){
     opts = opts || {};
     var cache = {};
+    var owned = [];
+    var ownedTextures = [];
+    var activeTextureRequests = [];
     var disposed = false;
-    var PBR = false; /* toon by default — deliberate stylized art direction */
+    var PBR = true; /* realistic material mode is the default */
 
     /* ---------- procedural studio environment (equirect canvas) ---------- */
     var envTex = null;
@@ -61,16 +63,25 @@
       var baseEmissive = mat.emissive ? mat.emissive.clone() : new THREE.Color(0x000000);
       mat.onBeforeCompile = function(shader){
         shader.uniforms.uSSS = { value: new THREE.Color(sssColor || 0xb4554d) };
+        /* Declare the uniform immediately before main(), rather than relying
+           on a shader chunk that may be absent/reordered in the pinned r128
+           physical-material program. A missing insertion point must fail
+           loudly instead of emitting a shader that references an undeclared
+           uSSS (the regression recorded in the earlier PBR QA artifact). */
+        var mainMarker = "void main() {";
+        var mainIndex = shader.fragmentShader.indexOf(mainMarker);
+        if (mainIndex < 0) throw new Error("MCS PBR SSS: fragment shader main() insertion point not found");
+        shader.fragmentShader = shader.fragmentShader.slice(0, mainIndex) +
+          "uniform vec3 uSSS; /* MCS SSS approximation (NOT true SSS) */\n" +
+          shader.fragmentShader.slice(mainIndex);
+        var emissiveMarker = "#include <emissivemap_fragment>";
+        if (shader.fragmentShader.indexOf(emissiveMarker) < 0) throw new Error("MCS PBR SSS: emissive shader chunk not found");
         shader.fragmentShader = shader.fragmentShader.replace(
-          "#include <common>",
-          "#include <common>\n" +
-          "uniform vec3 uSSS; /* MCS SSS approximation (NOT true SSS) */"
-        ).replace(
-          "#include <emissivemap_fragment>",
-          "#include <emissivemap_fragment>\n" +
+          emissiveMarker,
+          emissiveMarker + "\n" +
           "/* MCS SSS approximation: warm wrap on grazing angles (NOT true SSS) */\n" +
           "float sssWrap = clamp(1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition))), 0.0, 1.0);\n" +
-          "totalEmissiveRadiance += uSSS.rgb * pow(sssWrap, 2.2) * 0.35;"
+          "totalEmissiveRadiance += uSSS * pow(sssWrap, 2.2) * 0.35;"
         );
       };
       mat.userData.__sssBaseEmissive = baseEmissive;
@@ -82,6 +93,78 @@
       mat.emissive = mat.userData.__sssBaseEmissive.clone();
       delete mat.userData.__sssApplied;
       mat.needsUpdate = true;
+    }
+
+    /* ---------- PBR texture maps: base color is sRGB; data maps are linear ---------- */
+    var MAP_FIELDS = {
+      baseColor:"map", normal:"normalMap", roughness:"roughnessMap",
+      metalness:"metalnessMap", ao:"aoMap", emissive:"emissiveMap"
+    };
+    function safeTextureUrl(url){
+      if (typeof url !== "string" || !url.trim()) return false;
+      var value = url.trim();
+      if (/^(javascript|data|blob|file):/i.test(value) || value.indexOf("//") === 0) return false;
+      if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return /^https:\/\//i.test(value);
+      return !/[\x00-\x1f]/.test(value);
+    }
+    function applyTextureMaps(material, maps){
+      if (!material || !maps) return material;
+      Object.keys(MAP_FIELDS).forEach(function(key){
+        var texture = maps[key];
+        if (!texture) return;
+        if ((key === "baseColor" || key === "emissive") && THREE.sRGBEncoding !== undefined) texture.encoding = THREE.sRGBEncoding;
+        else if (THREE.LinearEncoding !== undefined) texture.encoding = THREE.LinearEncoding;
+        material[MAP_FIELDS[key]] = texture;
+      });
+      material.needsUpdate = true;
+      return material;
+    }
+    function loadTextureMaps(refs, onDone, onFail){
+      var keys = Object.keys(refs || {});
+      var request = { cancelled:false, failed:false, completed:false, textures:{}, cancel:function(){ request.cancelled = true; } };
+      activeTextureRequests.push(request);
+      if (!keys.length){ request.completed = true; activeTextureRequests = activeTextureRequests.filter(function(r){ return r !== request; }); onDone && onDone({}); return request; }
+      if (!THREE.TextureLoader){ request.failed = true; activeTextureRequests = activeTextureRequests.filter(function(r){ return r !== request; }); onFail && onFail("TextureLoader is not available"); return request; }
+      var allowed = keys.filter(function(key){ return Object.prototype.hasOwnProperty.call(MAP_FIELDS,key); });
+      if (allowed.length !== keys.length || keys.some(function(key){ return !safeTextureUrl(refs[key]); })){
+        request.failed = true;
+        activeTextureRequests = activeTextureRequests.filter(function(r){ return r !== request; });
+        onFail && onFail("Invalid PBR texture map reference");
+        return request;
+      }
+      var remaining = keys.length;
+      function releaseTextures(){
+        Object.keys(request.textures).forEach(function(key){
+          var texture = request.textures[key];
+          if (texture && texture.dispose) texture.dispose();
+          ownedTextures = ownedTextures.filter(function(t){ return t !== texture; });
+        });
+        request.textures = {};
+      }
+      request.cancel = function(){ if (request.completed) return; request.cancelled = true; releaseTextures(); activeTextureRequests = activeTextureRequests.filter(function(r){ return r !== request; }); };
+      function fail(err){
+        if (request.failed || request.cancelled) return;
+        request.failed = true;
+        releaseTextures();
+        activeTextureRequests = activeTextureRequests.filter(function(r){ return r !== request; });
+        onFail && onFail(err && err.message || String(err));
+      }
+      var textureLoader = new THREE.TextureLoader();
+      keys.forEach(function(key){
+        if (request.cancelled || request.failed) return;
+        try {
+          textureLoader.load(refs[key], function(texture){
+            if (request.cancelled || request.failed){ if (texture && texture.dispose) texture.dispose(); return; }
+            if ((key === "baseColor" || key === "emissive") && THREE.sRGBEncoding !== undefined) texture.encoding = THREE.sRGBEncoding;
+            else if (THREE.LinearEncoding !== undefined) texture.encoding = THREE.LinearEncoding;
+            texture.needsUpdate = true;
+            request.textures[key] = texture;
+            ownedTextures.push(texture);
+            if (--remaining === 0){ request.completed = true; activeTextureRequests = activeTextureRequests.filter(function(r){ return r !== request; }); onDone && onDone(request.textures); }
+          }, undefined, fail);
+        } catch(err){ fail(err); }
+      });
+      return request;
     }
 
     /* ---------- material builders (role -> builder) ---------- */
@@ -119,7 +202,12 @@
           m = new cls(params);
           break;
         case "denim":
-          if (pbr){ params.roughness = 0.85; params.metalness = 0.0; }
+          if (pbr){ params.roughness = 0.86; params.metalness = 0.0; }
+          else { params.gradientMap = opts.gradientMap || null; }
+          m = new cls(params);
+          break;
+        case "fabric":
+          if (pbr){ params.roughness = 0.82; params.metalness = 0.0; params.clearcoat = 0.02; params.clearcoatRoughness = 0.9; }
           else { params.gradientMap = opts.gradientMap || null; }
           m = new cls(params);
           break;
@@ -133,13 +221,64 @@
           else { params.gradientMap = opts.gradientMap || null; params.color = new THREE.Color(0xcfd6e2); }
           m = new cls(params);
           break;
+        case "metal":
+          params.roughness = pbr ? 0.32 : 0.5; params.metalness = pbr ? 0.85 : 0.0;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
+        case "wood":
+          params.roughness = 0.76; params.metalness = 0.0;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
+        case "stone":
+          params.roughness = 0.94; params.metalness = 0.0;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
+        case "plastic":
+          params.roughness = 0.32; params.metalness = 0.0; params.clearcoat = pbr ? 0.35 : 0;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
+        case "leather":
+          params.roughness = 0.68; params.metalness = 0.0; params.clearcoat = pbr ? 0.05 : 0;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
+        case "rubber":
+          params.roughness = 0.94; params.metalness = 0.0;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
+        case "glass":
+          params.roughness = pbr ? 0.08 : 0.2; params.metalness = 0.0;
+          params.transparent = true; params.opacity = 0.28; params.depthWrite = false; params.side = THREE.DoubleSide;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
+        case "water":
+          params.roughness = pbr ? 0.08 : 0.2; params.metalness = pbr ? 0.05 : 0.0;
+          params.transparent = true; params.opacity = 0.72; params.depthWrite = false; params.side = THREE.DoubleSide;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
+        case "emissive":
+          params.emissive = new THREE.Color(hex);
+          params.emissiveIntensity = 1.2;
+          params.roughness = 0.5; params.metalness = 0.0;
+          if (!pbr) params.gradientMap = opts.gradientMap || null;
+          m = new cls(params);
+          break;
       }
       if (pbr && env) m.envMap = env;
+      if (m) owned.push(m);
       return m;
     }
 
     var API = {
       studioEnvironment: studioEnvironment,
+      loadTextureMaps: loadTextureMaps, applyTextureMaps: applyTextureMaps,
       /* env must be assigned by the app: scene.environment (r128 supports it for
          MeshStandard/Physical via envMap inheritance in newer versions; r128 needs
          per-material envMap, which we do in makeMat). */
@@ -161,23 +300,46 @@
       retintEquipped: function(roots){
         var env = PBR ? studioEnvironment() : null;
         var count = 0;
+        function retintOne(old, mesh){
+          if (!old) return old;
+          var role = old.userData && old.userData.__role;
+          /* Procedural face details and a few legacy avatar parts are still
+             authored with toonMat() rather than the semantic factory. Convert
+             those remaining toon materials too, otherwise PBR mode is only
+             partially applied. Prefer mesh/material names for semantic roles;
+             use fabric as the safe neutral fallback for other avatar surfaces. */
+          if (!role && old.isMeshToonMaterial){
+            var label = String((mesh && mesh.name) || "") + " " + String(old.name || "");
+            label = label.toLowerCase();
+            if ((mesh && mesh.userData && mesh.userData.isSkin) || /skin|body|face|neck|torso|arm|leg|hand/.test(label)) role = "skin";
+            else if (/hair|brow|lash/.test(label)) role = "hair";
+            else if (/lip|mouth/.test(label)) role = "lips";
+            else if (/eye|pupil|iris/.test(label)) role = "plastic";
+            else role = "fabric";
+          }
+          if (!role) return old;
+          var hex = old.color && old.color.getHexString ? "#" + old.color.getHexString() : "#ffffff";
+          var nm = makeMat(role, hex, env);
+          if (!nm) return old;
+          nm.userData.__role = role;
+          /* preserve alpha/shadow flags the wardrobe set */
+          if (old.transparent !== undefined){
+            nm.transparent = old.transparent;
+            nm.alphaTest = old.alphaTest || 0;
+            nm.side = old.side;
+          }
+          ["map","normalMap","roughnessMap","metalnessMap","aoMap","emissiveMap","alphaMap"].forEach(function(key){
+            if (old[key]) nm[key] = old[key];
+          });
+          count++;
+          return nm;
+        }
         (roots || []).forEach(function(root){
           if (!root) return;
           root.traverse(function(o){
             if (!o.isMesh || !o.material) return;
-            var role = o.material.userData && o.material.userData.__role;
-            if (!role) return;
-            var hex = "#" + o.material.color.getHexString();
-            var nm = makeMat(role, hex, env);
-            nm.userData.__role = role;
-            /* preserve alpha/shadow flags the wardrobe set */
-            if (o.material.transparent !== undefined){
-              nm.transparent = o.material.transparent;
-              nm.alphaTest = o.material.alphaTest || 0;
-              nm.side = o.material.side;
-            }
-            o.material = nm;
-            count++;
+            if (Array.isArray(o.material)) o.material = o.material.map(function(mat){ return retintOne(mat, o); });
+            else o.material = retintOne(o.material, o);
           });
         });
         return count;
@@ -185,18 +347,22 @@
       /* dispose any factory materials no longer referenced by the given roots.
          Call ONLY after retintEquipped has swapped references. */
       retireOldMaterials: function(roots){
-        var live = {};
+        var live = Object.create(null);
         (roots || []).forEach(function(root){
           if (!root) return;
           root.traverse(function(o){
-            if (o.isMesh && o.material) live[o.material.uuid] = 1;
+            if (!o.isMesh || !o.material) return;
+            var mats = Array.isArray(o.material) ? o.material : [o.material];
+            mats.forEach(function(mat){ if (mat && mat.uuid) live[mat.uuid] = 1; });
           });
         });
-        var freed = 0;
-        Object.keys(cache).forEach(function(k){
-          var m = cache[k];
-          if (m && !live[m.uuid]){ m.dispose(); freed++; delete cache[k]; }
+        var freed = 0, keep = [];
+        owned.forEach(function(m){
+          if (m && live[m.uuid]) keep.push(m);
+          else if (m && m.dispose){ m.dispose(); freed++; }
         });
+        owned = keep;
+        Object.keys(cache).forEach(function(k){ if (!cache[k] || !live[cache[k].uuid]) delete cache[k]; });
         return freed;
       },
       skin: function(hex){
@@ -234,6 +400,13 @@
         m.userData.__role = "gold";
         cache[key] = m; return m;
       },
+      fabric: function(hex){
+        var key = "fabric" + (hex || "#ffffff");
+        if (cache[key]) return cache[key];
+        var m = makeMat("fabric", hex || "#ffffff", PBR ? studioEnvironment() : null);
+        m.userData.__role = "fabric";
+        cache[key] = m; return m;
+      },
       chrome: function(){
         var key = "chrome";
         if (cache[key]) return cache[key];
@@ -241,20 +414,37 @@
         m.userData.__role = "chrome";
         cache[key] = m; return m;
       },
+      generic: function(role, hex){
+        var key = role + (hex || "#ffffff");
+        if (cache[key]) return cache[key];
+        var m = makeMat(role, hex || "#ffffff", PBR ? studioEnvironment() : null);
+        if (!m) return this.fabric(hex);
+        m.userData.__role = role;
+        cache[key] = m;
+        return m;
+      },
       forRole: function(role, hex){
         switch(role){
           case "skin": return this.skin(hex);
+          case "lips": return this.lipGloss(hex);
           case "lips": return this.lipGloss(hex);
           case "hair": return this.hairCard(hex);
           case "denim": return this.denim(hex);
           case "gold": return this.gold();
           case "chrome": return this.chrome();
-          default: return null;
+          case "fabric": return this.fabric(hex);
+          case "metal": case "glass": case "wood": case "stone": case "emissive": case "plastic": case "leather": case "rubber": case "water": return this.generic(role, hex);
+          default: return this.fabric(hex);
         }
       },
       dispose: function(){
         if (disposed) return; disposed = true;
-        Object.keys(cache).forEach(function(k){ if (cache[k] && cache[k].dispose) cache[k].dispose(); });
+        owned.forEach(function(m){ if (m && m.dispose) m.dispose(); });
+        owned = [];
+        activeTextureRequests.slice().forEach(function(request){ if (request && request.cancel) request.cancel(); });
+        activeTextureRequests = [];
+        ownedTextures.forEach(function(texture){ if (texture && texture.dispose) texture.dispose(); });
+        ownedTextures = [];
         cache = {};
         if (envTex && envTex.dispose) envTex.dispose();
         envTex = null;
