@@ -27,3 +27,8 @@ The Vercel application deploys from `src/`, so both experiences and their runtim
 
 ## Verification
 Run `node tests/fashion-studio-smoke.cjs`.
+
+## Mapping behavior and remaining product work
+- The moodboard uses visual styling tokens and emoji previews; it is not yet a verified product-photo catalog or a library of production garment meshes.
+- The avatar runtime currently supports one item per wardrobe slot. If multiple moodboard pieces map to the same slot, the latest placed item wins and the fitting-room notice reports the collision. A one-piece outfit takes priority over separate top/bottom items; applying separates clears an existing one-piece outfit, while unrelated accessories preserve it.
+- Account-synced fashion collections, social publishing, real product imagery, original layered garment assets, and device-level 3D performance QA remain future work.
