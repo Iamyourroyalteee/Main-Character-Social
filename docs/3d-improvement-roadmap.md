@@ -12,7 +12,8 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - [ ] Enforce asset pivot conventions and required normal/UV/material policies.
 - [x] Add automated source-level coverage for GLTF dependency wiring, URL scheme rejection, pending-request cleanup, cancellation, and teardown guards.
 - [x] Add runtime-mocked tests for unsafe URL rejection, valid URL acceptance, successful callback delivery, disposal after cancellation/teardown, catalog schema validation, GLB loading, unit normalization, and default-deny adult gating.
-- [ ] Add real GLB fixture tests for missing assets, malformed files, and GPU resource disposal. (Mocked malformed/empty-scene rejection is covered.)
+- [x] Add a real glTF 2.0 fixture and browser smoke harness that imports it through GLTFLoader and the catalog pipeline.
+- [ ] Add binary GLB fixtures plus missing-asset, malformed-file, and GPU-resource disposal tests. (Mocked malformed/empty-scene rejection is covered.)
 
 ## P1 — Character quality
 - [ ] Replace or augment procedural base characters with original/licensed rigged GLB assets.
@@ -91,3 +92,5 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - 2026-11-10: Expanded the semantic PBR factory with material builders for glass, wood, stone, plastic, leather, rubber, water, emissive, and generic metal; added role mapping tests. Environment-wide role assignment remains open.
 
 - 2026-11-10: Latest branch work is committed to PR #10 (`d1e2136`). The newest available Vercel preview is still on earlier commit `80508c1`; a manual preview redeploy was blocked by Vercel's daily API deployment quota (402, retry after 24 hours). Production remains unchanged. GitHub Actions workflow is configured, but no PR-triggered run is visible through the available status endpoint; automated test execution is not yet claimed.
+
+- 2026-11-10: Added a minimal original glTF 2.0 PBR fixture and a browser smoke page that exercises the real Three.js r128 GLTFLoader, schema validation, model validation, and catalog loading. Automated source checks verify the fixture and harness wiring; actual browser execution awaits the next available Vercel preview deployment.
