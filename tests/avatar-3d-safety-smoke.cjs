@@ -205,6 +205,46 @@ async function runCatalogAssetTests() {
   assert.equal(boundMaterial.map, boundTexture, "manifest texture maps should attach to the named GLTF material");
   assert.equal(boundMaterial.userData.__role, "fabric", "manifest material role should be assigned for later PBR mode changes");
 
+  let deferredMaterialCallback = null, deferredCancelCalled = false;
+  const deferredFactory = {
+    loadTextureMaps(refs, onDone) {
+      deferredMaterialCallback = onDone;
+      return { cancel() { deferredCancelCalled = true; } };
+    },
+    applyTextureMaps() {}
+  };
+  const teardownEngine = makeEngine(deferredFactory);
+  const teardownMaterial = { name: "DeferredSurface", userData: {} };
+  const teardownRoot = {
+    scale: { setScalar(value) { this.value = value; } },
+    traverse(fn) {
+      fn({
+        isMesh: true, material: teardownMaterial,
+        geometry: {
+          attributes: { position: { count: 3 }, normal: { count: 3 }, uv: { count: 3 } },
+          index: { count: 3 },
+          boundingBox: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } },
+          dispose() { disposed.geometry++; }
+        }
+      });
+    }
+  };
+  let attachedAfterTeardown = false;
+  teardownEngine.loadCatalogAsset({
+    id: "deferred-surface", slot: "outfit", url: "models/deferred.glb", format: "glb",
+    provenance: { owner: "MCS", license: "Original", source: "internal", permittedUse: "commercial" },
+    materials: [{ name: "DeferredSurface", role: "fabric", textures: { baseColor: "textures/deferred.png" } }]
+  }, () => { attachedAfterTeardown = true; }, (message) => assert.fail(message));
+  await Promise.resolve();
+  completeLoad({ scene: teardownRoot });
+  assert.equal(typeof deferredMaterialCallback, "function", "per-material texture binding should remain in flight for cancellation test");
+  const disposedBeforeTeardown = disposed.geometry;
+  teardownEngine.teardown();
+  assert.equal(deferredCancelCalled, true, "engine teardown must cancel outstanding material texture loads");
+  deferredMaterialCallback({ baseColor: {} });
+  assert.equal(attachedAfterTeardown, false, "cancelled asset must never attach after teardown");
+  assert.ok(disposed.geometry > disposedBeforeTeardown, "engine teardown must dispose an uncommitted loaded model");
+
   const adultCallsBefore = calls.length;
   let adultDenied = "";
   catalogEngine.loadCatalogAsset({
