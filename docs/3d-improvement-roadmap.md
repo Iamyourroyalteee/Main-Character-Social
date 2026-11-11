@@ -3,11 +3,14 @@
 This is the execution checklist for the cross-project 3D quality cycle. Work is incremental; preserve the existing product identity, user-created assets, saved data, and the separation between Avatar Builder and Avatar Rooms.
 
 ## P0 — Asset pipeline foundation
-- [ ] Wire Three.js r128 GLTFLoader into the shared avatar engine.
+- [x] Wire Three.js r128 GLTFLoader into the shared avatar engine.
 - [ ] Add schema-validated GLB/GLTF base-character and catalog-asset loading.
-- [ ] Add safe cancellation, error handling, disposal, and graceful procedural fallback.
+- [x] Add safe cancellation guards, error handling, disposal, and graceful procedural fallback.
+- [x] Validate GLTF URLs: permit project-relative/HTTPS paths; reject executable, data, blob, file, and protocol-relative schemes.
+- [x] Remove completed requests from pending tracking and prevent cancelled/torn-down loads from attaching assets.
 - [ ] Add model validation for scale, transforms, pivots, normals, UVs, materials, and bounds.
-- [ ] Add automated coverage for successful loads, missing assets, invalid catalog metadata, and teardown.
+- [x] Add automated source-level coverage for GLTF dependency wiring, URL scheme rejection, pending-request cleanup, cancellation, and teardown guards.
+- [ ] Add runtime fixture tests for successful GLB loads, missing assets, malformed files, and GPU resource disposal.
 
 ## P1 — Character quality
 - [ ] Replace or augment procedural base characters with original/licensed rigged GLB assets.
@@ -47,3 +50,4 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 
 ## Run log
 - 2026-11-10: Initial baseline established. Confirmed GLTFLoader was not loaded or injected despite loader support. Implementation started on `fix/pbr-default-full-avatar-materials`.
+\n- 2026-11-10: Continued execution. Added GLTF URL allowlisting and request lifecycle guards; added source-level regression assertions. Runtime GLB fixture tests remain open. Added asset provenance, manifest, resource budgets, accessibility/loading, visual regression, device profiling, CI scanning, and backwards-compatibility requirements. Commits: `471e79d`, `17ea8c3`.\n
