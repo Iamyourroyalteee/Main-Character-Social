@@ -88,5 +88,21 @@ const converted = factory.retintEquipped([{traverse(fn){fn(legacyMesh);}}]);
 assert.equal(converted,1,"PBR toggle must convert untagged legacy toon materials on avatar meshes");
 assert.notEqual(legacyMesh.material,legacyToon);
 assert.equal(legacyMesh.material.userData.__role,"fabric","unclassified avatar surfaces should receive a safe PBR fabric role");
+
+/* Regression: the pinned Three.js r128 physical shader fixture intentionally
+   omits <common>; SSS uniform declaration must still be inserted at top level
+   before main(), never silently leave uSSS undeclared. */
+const skinMaterial = factory.skin("#c08050");
+assert.equal(typeof skinMaterial.onBeforeCompile,"function");
+const shaderFixture = {
+  uniforms:{},
+  fragmentShader:"#include <emissivemap_fragment>\\nvoid main() {\\n  vec3 totalEmissiveRadiance = vec3(0.0);\\n}"
+};
+skinMaterial.onBeforeCompile(shaderFixture);
+const uniformAt = shaderFixture.fragmentShader.indexOf("uniform vec3 uSSS;");
+const mainAt = shaderFixture.fragmentShader.indexOf("void main() {");
+assert.ok(uniformAt >= 0 && uniformAt < mainAt,"uSSS uniform must be declared at global scope before main()");
+assert.match(shaderFixture.fragmentShader,/totalEmissiveRadiance \\+= uSSS \\* pow\\(sssWrap, 2\\.2\\) \\* 0\\.35;/,"SSS shader use must match vec3 uniform");
+assert.ok(shaderFixture.uniforms.uSSS,"SSS color uniform must be bound");
 factory.dispose();
 console.log("PASS: animation clips, track timing, morph indices, AO texture disposal, and shared GLTF resource cleanup.");
