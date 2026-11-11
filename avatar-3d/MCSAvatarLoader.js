@@ -61,6 +61,24 @@
       });
       if (asset.scale != null && (!Number.isFinite(asset.scale) || asset.scale <= 0)) errs.push("scale must be a positive finite number");
       if (asset.unit != null && ["m","cm","mm"].indexOf(asset.unit) < 0) errs.push("unit must be m, cm, or mm");
+      if (asset.version != null && !/^\\d+\\.\\d+\\.\\d+$/.test(asset.version)) errs.push("version must use semantic x.y.z format");
+      if (asset.pivot != null && (!Array.isArray(asset.pivot) || asset.pivot.length !== 3 || !asset.pivot.every(Number.isFinite))) errs.push("pivot must contain three finite coordinates");
+      if (asset.previewUrl != null && !validateAssetUrl(asset.previewUrl)) errs.push("invalid preview URL");
+      return errs;
+    }
+
+    function validateAssetManifest(manifest){
+      var errs = [], seen = {};
+      if (!manifest || typeof manifest !== "object") return ["manifest must be an object"];
+      if (manifest.schemaVersion !== "1.0.0") errs.push("unsupported manifest schemaVersion");
+      if (!Array.isArray(manifest.assets)) return errs.concat(["manifest assets must be an array"]);
+      manifest.assets.forEach(function(asset, index){
+        validateAssetDescriptor(asset).forEach(function(error){ errs.push("assets[" + index + "]: " + error); });
+        if (asset && asset.id){
+          if (seen[asset.id]) errs.push("duplicate asset id: " + asset.id);
+          seen[asset.id] = true;
+        }
+      });
       return errs;
     }
 
@@ -298,7 +316,7 @@
 
     return {
       SLOTS: SLOTS, ZONES: ZONES, zoneRefs: zoneRefs,
-      validateItemSchema: validateItemSchema, validateAssetDescriptor: validateAssetDescriptor, validateModel: validateModel,
+      validateItemSchema: validateItemSchema, validateAssetDescriptor: validateAssetDescriptor, validateAssetManifest: validateAssetManifest, validateModel: validateModel,
       loadGLTF: loadGLTF, loadCatalogAsset: loadCatalogAsset, cancelPending: cancelPending,
       recomputeZoneRefs: recomputeZoneRefs, applyCulling: applyCulling,
       setSkinTone: setSkinTone,
