@@ -11,9 +11,12 @@ on:
   push:
     branches:
       - "fix/pbr-default-full-avatar-materials"
+      - "integration/avatar-pbr-reconciled"
     paths:
       - "avatar-3d/**"
+      - "src/avatar-3d/**"
       - "tests/avatar-3d-safety-smoke.cjs"
+      - "tests/avatar-runtime-hardening-smoke.cjs"
       - ".github/workflows/avatar-3d-smoke.yml"
 
 jobs:
