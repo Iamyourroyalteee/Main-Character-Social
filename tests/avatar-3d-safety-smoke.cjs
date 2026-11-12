@@ -20,6 +20,21 @@ assert.match(html, /MCS_AVATAR_READY/, "the embedded builder must announce readi
 assert.match(html, /MCS_AVATAR_LOAD/, "the embedded builder must restore account-saved characters");
 assert.match(html, /item\.is_adult/, "restored catalog items must retain adult-item gating");
 const glam = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSGlamMaterialFactory.js"), "utf8");
+const embeddedAvatarRoot = path.join(__dirname, "../src/avatar-3d");
+for (const file of [
+  "index.html",
+  "MCSAvatarLoader.js",
+  "MCSGlamMaterialFactory.js",
+  "MCSAvatarAnimationRuntime.js",
+  "MCSCameraSetup.js",
+  "MCSStudioLighting.js",
+  "assets/manifest.json",
+]) {
+  const prototypeCopy = fs.readFileSync(path.join(__dirname, "../avatar-3d", file), "utf8");
+  const appCopy = fs.readFileSync(path.join(embeddedAvatarRoot, file), "utf8");
+  assert.equal(appCopy, prototypeCopy, "standalone and embedded avatar runtime must stay synchronized: " + file);
+}
+
 assert.match(glam, /Array\.isArray\(o\.material\).*?map\(function\(mat\)\{ return retintOne\(mat, o\); \}\)/s, "PBR factory must retint each material in imported material arrays");
 assert.match(html, /glam\.setPBR\(true, scene, gradientMap\);\s*glam\.retintEquipped\(\[player\.root, friend\.root\]\)/, "PBR must convert remaining legacy avatar toon materials before the first frame");
 assert.match(glam, /var mats = Array\.isArray\(o\.material\) \? o\.material : \[o\.material\]/, "PBR factory must track every material when retiring old materials");
