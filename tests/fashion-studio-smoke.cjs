@@ -44,6 +44,46 @@ for (const [pieceId, [slot, itemId]] of Object.entries(avatarMapping)) {
   assert.equal(avatarItemSlots.get(itemId), slot, "Fashion Studio mapping must target a real item in its actual slot: " + pieceId);
 }
 
+
+const mappedTargets = Object.values(avatarMapping).map(([slot, itemId]) => slot + ":" + itemId);
+assert.equal(new Set(mappedTargets).size, mappedTargets.length, "distinct moodboard concepts must not silently alias the same avatar model item");
+for (const unsupportedId of ["clutch","backpack","earrings","ring","bracelet","scarf","belt","watch"]) {
+  assert.equal(Object.hasOwn(avatarMapping, unsupportedId), false, unsupportedId + " must remain unsupported until a matching 3D asset exists");
+}
+const normalizeStart = html.indexOf("function normalizePlacedState(");
+const normalizeEnd = html.indexOf("\nfunction loadState", normalizeStart);
+assert.ok(normalizeStart >= 0 && normalizeEnd > normalizeStart, "saved-look restoration must use a dedicated normalization function");
+const normalizePlacedState = vm.runInNewContext("(" + html.slice(normalizeStart, normalizeEnd) + ")", {
+  ITEMS:[{id:"coat",color:"#9b7867"}]
+});
+const normalized = normalizePlacedState([
+  {uid:7,itemId:"coat",x:120,y:-5,scale:4,color:"url(javascript:alert(1))"},
+  {uid:7,itemId:"coat",x:50,y:50,scale:NaN,color:"#123456"},
+  {uid:0,itemId:"coat",x:25,y:30,scale:0.1,color:"#12"},
+  {uid:3,itemId:"missing",x:1,y:1,scale:1,color:"#ffffff"}
+]);
+assert.equal(normalized.length, 3, "unknown catalog items must be discarded");
+assert.equal(normalized[0].uid, 7);
+assert.equal(normalized[0].x, 95);
+assert.equal(normalized[0].y, 8);
+assert.equal(normalized[0].scale, 1.8);
+assert.equal(normalized[0].color, "#9b7867", "invalid persisted colors must fall back to the catalog color");
+assert.equal(normalized[1].uid, 8, "duplicate IDs must be regenerated");
+assert.equal(normalized[1].scale, 1, "non-finite scale must reset to the default");
+assert.equal(normalized[1].color, "#123456");
+assert.equal(normalized[2].uid, 9, "invalid IDs must be regenerated");
+assert.equal(normalized[2].scale, 0.6, "scale must respect the editor minimum");
+assert.equal(normalized[2].color, "#9b7867");
+const exportStart = html.indexOf("function exportBackgroundForStyle(");
+const exportEnd = html.indexOf("\nfunction exportSvg", exportStart);
+assert.ok(exportStart >= 0 && exportEnd > exportStart, "SVG export must resolve the selected board style");
+const exportBackgroundForStyle = vm.runInNewContext("(" + html.slice(exportStart, exportEnd) + ")");
+assert.equal(exportBackgroundForStyle("editorial"), "#302824");
+assert.equal(exportBackgroundForStyle("warm"), "#6e5544");
+assert.equal(exportBackgroundForStyle("minimal"), "#353535");
+assert.equal(exportBackgroundForStyle("night"), "#292c39");
+assert.equal(exportBackgroundForStyle("unknown"), "#302824", "unknown styles must fall back safely");
+
 const applyStart = html.indexOf("function applyMoodboardToModel()");
 const applyEnd = html.indexOf('\n$("applyToModel").addEventListener', applyStart);
 assert.ok(applyStart >= 0 && applyEnd > applyStart, "Fashion Studio must expose its fitting-room apply function");
@@ -113,6 +153,7 @@ assert.match(html, /button\{cursor:pointer;color:inherit;min-width:44px;min-heig
 assert.match(html, /\.placed:focus-visible/, "keyboard focus must remain visibly indicated");
 assert.match(html, /function renderCollections\(/, "saved looks must be browsable");
 assert.match(html, /function exportSvg\(/, "moodboard must export");
+assert.match(html, /exportBackgroundForStyle\(\$\("boardStyle"\)\.value\)/, "SVG export must preserve the selected board style");
 assert.match(html, /api\.player\.applyOutfit\(api\.outfit\)/, "moodboard must apply supported pieces through the shared 3D avatar engine");
 assert.match(html, /meta\.slot!==slot/, "moodboard mappings must match the avatar catalog slot");
 assert.match(html, /nearestSupportedTint\(p\.color,meta\.tints\)/, "moodboard colors must use supported persistent avatar tints");

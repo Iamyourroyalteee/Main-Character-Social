@@ -30,5 +30,12 @@ Run `node tests/fashion-studio-smoke.cjs`.
 
 ## Mapping behavior and remaining product work
 - The moodboard uses visual styling tokens and emoji previews; it is not yet a verified product-photo catalog or a library of production garment meshes.
-- The avatar runtime currently supports one item per wardrobe slot. If multiple moodboard pieces map to the same slot, the latest placed item wins and the fitting-room notice reports the collision. A one-piece outfit takes priority over separate top/bottom items; applying separates clears an existing one-piece outfit, while unrelated accessories preserve it.
+- The avatar runtime currently supports one item per wardrobe slot. Only moodboard concepts with a semantically matching existing avatar asset are mapped; unsupported concepts remain explicitly unmapped rather than pretending that a necklace is a ring or earrings, or that one handbag is a clutch/backpack. If multiple placed pieces still target one slot, the latest placed item wins and the fitting-room notice reports the collision. A one-piece outfit takes priority over separate top/bottom items; applying separates clears an existing one-piece outfit, while unrelated accessories preserve it.
+- Restoring local drafts and collections normalizes IDs, clamps board positions and scale to editor bounds, validates six-digit hex colors, drops unknown catalog IDs, and caps restored pieces at 100. SVG export uses a representative solid background for the selected editorial/warm/minimal/night style; it remains a static moodboard, not a rendered 3D product image.
 - Account-synced fashion collections, social publishing, real product imagery, original layered garment assets, and device-level 3D performance QA remain future work.
+
+
+## 2026-11-12 quality fix
+- Corrected semantic mapping so unsupported jewelry and bag variants are reported instead of falsely mapping to the same accessory or handbag model.
+- Hardened local saved-look restoration against duplicate/invalid IDs, out-of-range coordinates and scales, unsafe color strings, and unknown catalog items.
+- Fixed SVG export so its background reflects the selected board style. Regression coverage is in `tests/fashion-studio-smoke.cjs`.
