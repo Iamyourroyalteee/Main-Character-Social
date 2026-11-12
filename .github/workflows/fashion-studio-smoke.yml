@@ -16,7 +16,11 @@ on:
       - "feature/fashion-creator-studio"
     paths:
       - "fashion-studio/**"
+      - "avatar-3d/**"
+      - "src/index.html"
       - "src/fashion-studio/**"
+      - "tests/avatar-3d-safety-smoke.cjs"
+      - "tests/avatar-account-bridge-smoke.cjs"
       - "src/avatar-3d/**"
       - "tests/fashion-studio-smoke.cjs"
       - ".github/workflows/fashion-studio-smoke.yml"
