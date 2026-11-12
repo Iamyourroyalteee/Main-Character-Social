@@ -55,6 +55,13 @@ assert.ok(html.includes("MCSAvatarAnimationRuntime.js"), "prototype must load th
 assert.ok(html.includes("createAnimationController"), "prototype must expose an animation controller factory");
 assert.ok(browserSmoke.includes("MCSAvatarAnimationRuntime.create"), "browser smoke page must instantiate the animation runtime");
 assert.match(avatarAnimationRuntime, /AnimationMixer/, "animation runtime must use Three.js AnimationMixer");
+const animationPlayStart = avatarAnimationRuntime.indexOf("function play(");
+const animationUpdateStart = avatarAnimationRuntime.indexOf("function update(", animationPlayStart);
+const animationPlaySource = avatarAnimationRuntime.slice(animationPlayStart, animationUpdateStart);
+const resetBeforeFade = animationPlaySource.indexOf("next.reset()");
+const fadeScheduling = animationPlaySource.indexOf("current.crossFadeTo(next");
+assert.ok(resetBeforeFade >= 0 && fadeScheduling > resetBeforeFade,
+  "incoming animation action must reset before crossFadeTo schedules its fade-in");
 
 const gate = html.match(/function isAdultProfile\(\)\s*\{([\s\S]*?)\}/);
 assert.ok(gate, "3D prototype must define its adult-access gate");
