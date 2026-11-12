@@ -121,6 +121,7 @@ function nearestSupportedTint(color,tints){
  const a=rgb(color);
  return tints.reduce((best,c)=>{const b=rgb(c),d=(a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2;return d<best.d?{color:c,d}:best},{color:tints[0],d:Infinity}).color;
 }
+/* The avatar wardrobe schema is single-item-per-slot: resolve outfit/separates and replacement conflicts explicitly. */
 function applyMoodboardToModel(){
  const frame=$("avatarFrame");
  try{
