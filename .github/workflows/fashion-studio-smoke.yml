@@ -3,9 +3,13 @@ on:
   pull_request:
     paths:
       - "fashion-studio/**"
+      - "avatar-3d/**"
+      - "src/index.html"
       - "src/fashion-studio/**"
       - "src/avatar-3d/**"
       - "tests/fashion-studio-smoke.cjs"
+      - "tests/avatar-3d-safety-smoke.cjs"
+      - "tests/avatar-account-bridge-smoke.cjs"
       - ".github/workflows/fashion-studio-smoke.yml"
   push:
     branches:
@@ -20,8 +24,13 @@ jobs:
   fashion-studio:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
-      - run: node tests/fashion-studio-smoke.cjs
+          node-version: 22
+      - name: Run Fashion Studio interaction and mapping tests
+        run: node tests/fashion-studio-smoke.cjs
+      - name: Run 3D avatar loader, PBR, animation, and lifecycle tests
+        run: node tests/avatar-3d-safety-smoke.cjs
+      - name: Run avatar account bridge tests
+        run: node tests/avatar-account-bridge-smoke.cjs
