@@ -5,6 +5,26 @@ const path = require("node:path");
 const vm = require("node:vm");
 
 const html = fs.readFileSync(path.join(__dirname, "../src/index.html"), "utf8");
+const avatarRoot = path.join(__dirname, "../src/avatar-3d");
+const requiredAvatarFiles = [
+  "index.html",
+  "MCSAvatarAnimationRuntime.js",
+  "MCSAvatarLoader.js",
+  "MCSCameraSetup.js",
+  "MCSGlamMaterialFactory.js",
+  "MCSStudioLighting.js",
+  "assets/manifest.json"
+];
+for (const file of requiredAvatarFiles) {
+  assert.ok(fs.existsSync(path.join(avatarRoot, file)), "deployed app root must contain avatar runtime file: " + file);
+}
+const embeddedAvatarHtml = fs.readFileSync(path.join(avatarRoot, "index.html"), "utf8");
+assert.match(embeddedAvatarHtml, /name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/, "avatar studio must preserve user zoom and safe-area layout");
+assert.doesNotMatch(embeddedAvatarHtml, /user-scalable=no|maximum-scale=1/, "avatar studio must not disable pinch zoom");
+assert.match(embeddedAvatarHtml, /@media \(pointer: coarse\)[\s\S]*?min-width:44px;min-height:44px/, "touch controls must meet the 44px minimum target");
+for (const script of ["MCSAvatarAnimationRuntime.js", "MCSAvatarLoader.js", "MCSCameraSetup.js", "MCSGlamMaterialFactory.js", "MCSStudioLighting.js"]) {
+  assert.ok(embeddedAvatarHtml.includes(script), "embedded avatar runtime must load " + script);
+}
 const marker = '<script id="mcs-avatar-account-bridge">';
 const start = html.indexOf(marker);
 assert.notEqual(start, -1, "main app must include the avatar account bridge");

@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'src/index.html'
+      - 'src/avatar-3d/**'
       - 'avatar-3d/**'
       - 'tests/avatar-3d-safety-smoke.cjs'
       - 'tests/avatar-runtime-hardening-smoke.cjs'
@@ -14,6 +15,7 @@ on:
       - main
       - 'security/**'
       - 'fix/pbr-default-full-avatar-materials'
+      - 'fix/avatar-integration-deployment-root'
 jobs:
   security-smoke:
     runs-on: ubuntu-latest

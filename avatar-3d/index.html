@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Main Character Social — 3D Avatar Creator Prototype</title>
 <style>
   :root{
@@ -318,6 +318,7 @@
   }
 
 </style>
+<style id="mcs-touch-accessibility">@media (pointer: coarse){button,[role="button"],.mode-nav a,.pick,.chip,.swatch,.swatch-lg{min-width:44px;min-height:44px}button,.mode-nav a,.pick,.chip{-webkit-tap-highlight-color:transparent;touch-action:manipulation}}</style>
 </head>
 <body>
 <script>document.documentElement.dataset.mcsMode = new URLSearchParams(location.search).get("mode") === "builder" ? "builder" : "rooms";</script>

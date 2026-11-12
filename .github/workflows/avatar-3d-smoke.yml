@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - "avatar-3d/**"
+      - "src/avatar-3d/**"
       - "tests/avatar-3d-safety-smoke.cjs"
       - "tests/avatar-runtime-hardening-smoke.cjs"
       - ".github/workflows/avatar-3d-smoke.yml"
   push:
     branches:
       - "fix/pbr-default-full-avatar-materials"
+      - "fix/avatar-integration-deployment-root"
     paths:
       - "avatar-3d/**"
       - "tests/avatar-3d-safety-smoke.cjs"
