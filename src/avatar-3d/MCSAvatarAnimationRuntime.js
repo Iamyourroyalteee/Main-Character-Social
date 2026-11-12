@@ -31,14 +31,17 @@
       var next = actions[name];
       if (!next) return false;
       fadeSeconds = Number.isFinite(fadeSeconds) ? Math.max(0, fadeSeconds) : 0.2;
-      if (current && current !== next){
-        if (fadeSeconds && typeof current.crossFadeTo === "function") current.crossFadeTo(next, fadeSeconds, false);
-        else current.stop();
-      }
+      /* reset() clears an action's scheduled fade interpolants. Reset the
+         incoming action BEFORE crossFadeTo schedules its fade-in, otherwise
+         the reset cancels the fade and the next clip snaps to full weight. */
       next.reset();
       next.enabled = true;
       next.setEffectiveWeight(1);
       next.setEffectiveTimeScale(1);
+      if (current && current !== next){
+        if (fadeSeconds && typeof current.crossFadeTo === "function") current.crossFadeTo(next, fadeSeconds, false);
+        else current.stop();
+      }
       next.play();
       current = next;
       return true;
