@@ -4,6 +4,7 @@ on:
     paths:
       - 'src/index.html'
       - 'avatar-3d/**'
+      - 'src/avatar-3d/**'
       - 'tests/avatar-3d-safety-smoke.cjs'
       - 'tests/avatar-runtime-hardening-smoke.cjs'
       - 'tests/avatar-account-bridge-smoke.cjs'
