@@ -6,7 +6,7 @@ const path = require("node:path");
 const html = fs.readFileSync(path.join(__dirname, "../avatar-3d/index.html"), "utf8");
 assert.match(html, /name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/, "avatar viewport must preserve safe areas and user zoom");
 assert.doesNotMatch(html, /user-scalable=no|maximum-scale=1/, "avatar UI must not disable user zoom");
-assert.match(html, /@media \\(pointer: coarse\\)[\\s\\S]*?min-width:44px;min-height:44px/, "coarse-pointer controls must meet the 44px minimum target");
+assert.match(html, /@media \(pointer: coarse\)[\s\S]*?min-width:44px;min-height:44px/, "coarse-pointer controls must meet the 44px minimum target");
 
 const appHtml = fs.readFileSync(path.join(__dirname, "../src/index.html"), "utf8");
 assert.match(appHtml, /id="mcs-avatar-3d-frame"/, "the main app Avatar tab must embed the 3D builder");
