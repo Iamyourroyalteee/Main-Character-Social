@@ -79,7 +79,7 @@ const accessoryWithOutfit = simulateApply(outfitSlots, ["necklace"]);
 assert.equal(accessoryWithOutfit.applied.slots.outfit.itemId, "outfit-slip", "accessories must not clear an unrelated existing outfit");
 assert.equal(accessoryWithOutfit.applied.slots.accessory.itemId, "acc-chain");
 const sunglasses = simulateApply(outfitSlots, ["sunglasses"]);
-assert.equal(sunglasses.applied.slots.accessory.itemId, "acc-shades", "sunglasses must use the actual accessory slot");
+assert.equal(sunglasses.applied.slots.glasses.itemId, "acc-shades", "sunglasses must use the actual accessory slot");
 assert.doesNotMatch(sunglasses.messages.join(" "), /moodboard-only pieces skipped/);
 const accessoryCollision = simulateApply(outfitSlots, ["necklace", "earrings"]);
 assert.equal(accessoryCollision.applied.slots.accessory.itemId, "acc-chain");
