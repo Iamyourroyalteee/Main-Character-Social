@@ -49,8 +49,18 @@
     function play(name, fadeSeconds){
       ensureLive(); var next = actions[name]; if (!next) return false;
       fadeSeconds = Number.isFinite(fadeSeconds) ? Math.max(0, fadeSeconds) : 0.2;
-      if (current && current !== next){ if (fadeSeconds && typeof current.crossFadeTo === "function") current.crossFadeTo(next, fadeSeconds, false); else current.stop(); }
-      next.reset(); next.enabled = true; next.setEffectiveWeight(1); next.setEffectiveTimeScale(1); next.play(); current = next; return true;
+      /* Reset first: Three.js reset() clears scheduled fade interpolants. */
+      next.reset();
+      next.enabled = true;
+      next.setEffectiveWeight(1);
+      next.setEffectiveTimeScale(1);
+      if (current && current !== next){
+        if (fadeSeconds && typeof current.crossFadeTo === "function") current.crossFadeTo(next, fadeSeconds, false);
+        else current.stop();
+      }
+      next.play();
+      current = next;
+      return true;
     }
     function update(deltaSeconds){ if (disposed || !Number.isFinite(deltaSeconds) || deltaSeconds < 0) return; mixer.update(Math.min(deltaSeconds, 0.1)); }
     function pause(){ ensureLive(); mixer.timeScale = 0; }
