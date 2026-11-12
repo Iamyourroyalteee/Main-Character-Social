@@ -23,6 +23,8 @@ const assetManifest = JSON.parse(fs.readFileSync(path.join(__dirname, "../avatar
 const gltfFixture = JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures/minimal-pbr.gltf"), "utf8"));
 const browserSmoke = fs.readFileSync(path.join(__dirname, "../avatar-3d/asset-pipeline-smoke.html"), "utf8");
 const avatarAnimationRuntime = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSAvatarAnimationRuntime.js"), "utf8");
+const embeddedAvatarAnimationRuntime = fs.readFileSync(path.join(__dirname, "../src/avatar-3d/MCSAvatarAnimationRuntime.js"), "utf8");
+assert.equal(embeddedAvatarAnimationRuntime, avatarAnimationRuntime, "standalone and main-app animation runtime copies must stay in sync");
 assert.equal(assetSchema.$defs.asset.required.includes("provenance"), true, "asset schema must require provenance");
 assert.ok(assetSchema.$defs.asset.properties.materials, "asset schema must define per-material PBR texture bindings");
 assert.equal(assetManifest.schemaVersion, "1.0.0", "asset manifest must declare its schema version");
@@ -451,19 +453,21 @@ const animationRuntimeSource = fs.readFileSync(path.join(__dirname, "../avatar-3
 const animationWindow = {};
 vm.runInNewContext(animationRuntimeSource, { window: animationWindow });
 let mixerUpdates = 0, mixerStops = 0, mixerUncached = 0, actionPlays = 0, crossFades = 0;
-function MockAction(){
+const animationEvents = [];
+function MockAction(name){
+  this.name = name;
   this.enabled = false;
-  this.reset = () => this;
+  this.reset = () => { animationEvents.push("reset:" + name); return this; };
   this.setEffectiveWeight = () => this;
   this.setEffectiveTimeScale = () => this;
-  this.play = () => { actionPlays++; return this; };
+  this.play = () => { animationEvents.push("play:" + name); actionPlays++; return this; };
   this.stop = () => this;
-  this.crossFadeTo = () => { crossFades++; return this; };
+  this.crossFadeTo = (next) => { animationEvents.push("crossFade:" + name + "->" + next.name); crossFades++; return this; };
   this.fadeOut = () => this;
 }
 class MockAnimationMixer {
   constructor(root){ this.root = root; this.timeScale = 1; }
-  clipAction(){ return new MockAction(); }
+  clipAction(clip){ return new MockAction(clip.name); }
   update(delta){ mixerUpdates += delta; }
   setTime(time){ this.time = time; }
   stopAllAction(){ mixerStops++; }
@@ -486,6 +490,11 @@ assert.equal(animation.clipCount, 2, "runtime must register unique named clips o
 assert.equal(animation.play("Idle"), true, "known clip must play");
 assert.equal(animation.play("Walk", 0.25), true, "second clip must play");
 assert.equal(crossFades, 1, "clip changes should crossfade");
+const resetWalkIndex = animationEvents.indexOf("reset:Walk");
+const fadeWalkIndex = animationEvents.indexOf("crossFade:Idle->Walk");
+const playWalkIndex = animationEvents.indexOf("play:Walk");
+assert.ok(resetWalkIndex >= 0 && resetWalkIndex < fadeWalkIndex && fadeWalkIndex < playWalkIndex,
+  "incoming clip must reset before the crossfade is scheduled, then play after the fade-in is configured");
 animation.update(0.05);
 assert.equal(mixerUpdates, 0.05, "runtime should advance mixer by frame delta");
 animation.pause();
