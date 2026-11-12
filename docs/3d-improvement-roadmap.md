@@ -18,6 +18,7 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 ## P1 — Character quality
 - [ ] Replace or augment procedural base characters with original/licensed rigged GLB assets.
 - [ ] Validate skeleton hierarchy, skin weights, deformation, and animation clips.
+- [x] Add a reusable Three.js AnimationMixer runtime for rigged GLTF clips and facial morph targets; the runtime is available to the prototype, but a production rigged character is still required for end-to-end validation.
 - [ ] Add facial morph targets and expression controls.
 - [ ] Improve skin, eyes, teeth, brows, and hair geometry/materials.
 - [ ] Validate diverse body proportions, skin tones, hairstyles, and saved looks.
@@ -152,3 +153,5 @@ The Avatar Engine is the shared dependency, not a reason to block independent cr
 - The PBR branch has a Vercel deployment for a later commit than the current PR #10 head metadata. Reconcile the branch/PR head and check statuses before treating PR #10 as release-ready.
 - Fashion Studio PR #12 remains a separate draft stacked on the PBR branch; no deployment exists for its exact head commit.
 - Next critical implementation task: formalize and test the canonical character/outfit payload contract and round-trip it across the embedded builder and other surfaces. Continue independent Fashion Studio and room-environment work in parallel.
+
+- 2026-11-11: Audited all four connected Blendstra assets (avatar foundation, realistic avatar engine, modular fleece hoodie, and main atrium room), the full 3D repository tree, PR #10, and current Vercel previews. Added a regression fix to reset incoming animation actions before scheduling crossfades; Three.js action reset clears scheduled fade interpolants. Added an ordering assertion and a check that embedded and standalone runtime copies remain identical. Native GitHub Actions at commit `b50b3d8` passed both account-bridge and 3D safety tests; this new regression fix requires a fresh run. No production asset was changed.
