@@ -41,6 +41,7 @@ assert.match(glam, /var mats = Array\.isArray\(o\.material\) \? o\.material : \[
 const assetSchema = JSON.parse(fs.readFileSync(path.join(__dirname, "../docs/3d-asset-manifest.schema.json"), "utf8"));
 const assetManifest = JSON.parse(fs.readFileSync(path.join(__dirname, "../avatar-3d/assets/manifest.json"), "utf8"));
 const gltfFixture = JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures/minimal-pbr.gltf"), "utf8"));
+const skinnedGltfFixture = JSON.parse(fs.readFileSync(path.join(__dirname, "../avatar-3d/assets/test-fixtures/minimal-skinned.gltf"), "utf8"));
 const browserSmoke = fs.readFileSync(path.join(__dirname, "../avatar-3d/asset-pipeline-smoke.html"), "utf8");
 const avatarAnimationRuntime = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSAvatarAnimationRuntime.js"), "utf8");
 assert.equal(assetSchema.$defs.asset.required.includes("provenance"), true, "asset schema must require provenance");
@@ -49,8 +50,17 @@ assert.equal(assetManifest.schemaVersion, "1.0.0", "asset manifest must declare 
 assert.equal(assetManifest.assets.length, 0, "unverified external models must not be added as placeholder assets");
 assert.equal(gltfFixture.asset.version, "2.0", "browser fixture must be a valid glTF 2.0 asset");
 assert.equal(gltfFixture.meshes.length, 1, "browser fixture must include a real mesh");
+assert.equal(skinnedGltfFixture.asset.version, "2.0", "skinned browser fixture must be glTF 2.0");
+assert.equal(skinnedGltfFixture.skins.length, 1, "skinned fixture must contain one skin");
+assert.equal(skinnedGltfFixture.skins[0].joints.length, 2, "skinned fixture must contain two test joints");
+const skinnedAttributes = skinnedGltfFixture.meshes[0].primitives[0].attributes;
+assert.ok(Object.prototype.hasOwnProperty.call(skinnedAttributes, "JOINTS_0"), "skinned fixture must contain joint indices");
+assert.ok(Object.prototype.hasOwnProperty.call(skinnedAttributes, "WEIGHTS_0"), "skinned fixture must contain skin weights");
+assert.equal(skinnedGltfFixture.animations[0].name, "MCS_Test_Idle", "skinned fixture must include a named animation clip");
 assert.ok(browserSmoke.includes("engine.loadCatalogAsset"), "browser smoke page must exercise the catalog loader");
-assert.ok(browserSmoke.includes("assets/test-fixtures/minimal-pbr.gltf"), "browser smoke page must load the repository fixture");
+assert.ok(browserSmoke.includes("assets/test-fixtures/minimal-pbr.gltf"), "browser smoke page must load the PBR repository fixture");
+assert.ok(browserSmoke.includes("assets/test-fixtures/minimal-skinned.gltf"), "browser smoke page must load the rigged repository fixture");
+assert.ok(browserSmoke.includes("skinnedMeshCount") && browserSmoke.includes("MCS_Test_Idle"), "browser smoke page must validate and play a real skinned fixture");
 assert.ok(html.includes("MCSAvatarAnimationRuntime.js"), "prototype must load the shared skeletal animation runtime");
 assert.ok(html.includes("createAnimationController"), "prototype must expose an animation controller factory");
 assert.ok(browserSmoke.includes("MCSAvatarAnimationRuntime.create"), "browser smoke page must instantiate the animation runtime");
@@ -124,6 +134,44 @@ function makeEngine(materialFactory) {
   });
 }
 const runtimeEngine = makeEngine();
+
+function skinAttribute(rows){
+  return {
+    count:rows.length, itemSize:4,
+    getX(i){return rows[i][0];}, getY(i){return rows[i][1];},
+    getZ(i){return rows[i][2];}, getW(i){return rows[i][3];}
+  };
+}
+function makeSkinnedScene(){
+  const mesh={
+    isMesh:true, isSkinnedMesh:true, material:{},
+    geometry:{attributes:{
+      position:{count:3}, normal:{count:3}, uv:{count:3},
+      skinIndex:skinAttribute([[0,1,0,0],[0,1,0,0],[0,1,0,0]]),
+      skinWeight:skinAttribute([[0.5,0.5,0,0],[0.75,0.25,0,0],[1,0,0,0]])
+    },index:{count:3}},
+    skeleton:{bones:[{},{}],boneInverses:[{},{}]}
+  };
+  return {mesh,traverse(fn){fn(mesh);}};
+}
+const validSkinReport=runtimeEngine.validateModel(makeSkinnedScene());
+assert.equal(validSkinReport.valid,true,"valid skinned meshes must pass structural skin validation");
+assert.equal(validSkinReport.skinnedMeshCount,1,"model validation must report skinned mesh count");
+const missingSkeleton=makeSkinnedScene(); missingSkeleton.mesh.skeleton=null;
+assert.ok(runtimeEngine.validateModel(missingSkeleton).errors.includes("skinned mesh is missing a valid skeleton"),
+  "skinned meshes without a usable skeleton must fail validation");
+const badBoneIndex=makeSkinnedScene();
+badBoneIndex.mesh.geometry.attributes.skinIndex=skinAttribute([[2,0,0,0],[0,1,0,0],[0,1,0,0]]);
+assert.ok(runtimeEngine.validateModel(badBoneIndex).errors.includes("skinned mesh has an invalid bone index"),
+  "skin indices outside the skeleton must fail validation");
+const badWeightSum=makeSkinnedScene();
+badWeightSum.mesh.geometry.attributes.skinWeight=skinAttribute([[0.2,0.2,0,0],[0.75,0.25,0,0],[1,0,0,0]]);
+assert.ok(runtimeEngine.validateModel(badWeightSum).errors.includes("skinned mesh skin weights are not normalized"),
+  "per-vertex skin weights must sum to one within tolerance");
+const unboundSkin=makeSkinnedScene(); unboundSkin.mesh.isSkinnedMesh=false;
+assert.ok(runtimeEngine.validateModel(unboundSkin).errors.includes("mesh has skin attributes but is not a SkinnedMesh"),
+  "skin attributes must not be silently ignored on ordinary meshes");
+
 for (const badUrl of ["javascript:alert(1)", "data:model/gltf-binary;base64,AA==", "blob:https://example.com/id", "file:///tmp/model.glb", "//evil.example/model.glb"]) {
   let failure = "";
   runtimeEngine.loadGLTF(badUrl, () => assert.fail("unsafe URL must not load"), (message) => { failure = message; });
