@@ -25,5 +25,8 @@ for (const fn of ["mcs_handle_new_user", "mcs_touch_updated_at", "mcs_lock_profi
   assert.ok(migration.includes(`REVOKE EXECUTE ON FUNCTION public.${fn}() FROM anon, authenticated;`),
     fn + " must not be directly callable by API roles");
 }
+assert.ok(migration.includes("ALTER POLICY mcs_account_links_select_own"));
+assert.ok(migration.includes("USING (auth_user_id = (SELECT auth.uid()));"),
+  "account-link RLS should evaluate auth.uid() once per statement");
 assert.ok(migration.startsWith("-- Harden") && migration.includes("BEGIN;") && migration.includes("COMMIT;"));
-console.log("PASS: database function privilege migration has the required grants and search-path hardening.");
+console.log("PASS: database function privilege migration has the required grants, search-path hardening, and RLS optimization.");
