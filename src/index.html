@@ -1968,21 +1968,25 @@ function generateAiLook(){
 
 /* ---------------- Actions ---------------- */
 function setAudience(a){UI.audience=a;DB.board.audience=a;const keep=visibleVibes().some(v=>v.id===UI.vibeId);if(!keep){UI.vibeId=visibleVibes()[0].id;UI.reelIdx=0;}save();}
-function startConvo(pid,openFrom){
-  const m=meP();if(!m){toast("Create your profile first — it takes a minute.");go("profile");return;}
-  const other=personById(pid);if(!other)return;
-  const of=ageFlags(other);const mf=ageFlags(m);
-  if(of.under16){toast("Messages are off for under-16 accounts.");return;}
-  if(mf.under16){toast("DMs are off under 16 — that's a built-in protection.");return;}
-  if(m.pc_msg_policy==="off"){toast("Your parent/guardian has turned your messages off.");return;}
-  if(mf.minor&&friendState(pid)!=="friends"){toast("Under-18 accounts can only message accepted friends.");return;}
-  if(other.pc_msg_policy==="off"&&!other.official){toast("That profile has messages turned off.");return;}
-  if(blockedEitherWay(m.id,pid)){toast("Messaging isn't available with this profile.");return;}
-  let convo=DB.convos.find(c=>c.members.includes(m.id)&&c.members.includes(pid));
-  if(!convo){convo={id:uid(),members:[m.id,pid],created_at:nowISO()};DB.convos.push(convo);save();}
-  UI.threadId=convo.id;UI.threadFrom=openFrom||"messages";UI.tab=openFrom==="profile"?"profile":"messages";render();window.scrollTo({top:0});
-}
-function doFollow(pid){
+async function startConvo(pid,openFrom){
+    const m=meP();if(!m){toast("Create your profile first — it takes a minute.");go("profile");return;}
+    const other=personById(pid);if(!other)return;
+    const of=ageFlags(other);const mf=ageFlags(m);
+    if(of.under16){toast("Messages are off for under-16 accounts.");return;}
+    if(mf.under16){toast("DMs are off under 16 — that's a built-in protection.");return;}
+    if(m.pc_msg_policy==="off"){toast("Your parent/guardian has turned your messages off.");return;}
+    if(friendState(pid)!=="friends"){toast("You can message accepted friends only.");return;}
+    if(blockedEitherWay(m.id,pid)){toast("Messaging isn't available with this profile.");return;}
+    if(MCS4.mode==="auth"&&MCS4.session){
+      const gate=await client.rpc("mcs_can_message",{p_target_pid:pid});
+      if(gate.error){warn("[MCS v4] message permission check failed:",gate.error.message||gate.error);toast("Messaging security check is unavailable. Please try again.");return;}
+      if(gate.data!==true){toast("Messaging isn't available with this profile.");return;}
+    }
+    let convo=DB.convos.find(c=>c.members.includes(m.id)&&c.members.includes(pid));
+    if(!convo){convo={id:uid(),members:[m.id,pid],created_at:nowISO()};DB.convos.push(convo);save();}
+    UI.threadId=convo.id;UI.threadFrom=openFrom||"messages";UI.tab=openFrom==="profile"?"profile":"messages";render();window.scrollTo({top:0});
+  }
+  function doFollow(pid){
   const m=meP();if(!m){toast("Create your profile first.");go("profile");return;}
   const target=personById(pid);if(!target||pid===m.id)return;
   const idx=DB.follows.findIndex(f=>f.from===m.id&&f.to===pid);
@@ -2064,7 +2068,20 @@ document.addEventListener("click",e=>{
     case "tip":{if(!m){toast("Create your profile to tip.");go("profile");break;}const p=postById(id);if(!p||p.pid===m.id)break;const cents=Number(b.getAttribute("data-cents"));const author=personById(p.pid);if(author){const tipNet=Math.round(cents*0.9);const tipCut=cents-tipNet;author.total_tips_cents=(author.total_tips_cents||0)+tipNet;if(!DB.tips)DB.tips=[];DB.tips.unshift({id:uid(),earner:author.id,from:m.id,post:p.id,title:"Tip from "+(m.display_name||"a fan"),amount_cents:cents,fee_cents:tipCut,net_cents:tipNet,created_at:nowISO(),paid_out:false});platformEarn("tip_cut",m.id,tipCut,"Platform cut of a "+money(cents)+" tip to "+(author.display_name||"a creator"));DB.activity.unshift({id:uid(),kind:"tip",actor_id:m.id,pid_target:p.pid,seen:false,media_id:p.id,detail:"$"+(cents/100),created_at:nowISO()});}save();toast("Tip sent — "+(author?author.display_name:"the creator")+" gets 90%, the platform keeps 10%. (Launch preview: no real charge.)");render();break;}
     case "report-open":UI.openReports[id]=UI.openReports[id]?null:{reason:"fake",details:""};render();break;
     case "report-reason":{const r=UI.openReports[id];if(r&&typeof r==="object")r.reason=b.getAttribute("data-reason");render();break;}
-    case "report-send":{const r=UI.openReports[id];const det=document.querySelector('[data-repdetails="'+id+'"]');if(m&&r&&typeof r==="object"){const nr={id:uid(),reporter:m.id,target_type:b.getAttribute("data-type"),target_id:id,reason:r.reason||"other",details:det?det.value:"",status:"open",created_at:nowISO()};nr.target_owner=modTargetOwner(nr);nr.ai=modAnalyze({reason:nr.reason,details:nr.details,text:modTargetText(nr),targetOwnerId:nr.target_owner,excludeReportId:nr.id});modApplyAutoActions(nr);DB.reports.unshift(nr);save();toast("Thanks — your report was received. Our moderation team will review it.");}UI.openReports[id]="sent";render();break;}
+    case "report-send":{
+      const r=UI.openReports[id];const det=document.querySelector('[data-repdetails="'+id+'"]');
+      if(!m){toast("Sign in to submit a report.");break;}
+      if(!r||typeof r!=="object")break;
+      if(MCS4.mode!=="auth"||!MCS4.session){toast("Sign in to submit a report.");break;}
+      const nr={id:uid(),reporter:m.id,target_type:b.getAttribute("data-type"),target_id:id,reason:r.reason||"other",details:det?det.value:"",status:"open",created_at:nowISO()};
+      nr.target_owner=modTargetOwner(nr);
+      const reportRow={id:nr.id,reporter_pid:m.id,reported_pid:nr.target_owner||null,target_type:nr.target_type,target_id:nr.target_id,reason:nr.reason,details:nr.details,status:"open",payload:nr};
+      client.from("mcs_reports").insert(reportRow).then(function(res){
+        if(res&&res.error){warn("[MCS v4] report submission failed:",res.error.message||res.error);toast("Report could not be submitted. Please try again.");return;}
+        DB.reports.unshift(nr);save();toast("Report submitted to the moderation queue.");UI.openReports[id]="sent";render();
+      }).catch(function(err){warn("[MCS v4] report submission error:",err);toast("Report could not be submitted. Please try again.");});
+      break;
+    }
     case "delpost":DB.posts=DB.posts.filter(x=>x.id!==id);R();break;
     case "follow":doFollow(id);break;
     case "friend":doFriend(id);break;
@@ -3828,16 +3845,23 @@ renderSettings=function(){var h=av36origSettings2();var m=meP();if(m&&UI.setting
   function sanitizeProfileForPush(p) {
     var c = {}; for (var k in p) c[k] = p[k];
     var band = p.age_band || bandOf(p.birthdate);
-    delete c.email; delete c.birthdate; delete c.phone;
+    ["email","birthdate","phone","legal_name","parent_code","guardian_ids","pc_msg_policy","pc_purchases","pc_spend_limit_cents","pc_follow_requests"].forEach(function (k) { delete c[k]; });
     c.age_band = band;
     return c;
+  }
+  function privateProfilePayload(p) {
+    var out = {};
+    ["email","birthdate","phone","legal_name","parent_code","guardian_ids","pc_msg_policy","pc_purchases","pc_spend_limit_cents","pc_follow_requests"].forEach(function (k) {
+      if (Object.prototype.hasOwnProperty.call(p, k)) out[k] = p[k];
+    });
+    return out;
   }
   // What other people's profiles may keep in memory after a load: their
   // public payload minus any legacy PII keys older clients wrote.
   function sanitizeLoadedProfile(p) {
     if (!p || p.id === MCS4.myPid) return p;
     var c = {}; for (var k in p) c[k] = p[k];
-    delete c.email; delete c.birthdate; delete c.phone;
+    ["email","birthdate","phone","legal_name","parent_code","guardian_ids","pc_msg_policy","pc_purchases","pc_spend_limit_cents","pc_follow_requests"].forEach(function (k) { delete c[k]; });
     return c;
   }
 
@@ -3901,12 +3925,15 @@ renderSettings=function(){var h=av36origSettings2();var m=meP();if(m&&UI.setting
       q("mcs_sales", function (t) { return t.select("payload").limit(500); }),
       q("mcs_settings", function (t) { return t.select("payload").eq("pid", me).limit(1); }),
       q("mcs_user_private", function (t) { return t.select("*").eq("pid", me).limit(1); }),
+      q("mcs_profile_private", function (t) { return t.select("private_payload").eq("pid", me).limit(1); }),
+      q("mcs_blocks", function (t) { return t.select("blocker_pid,blocked_pid").eq("blocker_pid", me).limit(1000); }),
+      q("mcs_reports", function (t) { return t.select("payload").eq("reporter_pid", me).limit(1000); }),
       q("mcs_wallets", function (t) { return t.select("*").eq("pid", me).limit(1); }),
       q("mcs_currency_ledger", function (t) { return t.select("*").eq("pid", me).order("created_at", { ascending: false }).limit(50); }),
       q("mcs_seller_accounts", function (t) { return t.select("*").eq("pid", me).limit(1); }),
       q("mcs_platform_ledger", function (t) { return t.select("*").eq("owner_pid", me).order("created_at", { ascending: false }).limit(50); })
     ]);
-    var names = ["profiles", "posts", "likes", "comments", "convos", "messages", "follows", "followRequests", "friendRequests", "friends", "collabs", "listings", "sales", "settings", "private", "wallet", "ledger", "sellerAcct", "platform"];
+    var names = ["profiles", "posts", "likes", "comments", "convos", "messages", "follows", "followRequests", "friendRequests", "friends", "collabs", "listings", "sales", "settings", "private", "profilePrivate", "blocks", "reports", "wallet", "ledger", "sellerAcct", "platform"];
     var R = {}; names.forEach(function (n, i) { R[n] = results[i]; });
     var failures = results.filter(function (r) { return !r.ok; }).length;
     if (failures === results.length) {
@@ -3927,6 +3954,10 @@ renderSettings=function(){var h=av36origSettings2();var m=meP();if(m&&UI.setting
     MCS4.myProfile = DB.profiles.find(function (p) { return p.id === me; }) || null;
     /* own private data merges into the in-memory own profile only */
     MCS4.privateRow = R.private.data[0] || null;
+    MCS4.privateProfileRow = R.profilePrivate.data[0] || null;
+    if (MCS4.myProfile && MCS4.privateProfileRow && MCS4.privateProfileRow.private_payload) {
+      Object.keys(MCS4.privateProfileRow.private_payload).forEach(function (k) { MCS4.myProfile[k] = MCS4.privateProfileRow.private_payload[k]; });
+    }
     if (MCS4.myProfile) {
       if (MCS4.privateRow) {
         if (MCS4.privateRow.email) MCS4.myProfile.email = MCS4.privateRow.email;
@@ -3981,6 +4012,8 @@ renderSettings=function(){var h=av36origSettings2();var m=meP();if(m&&UI.setting
     DB.followRequests = unionById(DB.followRequests, payloads(R.followRequests), function (r) { return r.from === me || r.to === me; });
     DB.friendRequests = unionById(DB.friendRequests, payloads(R.friendRequests), function (r) { return r.from === me || r.to === me; });
     DB.friends = unionByKey(DB.friends, payloads(R.friends), function (f) { return [f.a, f.b].sort().join("|"); });
+    DB.blocked = unionByKey(DB.blocked || [], R.blocks.data.map(function (b) { return { by: b.blocker_pid, pid: b.blocked_pid }; }), function (b) { return b.by + "|" + b.pid; });
+    DB.reports = unionById(DB.reports || [], payloads(R.reports), function (r) { return r.reporter === me; });
     DB.collabs = unionById(DB.collabs, payloads(R.collabs), function (c) { return c.from === me || c.to === me; });
     /* marketplace */
     DB.listings = unionById(DB.listings, payloads(R.listings), function (l) { return l.pid === me; });
@@ -4013,7 +4046,12 @@ renderSettings=function(){var h=av36origSettings2();var m=meP();if(m&&UI.setting
     var me = MCS4.myPid, S = {};
     if (!me) return S;
     var mine = (DB.profiles || []).find(function (p) { return p.id === me; });
-    if (mine) { S.mcs_profiles = {}; S.mcs_profiles[me] = profileRow(mine); }
+    if (mine) {
+      S.mcs_profiles = {}; S.mcs_profiles[me] = profileRow(mine);
+      S.mcs_profile_private = {}; S.mcs_profile_private[me] = { pid: me, private_payload: privateProfilePayload(mine) };
+    }
+    S.mcs_blocks = {};
+    (DB.blocked || []).forEach(function (b) { if (b.by === me) S.mcs_blocks[b.pid] = { blocker_pid: me, blocked_pid: String(b.pid) }; });
     S.mcs_posts = {}; (DB.posts || []).forEach(function (p) { if (p.pid === me) S.mcs_posts[p.id] = postRow(p); });
     S.mcs_comments = {}; (DB.posts || []).forEach(function (p) { (p.comments || []).forEach(function (c) { if (c.pid === me) S.mcs_comments[c.id] = commentRow(c, p.id); }); });
     S.mcs_likes = {}; (DB.posts || []).forEach(function (p) { if ((p.likes || []).indexOf(me) >= 0) S.mcs_likes[p.id + "|" + me] = { post_id: String(p.id), pid: me }; });
@@ -4028,13 +4066,14 @@ renderSettings=function(){var h=av36origSettings2();var m=meP();if(m&&UI.setting
     if (DB.settingsByPid && DB.settingsByPid[me]) { S.mcs_settings = {}; S.mcs_settings[me] = { pid: me, payload: DB.settingsByPid[me] }; }
     return S;
   }
-  var CONFLICT = { mcs_profiles: "id", mcs_posts: "id", mcs_comments: "id", mcs_likes: "post_id,pid", mcs_convos: "id", mcs_messages: "id", mcs_listings: "id", mcs_follows: "from_pid,to_pid", mcs_follow_requests: "id", mcs_friend_requests: "id", mcs_friendships: "a_pid,b_pid", mcs_collabs: "id", mcs_settings: "pid" };
-  var DELETABLE = { mcs_posts: 1, mcs_comments: 1, mcs_likes: 1, mcs_messages: 1, mcs_listings: 1, mcs_follows: 1, mcs_follow_requests: 1, mcs_friend_requests: 1, mcs_friendships: 1, mcs_collabs: 1 };
+  var CONFLICT = { mcs_profiles: "id", mcs_profile_private: "pid", mcs_blocks: "blocker_pid,blocked_pid", mcs_posts: "id", mcs_comments: "id", mcs_likes: "post_id,pid", mcs_convos: "id", mcs_messages: "id", mcs_listings: "id", mcs_follows: "from_pid,to_pid", mcs_follow_requests: "id", mcs_friend_requests: "id", mcs_friendships: "a_pid,b_pid", mcs_collabs: "id", mcs_settings: "pid" };
+  var DELETABLE = { mcs_blocks: 1, mcs_posts: 1, mcs_comments: 1, mcs_likes: 1, mcs_messages: 1, mcs_listings: 1, mcs_follows: 1, mcs_follow_requests: 1, mcs_friend_requests: 1, mcs_friendships: 1, mcs_collabs: 1 };
   function deleteQuery(table, key) {
     var qd = client.from(table).delete();
     if (table === "mcs_likes") { var p1 = key.split("|"); return qd.eq("post_id", p1[0]).eq("pid", p1[1]); }
     if (table === "mcs_follows") { var p2 = key.split("|"); return qd.eq("from_pid", p2[0]).eq("to_pid", p2[1]); }
     if (table === "mcs_friendships") { var p3 = key.split("|"); return qd.eq("a_pid", p3[0]).eq("b_pid", p3[1]); }
+    if (table === "mcs_blocks") return qd.eq("blocker_pid", MCS4.myPid).eq("blocked_pid", key);
     return qd.eq("id", key);
   }
   function seedPushState() {
@@ -4070,7 +4109,7 @@ renderSettings=function(){var h=av36origSettings2();var m=meP();if(m&&UI.setting
   }
   async function push() {
     if (MCS4.mode !== "auth" || !MCS4.session || !MCS4.myPid || MCS4.loading) return;
-    var S = rowSets(), jobs = [];
+    var S = rowSets(), securityJobs = [], upsertJobs = [], deleteJobs = [];
     Object.keys(S).forEach(function (table) {
       var prev = pushState[table] || {}, cur = S[table], upserts = [];
       Object.keys(cur).forEach(function (k) {
@@ -4078,18 +4117,19 @@ renderSettings=function(){var h=av36origSettings2();var m=meP();if(m&&UI.setting
         if (prev[k] !== h) upserts.push(cur[k]);
       });
       if (upserts.length) {
-        jobs.push(client.from(table).upsert(upserts, { onConflict: CONFLICT[table] }).then(function (r) {
+        var upsertJob = client.from(table).upsert(upserts, { onConflict: CONFLICT[table] }).then(function (r) {
           if (r && r.error) { warn("[MCS v4] push " + table + " failed:", r.error.message || r.error); return false; }
           Object.keys(cur).forEach(function (k) { (pushState[table] = pushState[table] || {})[k] = hashStr(JSON.stringify(cur[k])); });
           return true;
-        }).catch(function (e) { warn("[MCS v4] push " + table + " error:", e); return false; }));
+        }).catch(function (e) { warn("[MCS v4] push " + table + " error:", e); return false; });
+        if (table === "mcs_blocks") securityJobs.push(upsertJob); else upsertJobs.push(upsertJob);
       } else {
         Object.keys(cur).forEach(function (k) { (pushState[table] = pushState[table] || {})[k] = hashStr(JSON.stringify(cur[k])); });
       }
       if (DELETABLE[table]) {
         var gone = Object.keys(prev).filter(function (k) { return !(k in cur); }).slice(0, 50);
         gone.forEach(function (k) {
-          jobs.push(deleteQuery(table, k).then(function (r) {
+          deleteJobs.push(deleteQuery(table, k).then(function (r) {
             if (r && r.error) { warn("[MCS v4] delete " + table + " failed:", r.error.message || r.error); return; }
             if (pushState[table]) delete pushState[table][k];
           }).catch(function (e) { warn("[MCS v4] delete " + table + " error:", e); }));
@@ -4097,7 +4137,7 @@ renderSettings=function(){var h=av36origSettings2();var m=meP();if(m&&UI.setting
       }
     });
     queueNewSales();
-    await Promise.all(jobs);
+    await Promise.all(securityJobs); await Promise.all(upsertJobs); await Promise.all(deleteJobs);
   }
   MCS4.flushPush = function () { return push(); };
   MCS4.schedulePush = function () {
