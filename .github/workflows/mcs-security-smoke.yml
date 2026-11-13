@@ -3,19 +3,42 @@ on:
   pull_request:
     paths:
       - 'src/index.html'
+      - 'avatar-3d/**'
+      - 'src/avatar-3d/**'
+      - 'supabase/migrations/**'
+      - 'tests/database-security-migration-smoke.cjs'
+      - 'tests/avatar-3d-safety-smoke.cjs'
+      - 'tests/avatar-runtime-hardening-smoke.cjs'
+      - 'tests/avatar-account-bridge-smoke.cjs'
       - 'tests/security-smoke.cjs'
       - '.github/workflows/mcs-security-smoke.yml'
   push:
     branches:
       - main
       - 'security/**'
+      - 'fix/pbr-default-full-avatar-materials'
+    paths:
+      - 'src/index.html'
+      - 'avatar-3d/**'
+      - 'src/avatar-3d/**'
+      - 'supabase/migrations/**'
+      - 'tests/**'
+      - '.github/workflows/mcs-security-smoke.yml'
 jobs:
   security-smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
       - name: Run MCS security regression and inline JavaScript syntax checks
         run: node tests/security-smoke.cjs
+      - name: Run avatar account bridge integration tests
+        run: node tests/avatar-account-bridge-smoke.cjs
+      - name: Run 3D avatar fail-closed safety smoke
+        run: node tests/avatar-3d-safety-smoke.cjs
+      - name: Run avatar animation and resource lifecycle regression tests
+        run: node tests/avatar-runtime-hardening-smoke.cjs
+      - name: Run database function hardening migration assertions
+        run: node tests/database-security-migration-smoke.cjs

@@ -982,7 +982,47 @@ function proBadge(){return ' <span class="bd bd-gold" title="Main Character Soci
 function tierBadgeFor(p){if(!p)return "";if(p.tier==="pro")return proBadge();if(p.tier==="member")return memberBadge();return "";}
 function feeForSeller(seller,gross){return Math.round(gross*feePercentForSeller(seller)/100);}
 function myBuys(pid){return DB.sales.filter(x=>x.buyer===pid);}
-function ageFlags(p){if(!p)return{minor:false,under16:false};if(p.birthdate){const a=ageOf(p.birthdate);return{minor:a<18,under16:a<16};}if(p.age_band)return{minor:p.age_band!=="adult",under16:p.age_band==="under16"};return{minor:false,under16:false};}
+/* FAIL-CLOSED age handling (2026-11-10). SECURITY CONTEXT: profile.birthdate
+   and profile.age_band are CLIENT-SUPPLIED fields — the current RLS policy
+   allows broad private-row updates, so either can be forged by the user. This
+   function therefore treats them as UNTRUSTED: they can only ever DOWNGRADE an
+   account toward minor status, never raise it to adult.
+   - Unknown/missing/invalid/unparseable data => minor (fail-closed).
+   - Adult state is NOT granted here. It requires a trusted server-side age
+     claim / verified entitlement (pending backend work — see
+     avatar-3d/MCSAvatarLoader.js gateItem for the client hook design).
+   Until that exists, adult-only features stay locked by default regardless of
+   what a profile claims. The 3D prototype's demo Adult/Teen toggle is likewise
+   NOT age assurance. */
+function ageFlags(p){
+  if(!p)return{minor:true,under16:true,ageUnknown:true};
+  if(p.birthdate){
+    /* strict shape check first: 'not-a-date' can parse as a valid Date in some
+       engines once concatenated with a time, so validate YYYY-MM-DD-ish and
+       round-trip it before trusting ageOf. */
+    const bd=String(p.birthdate);
+    const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(bd);
+    if(!m) return{minor:true,under16:true,ageUnknown:true};
+    const rt=new Date(m[1]+"-"+m[2]+"-"+m[3]+"T12:00:00");
+    if(isNaN(rt.getTime())||rt.getMonth()+1!==+m[2]||rt.getDate()!==+m[3])
+      return{minor:true,under16:true,ageUnknown:true};
+    let a=NaN;
+    try{ a=ageOf(bd); }catch(e){ a=NaN; }
+    if(typeof a!=="number"||isNaN(a)) return{minor:true,under16:true,ageUnknown:true};
+    /* DOB is client-supplied: it can confirm minor status granularity but can
+       NEVER produce an adult result. True adult requires server verification. */
+    return{minor:true,under16:a<16,ageUnknown:false};
+  }
+  if(p.age_band){
+    /* UNTRUSTED (client-editable): a claimed "adult" band is NOT honored.
+       Any band value other than a recognized minor band fails closed to minor.
+       Recognized minor bands only refine the under-16 flag. */
+    if(p.age_band==="under16")return{minor:true,under16:true,ageUnknown:false};
+    if(p.age_band==="teen")return{minor:true,under16:false,ageUnknown:false};
+    return{minor:true,under16:true,ageUnknown:true};
+  }
+  return{minor:true,under16:true,ageUnknown:true};
+}
 function mySettings(){const m=meP();if(!m)return defaultSettings();if(!DB.settingsByPid[m.id])DB.settingsByPid[m.id]=defaultSettings();return DB.settingsByPid[m.id];}
 function followersOf(pid){return DB.follows.filter(f=>f.to===pid&&f.state==="following").length;}
 function followingOf(pid){return DB.follows.filter(f=>f.from===pid&&f.state==="following").length;}
@@ -1638,6 +1678,7 @@ function renderAvatar(){
   const m=meP();const DEMO={skin:"glow",hair:"waves",hair_color:"black",outfit:"satin",shoes:"heels",accessory:"hoops"};
   if(!m){return '<div class="pt"><h1 class="page">Create Your Avatar</h1><p class="small dim mt1">This is the Avatar Studio — dress up a character that\'s unmistakably you: skin tone, hair, outfit, shoes, extras. Here\'s the look it starts with:</p><div class="card card-goldfull card-lg mt5" style="display:flex;flex-direction:column;align-items:center;gap:1rem"><div class="stage" style="height:16rem;width:11rem">'+dressUpSVG(DEMO,235)+'</div><p class="small dim" style="max-width:28rem;text-align:center">Style families — ✨ Glam, 🖤 Emo, 🌈 Scene, 🌿 Casual, 🧢 Streetwear — plus mix-and-match pieces. Save as many looks as you want to your collection and post your favorites as content.</p><button type="button" class="btn btn-red" data-act="go" data-tab="profile">Create your profile to build your avatar</button></div><section class="card card-lg mt6" aria-label="Real photo option"><h2 class="sub">More of a real-photo person?</h2><p class="small dim mt1">You don\'t have to use a character at all. Once you have a profile, you can upload your OWN real photo as your profile picture — free for everyone — and fill your profile with your own photos and videos. Your face, your choice.</p></section></div>';}
   let h='<div class="pt"><h1 class="page">Create Your Avatar</h1><p class="small dim mt1">Build whichever avatar you want, '+esc(m.display_name)+" — then save it and it shows on your profile everywhere.</p>";
+  h+='<section class="card card-lg mt4" aria-label="Avatar experiences"><h2 class="sub">Your Avatar Studio</h2><p class="small dim mt1">Build your character or take that same saved character into a social room. Both experiences share your MCS avatar.</p><nav class="rowflex mt3" aria-label="Avatar experiences" style="gap:.6rem;flex-wrap:wrap"><button type="button" class="btn btn-gold" data-mcs-avatar-mode="builder" aria-pressed="true">Avatar Builder</button><button type="button" class="btn" data-mcs-avatar-mode="rooms" aria-pressed="false">Avatar Rooms</button></nav><iframe id="mcs-avatar-3d-frame" title="Main Character Social Avatar Builder and Rooms" src="/avatar-3d/index.html?mode=builder&embedded=1" loading="eager" allow="fullscreen" style="display:block;width:100%;height:900px;min-height:760px;border:1px solid rgba(201,168,106,.35);border-radius:16px;background:#100d0c;margin-top:1rem"></iframe></section>';
   h+='<div class="card card-goldfull mt4" style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap"><div class="stage" style="height:10rem;width:7rem;flex-shrink:0">'+dressUpSVG(m.av,148)+'</div><div style="min-width:200px" class="grow"><p class="kick" style="letter-spacing:.14em">Your saved avatar</p><p class="small dim mt1">This is the character on your profile right now. Change anything in the studio below and tap “Wear this look”.</p><p class="small mt2">On your profile as: <span style="font-weight:600">@'+esc(m.username)+"</span></p></div></div>";
   h+=renderAvatarStudio();
   /* Look collection */
@@ -4926,5 +4967,85 @@ renderSettings=function(){var h=av36origSettings2();var m=meP();if(m&&UI.setting
 })();
 </script>
 <script id="mcs43-profile-links">(function(){var params=new URLSearchParams(window.location.search);var profileId=params.get("profile");if(profileId&&window.A&&typeof window.A.openProfile==="function"){window.A.openProfile(profileId);}})();</script>
+<script id="mcs-avatar-account-bridge">
+(function(){
+  "use strict";
+  function frame(){ return document.getElementById("mcs-avatar-3d-frame"); }
+  function reply(source, ok, scope, message){
+    try{ source.postMessage({type:"MCS_AVATAR_SAVE_RESULT",ok:ok,scope:scope||"device",message:message||""}, window.location.origin); }catch(e){}
+  }
+  function sendCharacter(source){
+    var profile = typeof meP === "function" ? meP() : null;
+    var auth = window.MCS4;
+    var accountReady = !!(profile && auth && auth.mode === "auth" && auth.session && auth.myPid && String(profile.id) === String(auth.myPid));
+    var character = profile && profile.avatar3d && profile.avatar3d.v === 1 ? profile.avatar3d : null;
+    try{ source.postMessage({type:"MCS_AVATAR_LOAD",hasAccount:accountReady,ageBand:"teen",character:character}, window.location.origin); }catch(e){}
+  }
+  document.addEventListener("click", function(event){
+    var button = event.target && event.target.closest ? event.target.closest("[data-mcs-avatar-mode]") : null;
+    if(!button) return;
+    var mode = button.getAttribute("data-mcs-avatar-mode");
+    if(mode !== "builder" && mode !== "rooms") return;
+    var f = frame();
+    if(!f) return;
+    document.querySelectorAll("[data-mcs-avatar-mode]").forEach(function(node){
+      var selected = node === button;
+      node.setAttribute("aria-pressed", String(selected));
+      node.classList.toggle("btn-gold", selected);
+    });
+    var next = new URL(f.getAttribute("src") || "/avatar-3d/index.html", window.location.origin);
+    next.searchParams.set("mode", mode);
+    next.searchParams.set("embedded", "1");
+    f.setAttribute("title", mode === "rooms" ? "Main Character Social Avatar Rooms" : "Main Character Social Avatar Builder");
+    f.src = next.pathname + next.search;
+  });
+  window.addEventListener("message", async function(event){
+    var f = frame();
+    if(!f || event.origin !== window.location.origin || event.source !== f.contentWindow) return;
+    var data = event.data || {};
+    if(data.type === "MCS_AVATAR_READY"){ sendCharacter(event.source); return; }
+    if(data.type !== "MCS_AVATAR_SAVE") return;
+    var raw = data.character;
+    if(!raw || typeof raw !== "object" || !raw.body || typeof raw.body !== "object" ||
+       !raw.face || typeof raw.face !== "object" || !raw.slots || typeof raw.slots !== "object"){
+      reply(event.source,false,"","The character data was incomplete."); return;
+    }
+    var character = {v:1,body:raw.body,face:raw.face,slots:raw.slots};
+    var serialized;
+    try{ serialized = JSON.stringify(character); }catch(e){ reply(event.source,false,"","The character data could not be read."); return; }
+    if(serialized.length > 150000){ reply(event.source,false,"","The saved character is too large."); return; }
+    var profile = typeof meP === "function" ? meP() : null;
+    if(!profile){ reply(event.source,false,"","Sign in and finish your profile before saving to your account."); return; }
+    var auth = window.MCS4;
+    if(auth && auth.mode === "auth"){
+      if(!auth.session || !auth.myPid || String(profile.id) !== String(auth.myPid) || !auth.client){
+        reply(event.source,false,"","Your signed-in account is not ready. Please try again."); return;
+      }
+      var previous = profile.avatar3d;
+      profile.avatar3d = character;
+      var payload = {};
+      Object.keys(profile).forEach(function(key){ payload[key] = profile[key]; });
+      delete payload.email; delete payload.birthdate; delete payload.phone;
+      if(!payload.age_band) payload.age_band = "under16";
+      try{
+        var result = await auth.client.from("mcs_profiles")
+          .update({payload:payload,updated_at:new Date().toISOString()})
+          .eq("id",String(auth.myPid)).select("id").maybeSingle();
+        if(result && result.error) throw result.error;
+        if(!result || !result.data) throw new Error("The account profile was not updated.");
+        if(typeof save === "function") save();
+        reply(event.source,true,"account","Saved to your MCS account.");
+      }catch(error){
+        profile.avatar3d = previous;
+        reply(event.source,false,"","Account save failed: " + (error && error.message ? error.message : "please try again."));
+      }
+      return;
+    }
+    profile.avatar3d = character;
+    if(typeof save === "function") save();
+    reply(event.source,true,"device","Saved on this device. Sign in to sync across devices.");
+  });
+})();
+</script>
 </body>
 </html>
