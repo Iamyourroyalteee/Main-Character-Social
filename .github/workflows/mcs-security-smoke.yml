@@ -5,6 +5,8 @@ on:
       - 'src/index.html'
       - 'avatar-3d/**'
       - 'src/avatar-3d/**'
+      - 'supabase/migrations/**'
+      - 'tests/database-security-migration-smoke.cjs'
       - 'tests/avatar-3d-safety-smoke.cjs'
       - 'tests/avatar-runtime-hardening-smoke.cjs'
       - 'tests/avatar-account-bridge-smoke.cjs'
@@ -15,6 +17,13 @@ on:
       - main
       - 'security/**'
       - 'fix/pbr-default-full-avatar-materials'
+    paths:
+      - 'src/index.html'
+      - 'avatar-3d/**'
+      - 'src/avatar-3d/**'
+      - 'supabase/migrations/**'
+      - 'tests/**'
+      - '.github/workflows/mcs-security-smoke.yml'
 jobs:
   security-smoke:
     runs-on: ubuntu-latest
@@ -31,3 +40,5 @@ jobs:
         run: node tests/avatar-3d-safety-smoke.cjs
       - name: Run avatar animation and resource lifecycle regression tests
         run: node tests/avatar-runtime-hardening-smoke.cjs
+      - name: Run database function hardening migration assertions
+        run: node tests/database-security-migration-smoke.cjs
