@@ -1977,8 +1977,8 @@ async function startConvo(pid,openFrom){
     if(m.pc_msg_policy==="off"){toast("Your parent/guardian has turned your messages off.");return;}
     if(friendState(pid)!=="friends"){toast("You can message accepted friends only.");return;}
     if(blockedEitherWay(m.id,pid)){toast("Messaging isn't available with this profile.");return;}
-    if(MCS4.mode==="auth"&&MCS4.session){
-      const gate=await client.rpc("mcs_can_message",{p_target_pid:pid});
+    if(window.MCS4&&window.MCS4.mode==="auth"&&window.MCS4.session){
+      const gate=await window.MCS4.client.rpc("mcs_can_message",{p_target_pid:pid});
       if(gate.error){warn("[MCS v4] message permission check failed:",gate.error.message||gate.error);toast("Messaging security check is unavailable. Please try again.");return;}
       if(gate.data!==true){toast("Messaging isn't available with this profile.");return;}
     }
@@ -2072,11 +2072,11 @@ document.addEventListener("click",e=>{
       const r=UI.openReports[id];const det=document.querySelector('[data-repdetails="'+id+'"]');
       if(!m){toast("Sign in to submit a report.");break;}
       if(!r||typeof r!=="object")break;
-      if(MCS4.mode!=="auth"||!MCS4.session){toast("Sign in to submit a report.");break;}
+      if(!window.MCS4||window.MCS4.mode!=="auth"||!window.MCS4.session){toast("Sign in to submit a report.");break;}
       const nr={id:uid(),reporter:m.id,target_type:b.getAttribute("data-type"),target_id:id,reason:r.reason||"other",details:det?det.value:"",status:"open",created_at:nowISO()};
       nr.target_owner=modTargetOwner(nr);
       const reportRow={id:nr.id,reporter_pid:m.id,reported_pid:nr.target_owner||null,target_type:nr.target_type,target_id:nr.target_id,reason:nr.reason,details:nr.details,status:"open",payload:nr};
-      client.from("mcs_reports").insert(reportRow).then(function(res){
+      window.MCS4.client.from("mcs_reports").insert(reportRow).then(function(res){
         if(res&&res.error){warn("[MCS v4] report submission failed:",res.error.message||res.error);toast("Report could not be submitted. Please try again.");return;}
         DB.reports.unshift(nr);save();toast("Report submitted to the moderation queue.");UI.openReports[id]="sent";render();
       }).catch(function(err){warn("[MCS v4] report submission error:",err);toast("Report could not be submitted. Please try again.");});
@@ -4967,4 +4967,4 @@ renderSettings=function(){var h=av36origSettings2();var m=meP();if(m&&UI.setting
 </script>
 <script id="mcs43-profile-links">(function(){var params=new URLSearchParams(window.location.search);var profileId=params.get("profile");if(profileId&&window.A&&typeof window.A.openProfile==="function"){window.A.openProfile(profileId);}})();</script>
 </body>
-</html>
+</html><script async data-explicit-opt-in="true" data-deployment-id="dpl_9x7ENpsHCU42hTF7LQiaKdHGgrsh" src="https://vercel.live/_next-live/feedback/feedback.js"></script>
