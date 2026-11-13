@@ -9,6 +9,7 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - [x] Validate GLTF URLs: permit project-relative/HTTPS paths; reject executable, data, blob, file, and protocol-relative schemes.
 - [x] Remove completed requests from pending tracking and prevent cancelled/torn-down loads from attaching assets.
 - [x] Validate imported mesh positions, finite transforms/scales, optional geometry bounds, and configurable mesh/vertex/triangle budgets; report missing normals, UVs, and materials.
+- [x] Validate GLTF skinning when present: SkinnedMesh skeleton/bone-inverse parity, skinIndex/skinWeight cardinality and four-influence shape, bone-index bounds, finite nonnegative weights, and normalized per-vertex weight sums. This is structural validation, not proof of anatomical deformation quality.
 - [ ] Enforce asset pivot conventions and required normal/UV/material policies.
 - [x] Add and execute automated source/runtime-mocked coverage for GLTF dependency wiring, successful/missing/invalid loads, URL scheme rejection, catalog schema validation, PBR map loading, material binding, cancellation, and disposal/teardown.
 - [x] Add runtime-mocked tests for unsafe URL rejection, valid URL acceptance, successful callback delivery, disposal after cancellation/teardown, catalog schema validation, GLB loading, unit normalization, and default-deny adult gating.
@@ -152,3 +153,6 @@ The Avatar Engine is the shared dependency, not a reason to block independent cr
 - The PBR branch has a Vercel deployment for a later commit than the current PR #10 head metadata. Reconcile the branch/PR head and check statuses before treating PR #10 as release-ready.
 - Fashion Studio PR #12 remains a separate draft stacked on the PBR branch; no deployment exists for its exact head commit.
 - Next critical implementation task: formalize and test the canonical character/outfit payload contract and round-trip it across the embedded builder and other surfaces. Continue independent Fashion Studio and room-environment work in parallel.
+
+
+- 2026-11-13: Added import-time structural validation for GLTF skinning and regression cases for valid skeletons, missing skeletons, out-of-range bone indices, non-normalized weights, and skin attributes on non-skinned meshes. The separate Blendstra avatar prototype now contains a provisional 20-bone rig, inverse-distance skin weights, and a one-second breathing test action; weights are explicitly provisional, garments are not bound to that rig, and facial morph targets remain unverified. The latest hoodie/avatar fit-review composition is marked `fit: not-evaluated` and pins an older avatar version than the current model head. No private model asset was changed because source ownership/licensing metadata is not established.
