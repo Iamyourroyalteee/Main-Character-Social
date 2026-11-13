@@ -11,12 +11,12 @@
 ## Phase 1 changes prepared
 - Move sensitive profile fields to owner-only `mcs_profile_private`, backfill them, and scrub them from public payloads.
 - Derive coarse age bands server-side from owner-only DOB.
-- Add persistent block and report tables.
-- Enforce same Teen/Adult age group, accepted-friend status, message privacy settings, under-16 DM prohibition, and block checks at the database layer.
+- Add persistent block and report tables; inserting a block atomically removes both-direction follows, pending follow/friend requests, and the friendship.
+- Enforce same Teen/Adult age group, accepted-friend status, message privacy settings, under-16 DM prohibition, and block checks at the database layer. The conversation-view check is scoped to a conversation the caller belongs to; the DM permission check tests friendship before evaluating age compatibility.
 - Remove client conversation-membership updates.
 - Restrict friendship creation to the recipient of a pending request; freeze relationship endpoints and restrict follow/request updates to recipients.
 - Update client sync ordering so block writes occur first and all upserts finish before deletes.
-- Persist blocks/reports and gate opening DMs through the server permission function.
+- Persist blocks/reports and gate opening DMs through the server permission function. The client uses the shared `window.MCS4.client` handle for those authenticated calls.
 - Remove client-side automatic moderation actions from user report submission.
 
 ## Remaining phases
