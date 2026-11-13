@@ -34,4 +34,9 @@ REVOKE ALL ON FUNCTION public.mcs_lock_profile_tier() FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.mcs_lock_profile_tier() FROM anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.mcs_lock_profile_tier() TO service_role;
 
+-- Evaluate auth.uid() once per statement rather than once per candidate row.
+ALTER POLICY mcs_account_links_select_own
+  ON public.mcs_account_links
+  USING (auth_user_id = (SELECT auth.uid()));
+
 COMMIT;
