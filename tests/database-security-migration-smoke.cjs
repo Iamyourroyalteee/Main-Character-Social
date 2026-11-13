@@ -13,17 +13,17 @@ for (const fn of [
   "mcs_touch_updated_at",
   "mcs_lock_profile_tier"
 ]) {
-  assert.match(migration, new RegExp("ALTER FUNCTION public\\." + fn + "\\\\(\\\\)\\s+SET search_path = pg_catalog, public", "i"),
+  assert.ok(migration.includes(`ALTER FUNCTION public.${fn}()\n  SET search_path = pg_catalog, public;`),
     fn + " must pin search_path");
-  assert.match(migration, new RegExp("REVOKE ALL ON FUNCTION public\\." + fn + "\\\\(\\\\) FROM PUBLIC", "i"),
+  assert.ok(migration.includes(`REVOKE ALL ON FUNCTION public.${fn}() FROM PUBLIC;`),
     fn + " must revoke PUBLIC execution");
 }
 
-assert.match(migration, /REVOKE EXECUTE ON FUNCTION public\.mcs_current_pid\(\) FROM anon/i);
-assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.mcs_current_pid\(\) TO authenticated, service_role/i);
+assert.ok(migration.includes("REVOKE EXECUTE ON FUNCTION public.mcs_current_pid() FROM anon;"));
+assert.ok(migration.includes("GRANT EXECUTE ON FUNCTION public.mcs_current_pid() TO authenticated, service_role;"));
 for (const fn of ["mcs_handle_new_user", "mcs_touch_updated_at", "mcs_lock_profile_tier"]) {
-  assert.match(migration, new RegExp("REVOKE EXECUTE ON FUNCTION public\\." + fn + "\\\\(\\\\) FROM anon, authenticated", "i"),
+  assert.ok(migration.includes(`REVOKE EXECUTE ON FUNCTION public.${fn}() FROM anon, authenticated;`),
     fn + " must not be directly callable by API roles");
 }
-assert.match(migration, /BEGIN;[\s\S]*COMMIT;/i);
+assert.ok(migration.startsWith("-- Harden") && migration.includes("BEGIN;") && migration.includes("COMMIT;"));
 console.log("PASS: database function privilege migration has the required grants and search-path hardening.");
