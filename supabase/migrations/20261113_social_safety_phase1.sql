@@ -97,6 +97,7 @@ create table if not exists public.mcs_blocks (
   primary key(blocker_pid,blocked_pid),
   constraint mcs_blocks_no_self check(blocker_pid<>blocked_pid)
 );
+create index if not exists mcs_blocks_blocked_pid_idx on public.mcs_blocks(blocked_pid,blocker_pid);
 alter table public.mcs_blocks enable row level security;
 revoke all on public.mcs_blocks from anon,authenticated;
 grant select,insert,update,delete on public.mcs_blocks to authenticated;
@@ -180,7 +181,7 @@ create policy mcs_messages_select_participant on public.mcs_messages for select 
   exists(select 1 from public.mcs_convos c where c.id=mcs_messages.convo_id
     and c.members @> jsonb_build_array(public.mcs_current_pid())
     and exists(select 1 from jsonb_array_elements_text(c.members) as peer(pid)
-      where peer.pid<>public.mcs_current_pid() and public.mcs_can_view_conversation(id)))
+      where peer.pid<>public.mcs_current_pid() and public.mcs_can_view_conversation(c.id)))
 );
 drop policy if exists mcs_messages_insert_sender on public.mcs_messages;
 create policy mcs_messages_insert_sender on public.mcs_messages for insert to authenticated with check (
@@ -196,13 +197,13 @@ create policy mcs_messages_update_sender on public.mcs_messages for update to au
   and exists(select 1 from public.mcs_convos c where c.id=mcs_messages.convo_id
     and c.members @> jsonb_build_array(public.mcs_current_pid())
     and exists(select 1 from jsonb_array_elements_text(c.members) as peer(pid)
-      where peer.pid<>public.mcs_current_pid() and public.mcs_can_view_conversation(id)))
+      where peer.pid<>public.mcs_current_pid() and public.mcs_can_view_conversation(c.id)))
 ) with check (
   from_pid=public.mcs_current_pid()
   and exists(select 1 from public.mcs_convos c where c.id=mcs_messages.convo_id
     and c.members @> jsonb_build_array(public.mcs_current_pid())
     and exists(select 1 from jsonb_array_elements_text(c.members) as peer(pid)
-      where peer.pid<>public.mcs_current_pid() and public.mcs_can_view_conversation(id)))
+      where peer.pid<>public.mcs_current_pid() and public.mcs_can_view_conversation(c.id)))
 );
 drop policy if exists mcs_messages_delete_sender on public.mcs_messages;
 create policy mcs_messages_delete_sender on public.mcs_messages for delete to authenticated using (
@@ -258,6 +259,25 @@ create policy mcs_follow_requests_update_recipient on public.mcs_follow_requests
 drop policy if exists mcs_friend_requests_update_involved on public.mcs_friend_requests;
 create policy mcs_friend_requests_update_recipient on public.mcs_friend_requests for update to authenticated using(to_pid=public.mcs_current_pid()) with check(to_pid=public.mcs_current_pid());
 
+drop policy if exists mcs_follows_insert_own on public.mcs_follows;
+create policy mcs_follows_insert_own on public.mcs_follows for insert to authenticated with check(
+  from_pid=public.mcs_current_pid() and to_pid<>public.mcs_current_pid()
+  and not exists(select 1 from public.mcs_blocks b where
+    (b.blocker_pid=from_pid and b.blocked_pid=to_pid) or (b.blocker_pid=to_pid and b.blocked_pid=from_pid))
+);
+drop policy if exists mcs_follow_requests_insert_own on public.mcs_follow_requests;
+create policy mcs_follow_requests_insert_own on public.mcs_follow_requests for insert to authenticated with check(
+  from_pid=public.mcs_current_pid() and to_pid<>public.mcs_current_pid()
+  and not exists(select 1 from public.mcs_blocks b where
+    (b.blocker_pid=from_pid and b.blocked_pid=to_pid) or (b.blocker_pid=to_pid and b.blocked_pid=from_pid))
+);
+drop policy if exists mcs_friend_requests_insert_own on public.mcs_friend_requests;
+create policy mcs_friend_requests_insert_own on public.mcs_friend_requests for insert to authenticated with check(
+  from_pid=public.mcs_current_pid() and to_pid<>public.mcs_current_pid()
+  and not exists(select 1 from public.mcs_blocks b where
+    (b.blocker_pid=from_pid and b.blocked_pid=to_pid) or (b.blocker_pid=to_pid and b.blocked_pid=from_pid))
+);
+
 create or replace function public.mcs_on_block()
 returns trigger language plpgsql security definer
 set search_path to 'pg_catalog','public'
@@ -281,6 +301,7 @@ $function$;
 drop trigger if exists mcs_blocks_cleanup_relationships on public.mcs_blocks;
 create trigger mcs_blocks_cleanup_relationships after insert on public.mcs_blocks
 for each row execute function public.mcs_on_block();
+revoke all on function public.mcs_on_block() from public,anon,authenticated;
 
 create table if not exists public.mcs_reports (
   id text primary key,
@@ -313,6 +334,13 @@ $function$;
 revoke all on function public.mcs_current_pid() from public,anon;
 grant execute on function public.mcs_current_pid() to authenticated;
 revoke all on function public.mcs_handle_new_user() from public,anon,authenticated;
+revoke all on function public.mcs_scrub_profile_payload() from public,anon,authenticated;
+revoke all on function public.mcs_guard_date_of_birth_change() from public,anon,authenticated;
+revoke all on function public.mcs_sync_profile_age_band() from public,anon,authenticated;
+revoke all on function public.mcs_canonicalize_friendship() from public,anon,authenticated;
+revoke all on function public.mcs_guard_social_endpoints() from public,anon,authenticated;
+revoke all on function public.mcs_touch_updated_at() from public,anon,authenticated;
+revoke all on function public.mcs_lock_profile_tier() from public,anon,authenticated;
 alter function public.mcs_handle_new_user() set search_path to 'pg_catalog','public';
 alter function public.mcs_touch_updated_at() set search_path to 'pg_catalog','public';
 alter function public.mcs_lock_profile_tier() set search_path to 'pg_catalog','public';
