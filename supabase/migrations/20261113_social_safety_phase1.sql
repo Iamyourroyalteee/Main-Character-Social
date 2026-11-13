@@ -109,20 +109,26 @@ create policy mcs_blocks_update_own on public.mcs_blocks for update to authentic
 drop policy if exists mcs_blocks_delete_own on public.mcs_blocks;
 create policy mcs_blocks_delete_own on public.mcs_blocks for delete to authenticated using(blocker_pid=public.mcs_current_pid());
 
-create or replace function public.mcs_can_view_conversation(p_target_pid text)
+create or replace function public.mcs_can_view_conversation(p_convo_id text)
 returns boolean language plpgsql stable security definer
 set search_path to 'pg_catalog','public'
 as $function$
-declare v_me text:=public.mcs_current_pid(); v_me_dob date; v_target_dob date; v_me_age integer; v_target_age integer;
+declare v_me text:=public.mcs_current_pid(); v_members jsonb; v_peer text; v_me_dob date; v_peer_dob date; v_me_age integer; v_peer_age integer;
 begin
-  if v_me is null or p_target_pid is null or p_target_pid=v_me then return false; end if;
-  if exists(select 1 from public.mcs_blocks b where (b.blocker_pid=v_me and b.blocked_pid=p_target_pid) or (b.blocker_pid=p_target_pid and b.blocked_pid=v_me)) then return false; end if;
+  if v_me is null or p_convo_id is null then return false; end if;
+  select members into v_members from public.mcs_convos where id=p_convo_id;
+  if v_members is null or jsonb_typeof(v_members)<>'array' or jsonb_array_length(v_members)<>2
+     or not (v_members @> jsonb_build_array(v_me)) then return false; end if;
+  select peer.pid into v_peer from jsonb_array_elements_text(v_members) as peer(pid)
+  where peer.pid<>v_me limit 1;
+  if v_peer is null then return false; end if;
+  if exists(select 1 from public.mcs_blocks b where (b.blocker_pid=v_me and b.blocked_pid=v_peer) or (b.blocker_pid=v_peer and b.blocked_pid=v_me)) then return false; end if;
   select date_of_birth into v_me_dob from public.mcs_user_private where pid=v_me;
-  select date_of_birth into v_target_dob from public.mcs_user_private where pid=p_target_pid;
-  if v_me_dob is null or v_target_dob is null then return false; end if;
+  select date_of_birth into v_peer_dob from public.mcs_user_private where pid=v_peer;
+  if v_me_dob is null or v_peer_dob is null then return false; end if;
   v_me_age:=extract(year from age(current_date,v_me_dob))::integer;
-  v_target_age:=extract(year from age(current_date,v_target_dob))::integer;
-  if (v_me_age<18) is distinct from (v_target_age<18) then return false; end if;
+  v_peer_age:=extract(year from age(current_date,v_peer_dob))::integer;
+  if (v_me_age<18) is distinct from (v_peer_age<18) then return false; end if;
   return true;
 end;
 $function$;
@@ -133,17 +139,19 @@ set search_path to 'pg_catalog','public'
 as $function$
 declare v_me text:=public.mcs_current_pid(); v_me_dob date; v_target_dob date; v_me_age integer; v_target_age integer; v_me_policy text; v_target_policy text;
 begin
-  if not public.mcs_can_view_conversation(p_target_pid) then return false; end if;
+  if v_me is null or p_target_pid is null or p_target_pid=v_me then return false; end if;
+  -- Check friendship first so this RPC does not reveal age compatibility for arbitrary profiles.
+  if not exists(select 1 from public.mcs_friendships f where least(f.a_pid,f.b_pid)=least(v_me,p_target_pid) and greatest(f.a_pid,f.b_pid)=greatest(v_me,p_target_pid)) then return false; end if;
+  if exists(select 1 from public.mcs_blocks b where (b.blocker_pid=v_me and b.blocked_pid=p_target_pid) or (b.blocker_pid=p_target_pid and b.blocked_pid=v_me)) then return false; end if;
   select date_of_birth into v_me_dob from public.mcs_user_private where pid=v_me;
   select date_of_birth into v_target_dob from public.mcs_user_private where pid=p_target_pid;
   if v_me_dob is null or v_target_dob is null then return false; end if;
   v_me_age:=extract(year from age(current_date,v_me_dob))::integer;
   v_target_age:=extract(year from age(current_date,v_target_dob))::integer;
-  if v_me_age<16 or v_target_age<16 then return false; end if;
+  if v_me_age<16 or v_target_age<16 or ((v_me_age<18) is distinct from (v_target_age<18)) then return false; end if;
   select coalesce(private_payload->>'pc_msg_policy','friends') into v_me_policy from public.mcs_profile_private where pid=v_me;
   select coalesce(private_payload->>'pc_msg_policy','friends') into v_target_policy from public.mcs_profile_private where pid=p_target_pid;
   if coalesce(v_me_policy,'friends')<>'friends' or coalesce(v_target_policy,'friends')<>'friends' then return false; end if;
-  if not exists(select 1 from public.mcs_friendships f where least(f.a_pid,f.b_pid)=least(v_me,p_target_pid) and greatest(f.a_pid,f.b_pid)=greatest(v_me,p_target_pid)) then return false; end if;
   return true;
 end;
 $function$;
@@ -164,7 +172,7 @@ drop policy if exists mcs_convos_select_participant on public.mcs_convos;
 create policy mcs_convos_select_participant on public.mcs_convos for select to authenticated using (
   members @> jsonb_build_array(public.mcs_current_pid())
   and exists(select 1 from jsonb_array_elements_text(members) as peer(pid)
-    where peer.pid<>public.mcs_current_pid() and public.mcs_can_view_conversation(peer.pid))
+    where peer.pid<>public.mcs_current_pid() and public.mcs_can_view_conversation(id))
 );
 
 drop policy if exists mcs_messages_select_participant on public.mcs_messages;
@@ -172,7 +180,7 @@ create policy mcs_messages_select_participant on public.mcs_messages for select 
   exists(select 1 from public.mcs_convos c where c.id=mcs_messages.convo_id
     and c.members @> jsonb_build_array(public.mcs_current_pid())
     and exists(select 1 from jsonb_array_elements_text(c.members) as peer(pid)
-      where peer.pid<>public.mcs_current_pid() and public.mcs_can_view_conversation(peer.pid)))
+      where peer.pid<>public.mcs_current_pid() and public.mcs_can_view_conversation(id)))
 );
 drop policy if exists mcs_messages_insert_sender on public.mcs_messages;
 create policy mcs_messages_insert_sender on public.mcs_messages for insert to authenticated with check (
@@ -188,13 +196,13 @@ create policy mcs_messages_update_sender on public.mcs_messages for update to au
   and exists(select 1 from public.mcs_convos c where c.id=mcs_messages.convo_id
     and c.members @> jsonb_build_array(public.mcs_current_pid())
     and exists(select 1 from jsonb_array_elements_text(c.members) as peer(pid)
-      where peer.pid<>public.mcs_current_pid() and public.mcs_can_view_conversation(peer.pid)))
+      where peer.pid<>public.mcs_current_pid() and public.mcs_can_view_conversation(id)))
 ) with check (
   from_pid=public.mcs_current_pid()
   and exists(select 1 from public.mcs_convos c where c.id=mcs_messages.convo_id
     and c.members @> jsonb_build_array(public.mcs_current_pid())
     and exists(select 1 from jsonb_array_elements_text(c.members) as peer(pid)
-      where peer.pid<>public.mcs_current_pid() and public.mcs_can_view_conversation(peer.pid)))
+      where peer.pid<>public.mcs_current_pid() and public.mcs_can_view_conversation(id)))
 );
 drop policy if exists mcs_messages_delete_sender on public.mcs_messages;
 create policy mcs_messages_delete_sender on public.mcs_messages for delete to authenticated using (
@@ -250,6 +258,30 @@ create policy mcs_follow_requests_update_recipient on public.mcs_follow_requests
 drop policy if exists mcs_friend_requests_update_involved on public.mcs_friend_requests;
 create policy mcs_friend_requests_update_recipient on public.mcs_friend_requests for update to authenticated using(to_pid=public.mcs_current_pid()) with check(to_pid=public.mcs_current_pid());
 
+create or replace function public.mcs_on_block()
+returns trigger language plpgsql security definer
+set search_path to 'pg_catalog','public'
+as $function$
+begin
+  delete from public.mcs_follows
+    where (from_pid=new.blocker_pid and to_pid=new.blocked_pid)
+       or (from_pid=new.blocked_pid and to_pid=new.blocker_pid);
+  delete from public.mcs_follow_requests
+    where (from_pid=new.blocker_pid and to_pid=new.blocked_pid)
+       or (from_pid=new.blocked_pid and to_pid=new.blocker_pid);
+  delete from public.mcs_friend_requests
+    where (from_pid=new.blocker_pid and to_pid=new.blocked_pid)
+       or (from_pid=new.blocked_pid and to_pid=new.blocker_pid);
+  delete from public.mcs_friendships
+    where least(a_pid,b_pid)=least(new.blocker_pid,new.blocked_pid)
+      and greatest(a_pid,b_pid)=greatest(new.blocker_pid,new.blocked_pid);
+  return new;
+end;
+$function$;
+drop trigger if exists mcs_blocks_cleanup_relationships on public.mcs_blocks;
+create trigger mcs_blocks_cleanup_relationships after insert on public.mcs_blocks
+for each row execute function public.mcs_on_block();
+
 create table if not exists public.mcs_reports (
   id text primary key,
   reporter_pid text not null references public.mcs_profiles(id) on delete cascade,
@@ -270,7 +302,7 @@ grant select,insert on public.mcs_reports to authenticated;
 drop policy if exists mcs_reports_select_own on public.mcs_reports;
 create policy mcs_reports_select_own on public.mcs_reports for select to authenticated using(reporter_pid=public.mcs_current_pid());
 drop policy if exists mcs_reports_insert_own on public.mcs_reports;
-create policy mcs_reports_insert_own on public.mcs_reports for insert to authenticated with check(reporter_pid=public.mcs_current_pid() and (reported_pid is null or reported_pid<>public.mcs_current_pid()));
+create policy mcs_reports_insert_own on public.mcs_reports for insert to authenticated with check(reporter_pid=public.mcs_current_pid() and (reported_pid is null or reported_pid<>public.mcs_current_pid()) and status='open');
 
 create or replace function public.mcs_current_pid()
 returns text language sql stable security invoker
