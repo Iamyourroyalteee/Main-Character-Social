@@ -259,8 +259,25 @@
           if (!bones || !bones.length || bones.some(function(bone){ return !bone; })){
             errors.push("skinned mesh is missing a valid skeleton");
           }
-          if (!bones || !skeleton || !Array.isArray(skeleton.boneInverses) || skeleton.boneInverses.length !== bones.length){
+          var boneInverses = skeleton && Array.isArray(skeleton.boneInverses) ? skeleton.boneInverses : null;
+          if (!bones || !skeleton || !boneInverses || boneInverses.length !== bones.length){
             errors.push("skinned mesh skeleton inverse-bind count mismatch");
+          } else {
+            var invalidBoneInverse = false;
+            boneInverses.forEach(function(matrix){
+              var elements = matrix && matrix.elements;
+              if (!elements || elements.length !== 16){
+                invalidBoneInverse = true;
+                return;
+              }
+              for (var elementIndex = 0; elementIndex < 16; elementIndex++){
+                if (!Number.isFinite(Number(elements[elementIndex]))){
+                  invalidBoneInverse = true;
+                  break;
+                }
+              }
+            });
+            if (invalidBoneInverse) errors.push("skinned mesh has invalid inverse-bind matrix data");
           }
           var skinIndex = attrs.skinIndex, skinWeight = attrs.skinWeight;
           if (!skinIndex || !skinWeight){
