@@ -142,6 +142,9 @@ function skinAttribute(rows){
     getZ(i){return rows[i][2];}, getW(i){return rows[i][3];}
   };
 }
+function identityInverseBind(){
+  return {elements:[1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]};
+}
 function makeSkinnedScene(){
   const mesh={
     isMesh:true, isSkinnedMesh:true, material:{},
@@ -150,13 +153,21 @@ function makeSkinnedScene(){
       skinIndex:skinAttribute([[0,1,0,0],[0,1,0,0],[0,1,0,0]]),
       skinWeight:skinAttribute([[0.5,0.5,0,0],[0.75,0.25,0,0],[1,0,0,0]])
     },index:{count:3}},
-    skeleton:{bones:[{},{}],boneInverses:[{},{}]}
+    skeleton:{bones:[{},{}],boneInverses:[identityInverseBind(),identityInverseBind()]}
   };
   return {mesh,traverse(fn){fn(mesh);}};
 }
 const validSkinReport=runtimeEngine.validateModel(makeSkinnedScene());
 assert.equal(validSkinReport.valid,true,"valid skinned meshes must pass structural skin validation");
 assert.equal(validSkinReport.skinnedMeshCount,1,"model validation must report skinned mesh count");
+const badInverseBindLength=makeSkinnedScene();
+badInverseBindLength.mesh.skeleton.boneInverses[0]={elements:[1,0,0]};
+assert.ok(runtimeEngine.validateModel(badInverseBindLength).errors.includes("skinned mesh has invalid inverse-bind matrix data"),
+  "inverse-bind matrices with the wrong element count must fail validation");
+const nonFiniteInverseBind=makeSkinnedScene();
+nonFiniteInverseBind.mesh.skeleton.boneInverses[1].elements[7]=NaN;
+assert.ok(runtimeEngine.validateModel(nonFiniteInverseBind).errors.includes("skinned mesh has invalid inverse-bind matrix data"),
+  "inverse-bind matrices with non-finite elements must fail validation");
 const missingSkeleton=makeSkinnedScene(); missingSkeleton.mesh.skeleton=null;
 assert.ok(runtimeEngine.validateModel(missingSkeleton).errors.includes("skinned mesh is missing a valid skeleton"),
   "skinned meshes without a usable skeleton must fail validation");
