@@ -146,6 +146,7 @@ function identityInverseBind(){
   return {elements:[1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]};
 }
 function makeSkinnedScene(){
+  const rootBones=[{},{}];
   const mesh={
     isMesh:true, isSkinnedMesh:true, material:{},
     geometry:{attributes:{
@@ -153,13 +154,17 @@ function makeSkinnedScene(){
       skinIndex:skinAttribute([[0,1,0,0],[0,1,0,0],[0,1,0,0]]),
       skinWeight:skinAttribute([[0.5,0.5,0,0],[0.75,0.25,0,0],[1,0,0,0]])
     },index:{count:3}},
-    skeleton:{bones:[{},{}],boneInverses:[identityInverseBind(),identityInverseBind()]}
+    skeleton:{bones:rootBones.slice(),boneInverses:[identityInverseBind(),identityInverseBind()]}
   };
-  return {mesh,traverse(fn){fn(mesh);}};
+  return {mesh,rootBones,traverse(fn){fn(mesh);this.rootBones.forEach(fn);}};
 }
 const validSkinReport=runtimeEngine.validateModel(makeSkinnedScene());
 assert.equal(validSkinReport.valid,true,"valid skinned meshes must pass structural skin validation");
 assert.equal(validSkinReport.skinnedMeshCount,1,"model validation must report skinned mesh count");
+const detachedBone=makeSkinnedScene();
+detachedBone.mesh.skeleton.bones[1]={};
+assert.ok(runtimeEngine.validateModel(detachedBone).errors.includes("skinned mesh skeleton contains bones outside the imported model root"),
+  "skeleton bones outside the imported model root must fail validation");
 const badInverseBindLength=makeSkinnedScene();
 badInverseBindLength.mesh.skeleton.boneInverses[0]={elements:[1,0,0]};
 assert.ok(runtimeEngine.validateModel(badInverseBindLength).errors.includes("skinned mesh has invalid inverse-bind matrix data"),
