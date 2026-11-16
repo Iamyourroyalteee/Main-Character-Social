@@ -76,22 +76,51 @@
         source:"tests/fixtures/minimal-pbr.gltf",
         permittedUse:"Testing and validation"
       }
-    },function(root,gltf,descriptor,validation){
-      scene.add(root);
-      animationController = MCSAvatarAnimationRuntime.create(THREE, root, { clips:gltf.animations || [] });
-      report(
-        "PASS: real GLTFLoader imported the fixture.\n" +
-        "Asset: " + descriptor.id + "\n" +
-        "Meshes: " + validation.meshCount + " · Vertices: " + validation.vertexCount +
-        " · Triangles: " + validation.triangleCount + "\n" +
-        "PBR material: " + (root.getObjectByName("FixtureMesh") ? "scene graph present" : "loaded") +
-        "\nThis confirms browser-side glTF loading only; it is not an avatar rig or iPad performance certification.",
-        "pass"
-      );
-      function animate(){ requestAnimationFrame(animate); animationController.update(0.016); root.rotation.y += 0.003; renderer.render(scene,camera); }
-      animate();
+    },function(pbrRoot,gltf,descriptor,validation){
+      scene.add(pbrRoot);
+      pbrRoot.position.x = -0.55;
+      engine.loadCatalogAsset({
+        id:"fixture-skinned-humanoid",
+        slot:"prop",
+        url:"assets/test-fixtures/minimal-skinned.gltf",
+        format:"gltf",
+        unit:"m",
+        scale:1,
+        is_adult:false,
+        provenance:{
+          owner:"Main Character Social",
+          license:"Original test fixture",
+          source:"avatar-3d/assets/test-fixtures/minimal-skinned.gltf",
+          permittedUse:"Testing and validation"
+        }
+      },function(skinnedRoot,skinnedGltf,skinnedDescriptor,skinnedValidation){
+        if (!skinnedValidation.valid || skinnedValidation.skinnedMeshCount !== 1){
+          report("FAIL: skinned fixture did not pass structural skin validation.", "fail");
+          return;
+        }
+        animationController = MCSAvatarAnimationRuntime.create(THREE, skinnedRoot, { clips:skinnedGltf.animations || [] });
+        if (!animationController.hasSkeleton || animationController.clipCount < 1 || !animationController.play("MCS_Test_Idle",0.15)){
+          report("FAIL: skinned fixture did not expose its skeleton and test animation clip.", "fail");
+          return;
+        }
+        scene.add(skinnedRoot);
+        skinnedRoot.position.x = 0.55;
+        report(
+          "PASS: real GLTFLoader imported both repository fixtures.\n" +
+          "PBR fixture: " + descriptor.id + " · " + validation.meshCount + " mesh · " + validation.triangleCount + " triangles\n" +
+          "Rigged fixture: " + skinnedDescriptor.id + " · " + skinnedValidation.skinnedMeshCount + " SkinnedMesh · " +
+          animationController.skeletonCount + " skeleton · " + animationController.clipCount + " animation clip\n" +
+          "Playing: MCS_Test_Idle\n" +
+          "This is a minimal rigged test fixture, not a production avatar or iPad performance certification.",
+          "pass"
+        );
+        function animate(){ requestAnimationFrame(animate); animationController.update(0.016); pbrRoot.rotation.y += 0.003; renderer.render(scene,camera); }
+        animate();
+      },function(error){
+        report("FAIL: rigged GLTF fixture: " + error, "fail");
+      });
     },function(error){
-      report("FAIL: " + error, "fail");
+      report("FAIL: PBR GLTF fixture: " + error, "fail");
     });
   } catch(error){
     report("FAIL: " + (error && error.message || String(error)), "fail");
