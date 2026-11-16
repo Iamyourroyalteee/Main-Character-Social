@@ -122,7 +122,16 @@ const disposed = { geometry: 0, material: 0, texture: 0 };
 function makeScene() {
   const mesh = {
     isMesh: true,
-    geometry: { attributes: { position: { count: 3 }, normal: { count: 3 }, uv: { count: 3 } }, index: { count: 3 }, boundingBox: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } }, dispose() { disposed.geometry++; } },
+    geometry: {
+      attributes: {
+        position: numericAttribute([[0,0,0],[1,0,0],[0,1,0]],3),
+        normal: numericAttribute([[0,0,1],[0,0,1],[0,0,1]],3),
+        uv: numericAttribute([[0,0],[1,0],[0,1]],2)
+      },
+      index: numericAttribute([[0],[1],[2]],1),
+      boundingBox: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } },
+      dispose() { disposed.geometry++; }
+    },
     material: { map: { dispose() { disposed.texture++; } }, dispose() { disposed.material++; } }
   };
   return { scale: { x: 1, y: 1, z: 1, setScalar(value) { this.x = this.y = this.z = value; } }, traverse(fn) { fn(mesh); } };
