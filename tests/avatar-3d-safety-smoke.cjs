@@ -6,6 +6,16 @@ const path = require("node:path");
 const html = fs.readFileSync(path.join(__dirname, "../avatar-3d/index.html"), "utf8");
 assert.match(html, /name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/, "avatar viewport must preserve safe areas and user zoom");
 assert.doesNotMatch(html, /user-scalable=no|maximum-scale=1/, "avatar UI must not disable user zoom");
+const embeddedAvatarHtml = fs.readFileSync(path.join(__dirname, "../src/avatar-3d/index.html"), "utf8");
+assert.equal(embeddedAvatarHtml, html, "standalone and embedded avatar pages must stay byte-for-byte synchronized");
+assert.match(html, /@media \\(prefers-reduced-motion: reduce\\)/, "avatar CSS must respect reduced-motion preferences");
+assert.match(html, /window\\.matchMedia[^;]*prefers-reduced-motion: reduce/, "avatar runtime must detect reduced-motion preferences");
+assert.match(html, /function playUserEmote\\(name, fadeDuration\\)/, "user-triggered emotes must remain explicitly available");
+assert.match(html, /player\\.update\\(reduceMotion && performance\\.now\\(\\) >= userMotionUntil \\? 0 : dt\\)/, "ambient avatar motion must pause outside user-requested emotes");
+assert.match(html, /friend\\.update\\(reduceMotion \\? 0 : dt\\)/, "remote demo avatar motion must pause for reduced-motion users");
+assert.match(html, /if \\(currentRoom === "island" && !reduceMotion\\)/, "island water and fire motion must pause for reduced-motion users");
+assert.match(html, /if \\(!reduceMotion\\) Object\\.values\\(ROOM_LIFE\\)/, "room particle systems must pause for reduced-motion users");
+assert.match(html, /playUserEmote\\(b\\.dataset\\.emote, 0\\.25\\)/, "manual emote controls must remain functional");
 assert.match(html, /@media \(pointer: coarse\)[\s\S]*?min-width:44px;min-height:44px/, "coarse-pointer controls must meet the 44px minimum target");
 
 const appHtml = fs.readFileSync(path.join(__dirname, "../src/index.html"), "utf8");
