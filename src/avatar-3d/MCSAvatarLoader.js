@@ -216,7 +216,7 @@
 
     function validateModel(root, limits){
       limits = limits || {};
-      var errors = [], warnings = [], meshCount = 0, vertexCount = 0, triangleCount = 0, skinnedMeshCount = 0;
+      var errors = [], warnings = [], meshCount = 0, vertexCount = 0, triangleCount = 0, skinnedMeshCount = 0, modelNodes = [], skinnedMeshes = [];
       if (!root || typeof root.traverse !== "function"){
         return { valid:false, errors:["model root must be a Three.js Object3D"], warnings:warnings, meshCount:0, vertexCount:0, triangleCount:0, skinnedMeshCount:0 };
       }
@@ -232,6 +232,7 @@
         return array && Number.isFinite(itemSize) ? array[vertexIndex * itemSize + componentIndex] : NaN;
       }
       root.traverse(function(o){
+        modelNodes.push(o);
         if (o.position && !finiteVector(o.position)) errors.push("non-finite object position");
         if (o.rotation && !finiteVector(o.rotation)) errors.push("non-finite object rotation");
         if (o.scale && (!finiteVector(o.scale) || o.scale.x === 0 || o.scale.y === 0 || o.scale.z === 0)) errors.push("invalid object scale");
@@ -253,6 +254,7 @@
         if (!o.material) warnings.push("mesh is missing a material");
         var hasSkinAttributes = !!attrs.skinIndex || !!attrs.skinWeight;
         if (o.isSkinnedMesh){
+          skinnedMeshes.push(o);
           skinnedMeshCount++;
           var skeleton = o.skeleton;
           var bones = skeleton && Array.isArray(skeleton.bones) ? skeleton.bones : null;
@@ -319,6 +321,12 @@
           if (![b.min.x,b.min.y,b.min.z,b.max.x,b.max.y,b.max.z].every(Number.isFinite)){
             errors.push("geometry bounds contain non-finite values");
           }
+        }
+      });
+      skinnedMeshes.forEach(function(skinnedMesh){
+        var bones = skinnedMesh.skeleton && Array.isArray(skinnedMesh.skeleton.bones) ? skinnedMesh.skeleton.bones : null;
+        if (bones && bones.some(function(bone){ return bone && modelNodes.indexOf(bone) < 0; })){
+          errors.push("skinned mesh skeleton contains bones outside the imported model root");
         }
       });
       if (!meshCount) errors.push("model contains no meshes");
