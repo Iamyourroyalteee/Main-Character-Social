@@ -216,14 +216,23 @@
 
     function validateModel(root, limits){
       limits = limits || {};
-      var errors = [], warnings = [], meshCount = 0, vertexCount = 0, triangleCount = 0;
+      var errors = [], warnings = [], meshCount = 0, vertexCount = 0, triangleCount = 0, skinnedMeshCount = 0, modelNodes = [], skinnedMeshes = [];
       if (!root || typeof root.traverse !== "function"){
-        return { valid:false, errors:["model root must be a Three.js Object3D"], warnings:warnings, meshCount:0, vertexCount:0, triangleCount:0 };
+        return { valid:false, errors:["model root must be a Three.js Object3D"], warnings:warnings, meshCount:0, vertexCount:0, triangleCount:0, skinnedMeshCount:0 };
       }
       function finiteVector(v){
         return !v || (Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z));
       }
+      function attributeComponent(attribute, vertexIndex, componentIndex){
+        var getters = ["getX","getY","getZ","getW"];
+        var getter = getters[componentIndex];
+        if (attribute && getter && typeof attribute[getter] === "function") return attribute[getter](vertexIndex);
+        var array = attribute && attribute.array;
+        var itemSize = attribute && attribute.itemSize;
+        return array && Number.isFinite(itemSize) ? array[vertexIndex * itemSize + componentIndex] : NaN;
+      }
       root.traverse(function(o){
+        modelNodes.push(o);
         if (o.position && !finiteVector(o.position)) errors.push("non-finite object position");
         if (o.rotation && !finiteVector(o.rotation)) errors.push("non-finite object rotation");
         if (o.scale && (!finiteVector(o.scale) || o.scale.x === 0 || o.scale.y === 0 || o.scale.z === 0)) errors.push("invalid object scale");
@@ -243,6 +252,69 @@
         if (!attrs.normal) warnings.push("mesh is missing vertex normals");
         if (!attrs.uv) warnings.push("mesh is missing UV coordinates");
         if (!o.material) warnings.push("mesh is missing a material");
+        var hasSkinAttributes = !!attrs.skinIndex || !!attrs.skinWeight;
+        if (o.isSkinnedMesh){
+          skinnedMeshes.push(o);
+          skinnedMeshCount++;
+          var skeleton = o.skeleton;
+          var bones = skeleton && Array.isArray(skeleton.bones) ? skeleton.bones : null;
+          if (!bones || !bones.length || bones.some(function(bone){ return !bone; })){
+            errors.push("skinned mesh is missing a valid skeleton");
+          }
+          var boneInverses = skeleton && Array.isArray(skeleton.boneInverses) ? skeleton.boneInverses : null;
+          if (!bones || !skeleton || !boneInverses || boneInverses.length !== bones.length){
+            errors.push("skinned mesh skeleton inverse-bind count mismatch");
+          } else {
+            var invalidBoneInverse = false;
+            boneInverses.forEach(function(matrix){
+              var elements = matrix && matrix.elements;
+              if (!elements || elements.length !== 16){
+                invalidBoneInverse = true;
+                return;
+              }
+              for (var elementIndex = 0; elementIndex < 16; elementIndex++){
+                if (!Number.isFinite(Number(elements[elementIndex]))){
+                  invalidBoneInverse = true;
+                  break;
+                }
+              }
+            });
+            if (invalidBoneInverse) errors.push("skinned mesh has invalid inverse-bind matrix data");
+          }
+          var skinIndex = attrs.skinIndex, skinWeight = attrs.skinWeight;
+          if (!skinIndex || !skinWeight){
+            errors.push("skinned mesh is missing skinIndex/skinWeight attributes");
+          } else if (!position || !Number.isFinite(position.count) || skinIndex.count !== position.count || skinWeight.count !== position.count){
+            errors.push("skinned mesh skin attribute count mismatch");
+          } else if (skinIndex.itemSize !== 4 || skinWeight.itemSize !== 4){
+            errors.push("skinned mesh requires four skin influences per vertex");
+          } else {
+            var invalidBoneIndex = false, invalidSkinWeight = false, invalidWeightSum = false;
+            for (var vertexIndex = 0; vertexIndex < position.count; vertexIndex++){
+              var totalWeight = 0;
+              for (var influence = 0; influence < 4; influence++){
+                var boneIndex = Number(attributeComponent(skinIndex, vertexIndex, influence));
+                var weight = Number(attributeComponent(skinWeight, vertexIndex, influence));
+                if (!Number.isFinite(boneIndex) || Math.floor(boneIndex) !== boneIndex || boneIndex < 0 || (bones && boneIndex >= bones.length)){
+                  invalidBoneIndex = true;
+                }
+                if (!Number.isFinite(weight) || weight < 0){
+                  invalidSkinWeight = true;
+                } else {
+                  totalWeight += weight;
+                }
+              }
+              if (!Number.isFinite(totalWeight) || totalWeight <= 0 || Math.abs(totalWeight - 1) > 0.02){
+                invalidWeightSum = true;
+              }
+            }
+            if (invalidBoneIndex) errors.push("skinned mesh has an invalid bone index");
+            if (invalidSkinWeight) errors.push("skinned mesh has a non-finite or negative skin weight");
+            if (invalidWeightSum) errors.push("skinned mesh skin weights are not normalized");
+          }
+        } else if (hasSkinAttributes){
+          errors.push("mesh has skin attributes but is not a SkinnedMesh");
+        }
         if (geometry.computeBoundingBox && !geometry.boundingBox) geometry.computeBoundingBox();
         if (geometry.boundingBox && geometry.boundingBox.min && geometry.boundingBox.max){
           var b = geometry.boundingBox;
@@ -251,11 +323,17 @@
           }
         }
       });
+      skinnedMeshes.forEach(function(skinnedMesh){
+        var bones = skinnedMesh.skeleton && Array.isArray(skinnedMesh.skeleton.bones) ? skinnedMesh.skeleton.bones : null;
+        if (bones && bones.some(function(bone){ return bone && modelNodes.indexOf(bone) < 0; })){
+          errors.push("skinned mesh skeleton contains bones outside the imported model root");
+        }
+      });
       if (!meshCount) errors.push("model contains no meshes");
       if (limits.maxMeshes && meshCount > limits.maxMeshes) errors.push("mesh budget exceeded");
       if (limits.maxVertices && vertexCount > limits.maxVertices) errors.push("vertex budget exceeded");
       if (limits.maxTriangles && triangleCount > limits.maxTriangles) errors.push("triangle budget exceeded");
-      return { valid:errors.length === 0, errors:errors, warnings:warnings, meshCount:meshCount, vertexCount:vertexCount, triangleCount:triangleCount };
+      return { valid:errors.length === 0, errors:errors, warnings:warnings, meshCount:meshCount, vertexCount:vertexCount, triangleCount:triangleCount, skinnedMeshCount:skinnedMeshCount };
     }
 
     function applyMaterialBindings(root, bindings, request, onDone, onFail){
