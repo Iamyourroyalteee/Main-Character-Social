@@ -231,6 +231,24 @@
         var itemSize = attribute && attribute.itemSize;
         return array && Number.isFinite(itemSize) ? array[vertexIndex * itemSize + componentIndex] : NaN;
       }
+      function validateVertexAttribute(attribute, label, expectedCount, allowedSizes){
+        if (!attribute || !Number.isFinite(attribute.count) || attribute.count !== expectedCount){
+          errors.push("mesh " + label + " attribute count mismatch");
+          return;
+        }
+        if (allowedSizes.indexOf(attribute.itemSize) < 0){
+          errors.push("mesh " + label + " attribute item size is invalid");
+          return;
+        }
+        for (var vertexIndex = 0; vertexIndex < attribute.count; vertexIndex++){
+          for (var componentIndex = 0; componentIndex < attribute.itemSize; componentIndex++){
+            if (!Number.isFinite(Number(attributeComponent(attribute, vertexIndex, componentIndex)))){
+              errors.push("mesh " + label + " attribute contains non-finite data");
+              return;
+            }
+          }
+        }
+      }
       root.traverse(function(o){
         modelNodes.push(o);
         if (o.position && !finiteVector(o.position)) errors.push("non-finite object position");
@@ -242,7 +260,7 @@
         if (!geometry){ errors.push("mesh is missing geometry"); return; }
         var attrs = geometry.attributes || {};
         var position = attrs.position;
-        if (!position || !Number.isFinite(position.count) || position.count < 3){
+        if (!position || !Number.isFinite(position.count) || Math.floor(position.count) !== position.count || position.count < 3){
           errors.push("mesh is missing a valid position attribute");
         } else {
           vertexCount += position.count;
@@ -251,6 +269,33 @@
         }
         if (!attrs.normal) warnings.push("mesh is missing vertex normals");
         if (!attrs.uv) warnings.push("mesh is missing UV coordinates");
+        if (position && Number.isFinite(position.count) && position.count >= 3){
+          validateVertexAttribute(position, "position", position.count, [3]);
+          if (attrs.normal) validateVertexAttribute(attrs.normal, "normal", position.count, [3]);
+          if (attrs.uv) validateVertexAttribute(attrs.uv, "uv", position.count, [2]);
+          if (attrs.tangent) validateVertexAttribute(attrs.tangent, "tangent", position.count, [4]);
+          if (attrs.color) validateVertexAttribute(attrs.color, "color", position.count, [3,4]);
+        }
+        var indexAttribute = geometry.index;
+        if (indexAttribute){
+          if (!Number.isFinite(indexAttribute.count) || Math.floor(indexAttribute.count) !== indexAttribute.count || indexAttribute.count % 3 !== 0){
+            errors.push("mesh index count is invalid for triangles");
+          }
+          if (indexAttribute.itemSize !== 1) errors.push("mesh index attribute item size must be one");
+          if (position && Number.isFinite(position.count)){
+            var invalidIndex = false;
+            for (var indexOffset = 0; indexOffset < indexAttribute.count; indexOffset++){
+              var indexValue = Number(attributeComponent(indexAttribute, indexOffset, 0));
+              if (!Number.isFinite(indexValue) || Math.floor(indexValue) !== indexValue || indexValue < 0 || indexValue >= position.count){
+                invalidIndex = true;
+                break;
+              }
+            }
+            if (invalidIndex) errors.push("mesh index contains an out-of-range vertex reference");
+          }
+        } else if (position && Number.isFinite(position.count) && position.count % 3 !== 0){
+          errors.push("non-indexed mesh vertex count is not a multiple of three");
+        }
         if (!o.material) warnings.push("mesh is missing a material");
         var hasSkinAttributes = !!attrs.skinIndex || !!attrs.skinWeight;
         if (o.isSkinnedMesh){

@@ -135,13 +135,16 @@ function makeEngine(materialFactory) {
 }
 const runtimeEngine = makeEngine();
 
-function skinAttribute(rows){
-  return {
-    count:rows.length, itemSize:4,
-    getX(i){return rows[i][0];}, getY(i){return rows[i][1];},
-    getZ(i){return rows[i][2];}, getW(i){return rows[i][3];}
-  };
+function numericAttribute(rows,itemSize){
+  const array=[];
+  rows.forEach(row=>row.forEach(value=>array.push(value)));
+  const attribute={count:rows.length,itemSize,array};
+  ["getX","getY","getZ","getW"].forEach((name,component)=>{
+    attribute[name]=index=>array[index*itemSize+component];
+  });
+  return attribute;
 }
+function skinAttribute(rows){return numericAttribute(rows,4);}
 function identityInverseBind(){
   return {elements:[1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]};
 }
@@ -150,10 +153,12 @@ function makeSkinnedScene(){
   const mesh={
     isMesh:true, isSkinnedMesh:true, material:{},
     geometry:{attributes:{
-      position:{count:3}, normal:{count:3}, uv:{count:3},
+      position:numericAttribute([[0,0,0],[1,0,0],[0,1,0]],3),
+      normal:numericAttribute([[0,0,1],[0,0,1],[0,0,1]],3),
+      uv:numericAttribute([[0,0],[1,0],[0,1]],2),
       skinIndex:skinAttribute([[0,1,0,0],[0,1,0,0],[0,1,0,0]]),
       skinWeight:skinAttribute([[0.5,0.5,0,0],[0.75,0.25,0,0],[1,0,0,0]])
-    },index:{count:3}},
+    },index:numericAttribute([[0],[1],[2]],1)},
     skeleton:{bones:rootBones.slice(),boneInverses:[identityInverseBind(),identityInverseBind()]}
   };
   return {mesh,rootBones,traverse(fn){fn(mesh);this.rootBones.forEach(fn);}};
@@ -161,6 +166,26 @@ function makeSkinnedScene(){
 const validSkinReport=runtimeEngine.validateModel(makeSkinnedScene());
 assert.equal(validSkinReport.valid,true,"valid skinned meshes must pass structural skin validation");
 assert.equal(validSkinReport.skinnedMeshCount,1,"model validation must report skinned mesh count");
+const badPositionData=makeSkinnedScene();
+badPositionData.mesh.geometry.attributes.position.array[0]=NaN;
+assert.ok(runtimeEngine.validateModel(badPositionData).errors.includes("mesh position attribute contains non-finite data"),
+  "non-finite vertex positions must fail validation");
+const badNormalCount=makeSkinnedScene();
+badNormalCount.mesh.geometry.attributes.normal.count=2;
+assert.ok(runtimeEngine.validateModel(badNormalCount).errors.includes("mesh normal attribute count mismatch"),
+  "normal attributes must match the position vertex count");
+const badUvData=makeSkinnedScene();
+badUvData.mesh.geometry.attributes.uv.array[2]=Infinity;
+assert.ok(runtimeEngine.validateModel(badUvData).errors.includes("mesh uv attribute contains non-finite data"),
+  "non-finite UV coordinates must fail validation");
+const badIndex=makeSkinnedScene();
+badIndex.mesh.geometry.index.array[2]=3;
+assert.ok(runtimeEngine.validateModel(badIndex).errors.includes("mesh index contains an out-of-range vertex reference"),
+  "indices outside the vertex buffer must fail validation");
+const badIndexCount=makeSkinnedScene();
+badIndexCount.mesh.geometry.index.count=2;
+assert.ok(runtimeEngine.validateModel(badIndexCount).errors.includes("mesh index count is invalid for triangles"),
+  "triangle index counts must be divisible by three");
 const detachedBone=makeSkinnedScene();
 detachedBone.mesh.skeleton.bones[1]={};
 assert.ok(runtimeEngine.validateModel(detachedBone).errors.includes("skinned mesh skeleton contains bones outside the imported model root"),
