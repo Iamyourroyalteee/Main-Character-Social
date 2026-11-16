@@ -379,8 +379,12 @@ async function runCatalogAssetTests() {
       fn({
         isMesh: true, material: boundMaterial,
         geometry: {
-          attributes: { position: { count: 3 }, normal: { count: 3 }, uv: { count: 3 } },
-          index: { count: 3 },
+          attributes: {
+            position: numericAttribute([[0,0,0],[1,0,0],[0,1,0]],3),
+            normal: numericAttribute([[0,0,1],[0,0,1],[0,0,1]],3),
+            uv: numericAttribute([[0,0],[1,0],[0,1]],2)
+          },
+          index: numericAttribute([[0],[1],[2]],1),
           boundingBox: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } },
           dispose() { disposed.geometry++; }
         }
@@ -418,8 +422,12 @@ async function runCatalogAssetTests() {
       fn({
         isMesh: true, material: teardownMaterial,
         geometry: {
-          attributes: { position: { count: 3 }, normal: { count: 3 }, uv: { count: 3 } },
-          index: { count: 3 },
+          attributes: {
+            position: numericAttribute([[0,0,0],[1,0,0],[0,1,0]],3),
+            normal: numericAttribute([[0,0,1],[0,0,1],[0,0,1]],3),
+            uv: numericAttribute([[0,0],[1,0],[0,1]],2)
+          },
+          index: numericAttribute([[0],[1],[2]],1),
           boundingBox: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } },
           dispose() { disposed.geometry++; }
         }
