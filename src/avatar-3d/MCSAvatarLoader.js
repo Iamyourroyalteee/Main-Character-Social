@@ -264,8 +264,8 @@
           errors.push("mesh is missing a valid position attribute");
         } else {
           vertexCount += position.count;
-          var indexCount = geometry.index && geometry.index.count;
-          triangleCount += Math.floor((indexCount || position.count) / 3);
+          var indexCount = geometry.index ? geometry.index.count : position.count;
+          triangleCount += Math.floor(indexCount / 3);
         }
         if (!attrs.normal) warnings.push("mesh is missing vertex normals");
         if (!attrs.uv) warnings.push("mesh is missing UV coordinates");
@@ -278,7 +278,7 @@
         }
         var indexAttribute = geometry.index;
         if (indexAttribute){
-          if (!Number.isFinite(indexAttribute.count) || Math.floor(indexAttribute.count) !== indexAttribute.count || indexAttribute.count % 3 !== 0){
+          if (!Number.isFinite(indexAttribute.count) || Math.floor(indexAttribute.count) !== indexAttribute.count || indexAttribute.count < 3 || indexAttribute.count % 3 !== 0){
             errors.push("mesh index count is invalid for triangles");
           }
           if (indexAttribute.itemSize !== 1) errors.push("mesh index attribute item size must be one");
