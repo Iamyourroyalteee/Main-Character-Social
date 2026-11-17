@@ -205,6 +205,13 @@ const badIndexCount=makeSkinnedScene();
 badIndexCount.mesh.geometry.index.count=2;
 assert.ok(runtimeEngine.validateModel(badIndexCount).errors.includes("mesh index count is invalid for triangles"),
   "triangle index counts must be divisible by three");
+const emptyIndex=makeSkinnedScene();
+emptyIndex.mesh.geometry.index.count=0;
+const emptyIndexReport=runtimeEngine.validateModel(emptyIndex);
+assert.ok(emptyIndexReport.errors.includes("mesh index count is invalid for triangles"),
+  "indexed meshes with no triangle indices must fail validation");
+assert.equal(emptyIndexReport.triangleCount,0,
+  "empty index buffers must not fall back to the non-indexed vertex count");
 const detachedBone=makeSkinnedScene();
 detachedBone.mesh.skeleton.bones[1]={};
 assert.ok(runtimeEngine.validateModel(detachedBone).errors.includes("skinned mesh skeleton contains bones outside the imported model root"),
