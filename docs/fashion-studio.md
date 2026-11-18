@@ -39,3 +39,8 @@ Run `node tests/fashion-studio-smoke.cjs`.
 - Corrected semantic mapping so unsupported jewelry and bag variants are reported instead of falsely mapping to the same accessory or handbag model.
 - Hardened local saved-look restoration against duplicate/invalid IDs, out-of-range coordinates and scales, unsafe color strings, and unknown catalog items.
 - Fixed SVG export so its background reflects the selected board style. Regression coverage is in `tests/fashion-studio-smoke.cjs`.
+
+
+## Responsive layout update
+
+At widths from 721px through 980px, the editor switches to a two-column catalog/board layout and moves the inspector below the workspace. This avoids the original 260px + 360px + 300px minimum three-column width overflowing iPad portrait viewports. At 720px and below, the existing stacked touch layout remains active.

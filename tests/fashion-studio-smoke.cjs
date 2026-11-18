@@ -32,6 +32,9 @@ for (const file of mirroredAvatarFiles) {
 for (const source of [rootAvatarHtml, deployedAvatarHtml]) {
   assert.match(source, /name="viewport" content="width=device-width, initial-scale=1(?:\.0)?, viewport-fit=cover"/, "avatar experience must preserve safe-area and user zoom");
   assert.doesNotMatch(source, /user-scalable=no|maximum-scale=1/, "avatar experience must not disable user zoom");
+assert.match(html, /@media\(max-width:980px\) and \(min-width:721px\)/, "Fashion Studio must use a tablet layout before the three-column layout overflows");
+assert.match(html, /grid-template-columns:minmax\(200px,220px\) minmax\(0,1fr\)/, "tablet layout must keep the catalog and board usable side by side");
+
 }
 const avatarItemSlots = new Map(
   [...deployedAvatarHtml.matchAll(/def\(\{\s*id:"([^"]+)",\s*name:"[^"]+",\s*slot:"([^"]+)"/g)]
@@ -132,7 +135,7 @@ assert.equal(outfitPriority.applied.slots.outfit.itemId, "outfit-slip");
 assert.equal(outfitPriority.applied.slots.top, null);
 assert.match(outfitPriority.messages.join(" "), /one-piece outfit takes priority/);
 
-assert.match(deployedAvatarHtml, /name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/, "deployed avatar route must preserve zoom and safe-area behavior");
+assert.match(deployedAvatarHtml, /name="viewport" content="width=device-width, initial-scale=1(?:\.0)?, viewport-fit=cover"/, "deployed avatar route must preserve zoom and safe-area behavior");
 assert.doesNotMatch(deployedAvatarHtml, /user-scalable=no|maximum-scale=1/, "avatar route must not disable user zoom");
 for (const marker of [
   'id="board"', 'id="catalog"', 'id="inspector"', 'id="save"', 'id="export"',
