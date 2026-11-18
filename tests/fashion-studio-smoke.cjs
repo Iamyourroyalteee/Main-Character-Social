@@ -34,6 +34,7 @@ for (const source of [rootAvatarHtml, deployedAvatarHtml]) {
   assert.doesNotMatch(source, /user-scalable=no|maximum-scale=1/, "avatar experience must not disable user zoom");
 assert.match(html, /@media\(max-width:980px\) and \(min-width:721px\)/, "Fashion Studio must use a tablet layout before the three-column layout overflows");
 assert.match(html, /grid-template-columns:minmax\(200px,220px\) minmax\(0,1fr\)/, "tablet layout must keep the catalog and board usable side by side");
+assert.match(html, /button\{[^}]*min-width:44px;min-height:44px/, "Fashion Studio controls must retain 44px touch targets");
 
 }
 const avatarItemSlots = new Map(
