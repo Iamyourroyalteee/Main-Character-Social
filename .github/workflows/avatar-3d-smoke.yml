@@ -5,13 +5,16 @@ on:
     paths:
       - "avatar-3d/**"
       - "tests/avatar-3d-safety-smoke.cjs"
+      - "tests/avatar-runtime-hardening-smoke.cjs"
       - ".github/workflows/avatar-3d-smoke.yml"
   push:
     branches:
       - "fix/pbr-default-full-avatar-materials"
+      - "integration/avatar-p0-hardening-2026-11-18"
     paths:
       - "avatar-3d/**"
       - "tests/avatar-3d-safety-smoke.cjs"
+      - "tests/avatar-runtime-hardening-smoke.cjs"
       - ".github/workflows/avatar-3d-smoke.yml"
 
 jobs:
@@ -19,10 +22,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
       - name: Run avatar 3D safety and loader tests
         run: node tests/avatar-3d-safety-smoke.cjs
+      - name: Run avatar animation and resource lifecycle regression tests
+        run: node tests/avatar-runtime-hardening-smoke.cjs

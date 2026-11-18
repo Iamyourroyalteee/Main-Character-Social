@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Main Character Social — 3D Avatar Creator Prototype</title>
 <style>
   :root{
@@ -317,6 +317,16 @@
     #tabs{padding:10px 12px 8px}
   }
 
+
+  /* Touch accessibility: preserve zoom and meet 44px coarse-pointer targets. */
+  .hbtn:focus-visible,.mode-nav a:focus-visible,.room-btn:focus-visible,.emote-btn:focus-visible,#btnLeaveRoom:focus-visible,#tabs button:focus-visible,.segmented button:focus-visible,.swatch:focus-visible,.tile:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  @media (pointer:coarse){
+    .hbtn,.mode-nav a,.room-btn,.emote-btn,#btnLeaveRoom,#tabs button,.segmented button,.swatch,#qualityHud select{min-height:44px}
+    .mode-nav a{display:inline-flex;align-items:center}
+    .swatch{width:44px;height:44px}
+    input[type=range]{height:44px}
+    .toggle{min-height:44px}
+  }
 </style>
 </head>
 <body>
@@ -3528,7 +3538,15 @@ function resize(){
   camera.aspect = w / hgt; camera.updateProjectionMatrix();
 }
 window.addEventListener("resize", ()=>{ resize(); fitCameraToAvatar(); });
-resize(); renderTabs(); renderPanel(); renderRoomSwitcher(); refreshString(); renderLobby();
+resize();
+/* PBR is checked by default: convert any legacy toon materials still present
+   on the initial player/friend avatars before the first rendered frame. */
+if (glam){
+  glam.setPBR(true, scene, gradientMap);
+  glam.retintEquipped([player.root, friend.root]);
+  glam.retireOldMaterials([player.root, friend.root]);
+}
+renderTabs(); renderPanel(); renderRoomSwitcher(); refreshString(); renderLobby();
 /* quality init (M2A) */
 Q.autoTier = detectTier();
 Q.tier = Q.autoTier;
