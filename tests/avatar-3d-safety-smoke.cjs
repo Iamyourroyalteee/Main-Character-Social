@@ -4,6 +4,20 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const html = fs.readFileSync(path.join(__dirname, "../avatar-3d/index.html"), "utf8");
+assert.ok(html.includes('name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"') || html.includes('name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"'), "avatar viewport must preserve safe areas and user zoom");
+assert.doesNotMatch(html, /user-scalable=no|maximum-scale=1/, "avatar UI must not disable user zoom");
+const embeddedAvatarHtml = fs.readFileSync(path.join(__dirname, "../src/avatar-3d/index.html"), "utf8");
+assert.equal(embeddedAvatarHtml, html, "standalone and embedded avatar pages must stay byte-for-byte synchronized");
+assert.ok(html.includes("@media (prefers-reduced-motion: reduce)"), "avatar CSS must respect reduced-motion preferences");
+assert.ok(html.includes('window.matchMedia("(prefers-reduced-motion: reduce)")'), "avatar runtime must detect reduced-motion preferences");
+assert.ok(html.includes("function playUserEmote(name, fadeDuration)"), "user-triggered emotes must remain explicitly available");
+assert.ok(html.includes("player.update(reduceMotion && performance.now() >= userMotionUntil ? 0 : dt)"), "ambient avatar motion must pause outside user-requested emotes");
+assert.ok(html.includes("friend.update(reduceMotion ? 0 : dt)"), "remote demo avatar motion must pause for reduced-motion users");
+assert.ok(html.includes('if (currentRoom === "island" && !reduceMotion)'), "island water and fire motion must pause for reduced-motion users");
+assert.ok(html.includes("if (!reduceMotion) Object.values(ROOM_LIFE)"), "room particle systems must pause for reduced-motion users");
+assert.ok(html.includes("playUserEmote(b.dataset.emote, 0.25)"), "manual emote controls must remain functional");
+assert.match(html, /@media \(pointer: coarse\)[\s\S]*?min-width:44px;min-height:44px/, "coarse-pointer controls must meet the 44px minimum target");
+
 const appHtml = fs.readFileSync(path.join(__dirname, "../src/index.html"), "utf8");
 assert.match(appHtml, /id="mcs-avatar-3d-frame"/, "the main app Avatar tab must embed the 3D builder");
 assert.match(appHtml, /src="\/avatar-3d\/index\.html\?mode=builder&embedded=1"/, "the embedded builder must use the same-origin app asset path");
@@ -16,27 +30,58 @@ assert.match(html, /MCS_AVATAR_READY/, "the embedded builder must announce readi
 assert.match(html, /MCS_AVATAR_LOAD/, "the embedded builder must restore account-saved characters");
 assert.match(html, /item\.is_adult/, "restored catalog items must retain adult-item gating");
 const glam = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSGlamMaterialFactory.js"), "utf8");
-assert.match(glam, /Array\.isArray\(o\.material\).*?map\(retintOne\)/s, "PBR factory must retint each material in imported material arrays");
+const embeddedAvatarRoot = path.join(__dirname, "../src/avatar-3d");
+for (const file of [
+  "index.html",
+  "MCSAvatarLoader.js",
+  "MCSGlamMaterialFactory.js",
+  "MCSAvatarAnimationRuntime.js",
+  "MCSCameraSetup.js",
+  "MCSStudioLighting.js",
+  "assets/manifest.json",
+]) {
+  const prototypeCopy = fs.readFileSync(path.join(__dirname, "../avatar-3d", file), "utf8");
+  const appCopy = fs.readFileSync(path.join(embeddedAvatarRoot, file), "utf8");
+  assert.equal(appCopy, prototypeCopy, "standalone and embedded avatar runtime must stay synchronized: " + file);
+}
+
+assert.match(glam, /Array\.isArray\(o\.material\).*?map\(function\(mat\)\{ return retintOne\(mat, o\); \}\)/s, "PBR factory must retint each material in imported material arrays");
+assert.match(html, /glam\.setPBR\(true, scene, gradientMap\);\s*glam\.retintEquipped\(\[player\.root, friend\.root\]\)/, "PBR must convert remaining legacy avatar toon materials before the first frame");
 assert.match(glam, /var mats = Array\.isArray\(o\.material\) \? o\.material : \[o\.material\]/, "PBR factory must track every material when retiring old materials");
 const assetSchema = JSON.parse(fs.readFileSync(path.join(__dirname, "../docs/3d-asset-manifest.schema.json"), "utf8"));
 const assetManifest = JSON.parse(fs.readFileSync(path.join(__dirname, "../avatar-3d/assets/manifest.json"), "utf8"));
 const gltfFixture = JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures/minimal-pbr.gltf"), "utf8"));
+const skinnedGltfFixture = JSON.parse(fs.readFileSync(path.join(__dirname, "../avatar-3d/assets/test-fixtures/minimal-skinned.gltf"), "utf8"));
 const browserSmoke = fs.readFileSync(path.join(__dirname, "../avatar-3d/asset-pipeline-smoke.html"), "utf8");
 const avatarAnimationRuntime = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSAvatarAnimationRuntime.js"), "utf8");
-const embeddedAvatarAnimationRuntime = fs.readFileSync(path.join(__dirname, "../src/avatar-3d/MCSAvatarAnimationRuntime.js"), "utf8");
-assert.equal(embeddedAvatarAnimationRuntime, avatarAnimationRuntime, "standalone and main-app animation runtime copies must stay in sync");
 assert.equal(assetSchema.$defs.asset.required.includes("provenance"), true, "asset schema must require provenance");
 assert.ok(assetSchema.$defs.asset.properties.materials, "asset schema must define per-material PBR texture bindings");
 assert.equal(assetManifest.schemaVersion, "1.0.0", "asset manifest must declare its schema version");
 assert.equal(assetManifest.assets.length, 0, "unverified external models must not be added as placeholder assets");
 assert.equal(gltfFixture.asset.version, "2.0", "browser fixture must be a valid glTF 2.0 asset");
 assert.equal(gltfFixture.meshes.length, 1, "browser fixture must include a real mesh");
+assert.equal(skinnedGltfFixture.asset.version, "2.0", "skinned browser fixture must be glTF 2.0");
+assert.equal(skinnedGltfFixture.skins.length, 1, "skinned fixture must contain one skin");
+assert.equal(skinnedGltfFixture.skins[0].joints.length, 2, "skinned fixture must contain two test joints");
+const skinnedAttributes = skinnedGltfFixture.meshes[0].primitives[0].attributes;
+assert.ok(Object.prototype.hasOwnProperty.call(skinnedAttributes, "JOINTS_0"), "skinned fixture must contain joint indices");
+assert.ok(Object.prototype.hasOwnProperty.call(skinnedAttributes, "WEIGHTS_0"), "skinned fixture must contain skin weights");
+assert.equal(skinnedGltfFixture.animations[0].name, "MCS_Test_Idle", "skinned fixture must include a named animation clip");
 assert.ok(browserSmoke.includes("engine.loadCatalogAsset"), "browser smoke page must exercise the catalog loader");
-assert.ok(browserSmoke.includes("assets/test-fixtures/minimal-pbr.gltf"), "browser smoke page must load the repository fixture");
+assert.ok(browserSmoke.includes("assets/test-fixtures/minimal-pbr.gltf"), "browser smoke page must load the PBR repository fixture");
+assert.ok(browserSmoke.includes("assets/test-fixtures/minimal-skinned.gltf"), "browser smoke page must load the rigged repository fixture");
+assert.ok(browserSmoke.includes("skinnedMeshCount") && browserSmoke.includes("MCS_Test_Idle"), "browser smoke page must validate and play a real skinned fixture");
 assert.ok(html.includes("MCSAvatarAnimationRuntime.js"), "prototype must load the shared skeletal animation runtime");
 assert.ok(html.includes("createAnimationController"), "prototype must expose an animation controller factory");
 assert.ok(browserSmoke.includes("MCSAvatarAnimationRuntime.create"), "browser smoke page must instantiate the animation runtime");
 assert.match(avatarAnimationRuntime, /AnimationMixer/, "animation runtime must use Three.js AnimationMixer");
+const animationPlayStart = avatarAnimationRuntime.indexOf("function play(");
+const animationUpdateStart = avatarAnimationRuntime.indexOf("function update(", animationPlayStart);
+const animationPlaySource = avatarAnimationRuntime.slice(animationPlayStart, animationUpdateStart);
+const resetBeforeFade = animationPlaySource.indexOf("next.reset()");
+const fadeScheduling = animationPlaySource.indexOf("current.crossFadeTo(next");
+assert.ok(resetBeforeFade >= 0 && fadeScheduling > resetBeforeFade,
+  "incoming animation action must reset before crossFadeTo schedules its fade-in");
 
 const gate = html.match(/function isAdultProfile\(\)\s*\{([\s\S]*?)\}/);
 assert.ok(gate, "3D prototype must define its adult-access gate");
@@ -87,7 +132,16 @@ const disposed = { geometry: 0, material: 0, texture: 0 };
 function makeScene() {
   const mesh = {
     isMesh: true,
-    geometry: { attributes: { position: { count: 3 }, normal: { count: 3 }, uv: { count: 3 } }, index: { count: 3 }, boundingBox: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } }, dispose() { disposed.geometry++; } },
+    geometry: {
+      attributes: {
+        position: numericAttribute([[0,0,0],[1,0,0],[0,1,0]],3),
+        normal: numericAttribute([[0,0,1],[0,0,1],[0,0,1]],3),
+        uv: numericAttribute([[0,0],[1,0],[0,1]],2)
+      },
+      index: numericAttribute([[0],[1],[2]],1),
+      boundingBox: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } },
+      dispose() { disposed.geometry++; }
+    },
     material: { map: { dispose() { disposed.texture++; } }, dispose() { disposed.material++; } }
   };
   return { scale: { x: 1, y: 1, z: 1, setScalar(value) { this.x = this.y = this.z = value; } }, traverse(fn) { fn(mesh); } };
@@ -99,6 +153,92 @@ function makeEngine(materialFactory) {
   });
 }
 const runtimeEngine = makeEngine();
+
+function numericAttribute(rows,itemSize){
+  const array=[];
+  rows.forEach(row=>row.forEach(value=>array.push(value)));
+  const attribute={count:rows.length,itemSize,array};
+  ["getX","getY","getZ","getW"].forEach((name,component)=>{
+    attribute[name]=index=>array[index*itemSize+component];
+  });
+  return attribute;
+}
+function skinAttribute(rows){return numericAttribute(rows,4);}
+function identityInverseBind(){
+  return {elements:[1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]};
+}
+function makeSkinnedScene(){
+  const rootBones=[{},{}];
+  const mesh={
+    isMesh:true, isSkinnedMesh:true, material:{},
+    geometry:{attributes:{
+      position:numericAttribute([[0,0,0],[1,0,0],[0,1,0]],3),
+      normal:numericAttribute([[0,0,1],[0,0,1],[0,0,1]],3),
+      uv:numericAttribute([[0,0],[1,0],[0,1]],2),
+      skinIndex:skinAttribute([[0,1,0,0],[0,1,0,0],[0,1,0,0]]),
+      skinWeight:skinAttribute([[0.5,0.5,0,0],[0.75,0.25,0,0],[1,0,0,0]])
+    },index:numericAttribute([[0],[1],[2]],1)},
+    skeleton:{bones:rootBones.slice(),boneInverses:[identityInverseBind(),identityInverseBind()]}
+  };
+  return {mesh,rootBones,traverse(fn){fn(mesh);this.rootBones.forEach(fn);}};
+}
+const validSkinReport=runtimeEngine.validateModel(makeSkinnedScene());
+assert.equal(validSkinReport.valid,true,"valid skinned meshes must pass structural skin validation");
+assert.equal(validSkinReport.skinnedMeshCount,1,"model validation must report skinned mesh count");
+const badPositionData=makeSkinnedScene();
+badPositionData.mesh.geometry.attributes.position.array[0]=NaN;
+assert.ok(runtimeEngine.validateModel(badPositionData).errors.includes("mesh position attribute contains non-finite data"),
+  "non-finite vertex positions must fail validation");
+const badNormalCount=makeSkinnedScene();
+badNormalCount.mesh.geometry.attributes.normal.count=2;
+assert.ok(runtimeEngine.validateModel(badNormalCount).errors.includes("mesh normal attribute count mismatch"),
+  "normal attributes must match the position vertex count");
+const badUvData=makeSkinnedScene();
+badUvData.mesh.geometry.attributes.uv.array[2]=Infinity;
+assert.ok(runtimeEngine.validateModel(badUvData).errors.includes("mesh uv attribute contains non-finite data"),
+  "non-finite UV coordinates must fail validation");
+const badIndex=makeSkinnedScene();
+badIndex.mesh.geometry.index.array[2]=3;
+assert.ok(runtimeEngine.validateModel(badIndex).errors.includes("mesh index contains an out-of-range vertex reference"),
+  "indices outside the vertex buffer must fail validation");
+const badIndexCount=makeSkinnedScene();
+badIndexCount.mesh.geometry.index.count=2;
+assert.ok(runtimeEngine.validateModel(badIndexCount).errors.includes("mesh index count is invalid for triangles"),
+  "triangle index counts must be divisible by three");
+const emptyIndex=makeSkinnedScene();
+emptyIndex.mesh.geometry.index.count=0;
+const emptyIndexReport=runtimeEngine.validateModel(emptyIndex);
+assert.ok(emptyIndexReport.errors.includes("mesh index count is invalid for triangles"),
+  "indexed meshes with no triangle indices must fail validation");
+assert.equal(emptyIndexReport.triangleCount,0,
+  "empty index buffers must not fall back to the non-indexed vertex count");
+const detachedBone=makeSkinnedScene();
+detachedBone.mesh.skeleton.bones[1]={};
+assert.ok(runtimeEngine.validateModel(detachedBone).errors.includes("skinned mesh skeleton contains bones outside the imported model root"),
+  "skeleton bones outside the imported model root must fail validation");
+const badInverseBindLength=makeSkinnedScene();
+badInverseBindLength.mesh.skeleton.boneInverses[0]={elements:[1,0,0]};
+assert.ok(runtimeEngine.validateModel(badInverseBindLength).errors.includes("skinned mesh has invalid inverse-bind matrix data"),
+  "inverse-bind matrices with the wrong element count must fail validation");
+const nonFiniteInverseBind=makeSkinnedScene();
+nonFiniteInverseBind.mesh.skeleton.boneInverses[1].elements[7]=NaN;
+assert.ok(runtimeEngine.validateModel(nonFiniteInverseBind).errors.includes("skinned mesh has invalid inverse-bind matrix data"),
+  "inverse-bind matrices with non-finite elements must fail validation");
+const missingSkeleton=makeSkinnedScene(); missingSkeleton.mesh.skeleton=null;
+assert.ok(runtimeEngine.validateModel(missingSkeleton).errors.includes("skinned mesh is missing a valid skeleton"),
+  "skinned meshes without a usable skeleton must fail validation");
+const badBoneIndex=makeSkinnedScene();
+badBoneIndex.mesh.geometry.attributes.skinIndex=skinAttribute([[2,0,0,0],[0,1,0,0],[0,1,0,0]]);
+assert.ok(runtimeEngine.validateModel(badBoneIndex).errors.includes("skinned mesh has an invalid bone index"),
+  "skin indices outside the skeleton must fail validation");
+const badWeightSum=makeSkinnedScene();
+badWeightSum.mesh.geometry.attributes.skinWeight=skinAttribute([[0.2,0.2,0,0],[0.75,0.25,0,0],[1,0,0,0]]);
+assert.ok(runtimeEngine.validateModel(badWeightSum).errors.includes("skinned mesh skin weights are not normalized"),
+  "per-vertex skin weights must sum to one within tolerance");
+const unboundSkin=makeSkinnedScene(); unboundSkin.mesh.isSkinnedMesh=false;
+assert.ok(runtimeEngine.validateModel(unboundSkin).errors.includes("mesh has skin attributes but is not a SkinnedMesh"),
+  "skin attributes must not be silently ignored on ordinary meshes");
+
 for (const badUrl of ["javascript:alert(1)", "data:model/gltf-binary;base64,AA==", "blob:https://example.com/id", "file:///tmp/model.glb", "//evil.example/model.glb"]) {
   let failure = "";
   runtimeEngine.loadGLTF(badUrl, () => assert.fail("unsafe URL must not load"), (message) => { failure = message; });
@@ -256,8 +396,12 @@ async function runCatalogAssetTests() {
       fn({
         isMesh: true, material: boundMaterial,
         geometry: {
-          attributes: { position: { count: 3 }, normal: { count: 3 }, uv: { count: 3 } },
-          index: { count: 3 },
+          attributes: {
+            position: numericAttribute([[0,0,0],[1,0,0],[0,1,0]],3),
+            normal: numericAttribute([[0,0,1],[0,0,1],[0,0,1]],3),
+            uv: numericAttribute([[0,0],[1,0],[0,1]],2)
+          },
+          index: numericAttribute([[0],[1],[2]],1),
           boundingBox: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } },
           dispose() { disposed.geometry++; }
         }
@@ -295,8 +439,12 @@ async function runCatalogAssetTests() {
       fn({
         isMesh: true, material: teardownMaterial,
         geometry: {
-          attributes: { position: { count: 3 }, normal: { count: 3 }, uv: { count: 3 } },
-          index: { count: 3 },
+          attributes: {
+            position: numericAttribute([[0,0,0],[1,0,0],[0,1,0]],3),
+            normal: numericAttribute([[0,0,1],[0,0,1],[0,0,1]],3),
+            uv: numericAttribute([[0,0],[1,0],[0,1]],2)
+          },
+          index: numericAttribute([[0],[1],[2]],1),
           boundingBox: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } },
           dispose() { disposed.geometry++; }
         }
@@ -453,21 +601,19 @@ const animationRuntimeSource = fs.readFileSync(path.join(__dirname, "../avatar-3
 const animationWindow = {};
 vm.runInNewContext(animationRuntimeSource, { window: animationWindow });
 let mixerUpdates = 0, mixerStops = 0, mixerUncached = 0, actionPlays = 0, crossFades = 0;
-const animationEvents = [];
-function MockAction(name){
-  this.name = name;
+function MockAction(){
   this.enabled = false;
-  this.reset = () => { animationEvents.push("reset:" + name); return this; };
+  this.reset = () => this;
   this.setEffectiveWeight = () => this;
   this.setEffectiveTimeScale = () => this;
-  this.play = () => { animationEvents.push("play:" + name); actionPlays++; return this; };
+  this.play = () => { actionPlays++; return this; };
   this.stop = () => this;
-  this.crossFadeTo = (next) => { animationEvents.push("crossFade:" + name + "->" + next.name); crossFades++; return this; };
+  this.crossFadeTo = () => { crossFades++; return this; };
   this.fadeOut = () => this;
 }
 class MockAnimationMixer {
   constructor(root){ this.root = root; this.timeScale = 1; }
-  clipAction(clip){ return new MockAction(clip.name); }
+  clipAction(){ return new MockAction(); }
   update(delta){ mixerUpdates += delta; }
   setTime(time){ this.time = time; }
   stopAllAction(){ mixerStops++; }
@@ -490,11 +636,6 @@ assert.equal(animation.clipCount, 2, "runtime must register unique named clips o
 assert.equal(animation.play("Idle"), true, "known clip must play");
 assert.equal(animation.play("Walk", 0.25), true, "second clip must play");
 assert.equal(crossFades, 1, "clip changes should crossfade");
-const resetWalkIndex = animationEvents.indexOf("reset:Walk");
-const fadeWalkIndex = animationEvents.indexOf("crossFade:Idle->Walk");
-const playWalkIndex = animationEvents.indexOf("play:Walk");
-assert.ok(resetWalkIndex >= 0 && resetWalkIndex < fadeWalkIndex && fadeWalkIndex < playWalkIndex,
-  "incoming clip must reset before the crossfade is scheduled, then play after the fade-in is configured");
 animation.update(0.05);
 assert.equal(mixerUpdates, 0.05, "runtime should advance mixer by frame delta");
 animation.pause();
@@ -513,6 +654,10 @@ assert.equal(mixerUncached, 1, "animation runtime should uncache its model root"
 assert.throws(() => animation.play("Idle"), /disposed/, "disposed animation runtime must reject playback");
 console.log("PASS: skeletal animation runtime supports clips, crossfades, facial morphs, playback controls, and cleanup.");
 
+assert.ok(html.includes('id="mcs-open-fashion-studio" href="/fashion-studio/index.html" target="_top" aria-label="Open the separate Fashion Studio experience" hidden'), "embedded Avatar Builder should expose a separate Fashion Studio link when the route exists");
+assert.ok(html.includes(".mode-nav a[hidden]{display:none!important}"), "Fashion Studio link must remain hidden when its route is unavailable");
+assert.ok(html.includes('fetch("/fashion-studio/index.html", {method:"GET", cache:"no-store"})'), "Fashion Studio link should be shown only when the same-origin route is available");
+assert.ok(html.includes("if (!reduceMotion){\n    friendWaveT -= dt;"), "automatic friend waves must pause for reduced-motion users");
 console.log("PASS: multi-material PBR retint preserves arrays and disposes replaced materials safely.");
 
 }

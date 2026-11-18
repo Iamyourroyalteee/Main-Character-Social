@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Main Character Social — 3D Avatar Creator Prototype</title>
 <style>
   :root{
@@ -317,6 +317,30 @@
     #tabs{padding:10px 12px 8px}
   }
 
+
+  /* Touch accessibility: preserve zoom and meet 44px coarse-pointer targets. */
+  .hbtn:focus-visible,.mode-nav a:focus-visible,.room-btn:focus-visible,.emote-btn:focus-visible,#btnLeaveRoom:focus-visible,#tabs button:focus-visible,.segmented button:focus-visible,.swatch:focus-visible,.tile:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  @media (pointer:coarse){
+    .hbtn,.mode-nav a,.room-btn,.emote-btn,#btnLeaveRoom,#tabs button,.segmented button,.swatch,#qualityHud select{min-height:44px}
+    .mode-nav a{display:inline-flex;align-items:center}
+    .mode-nav a[hidden]{display:none!important}
+    .mode-nav a[hidden]{display:none!important}
+    .swatch{width:44px;height:44px}
+    input[type=range]{height:44px}
+    .toggle{min-height:44px}
+  }
+</style>
+<style id="mcs-touch-accessibility">@media (pointer: coarse){button,[role="button"],.mode-nav a,.pick,.chip,.swatch,.swatch-lg{min-width:44px;min-height:44px}button,.mode-nav a,.pick,.chip{-webkit-tap-highlight-color:transparent;touch-action:manipulation}}</style>
+<style id="mcs-reduced-motion">
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within { scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 </style>
 </head>
 <body>
@@ -329,7 +353,7 @@
   </div>
   <div class="proto-tag">Main Character Social — Avatar Experiences</div>
   <div class="spacer"></div>
-  <nav class="mode-nav" aria-label="Main Character Social modes"><a href="?mode=rooms" data-mode-link="rooms">Avatar Rooms</a><a href="?mode=builder" data-mode-link="builder">Avatar Builder</a></nav>
+  <nav class="mode-nav" aria-label="Main Character Social modes"><a href="?mode=rooms" data-mode-link="rooms">Avatar Rooms</a><a href="?mode=builder" data-mode-link="builder">Avatar Builder</a><a id="mcs-open-fashion-studio" href="/fashion-studio/index.html" target="_top" aria-label="Open the separate Fashion Studio experience" hidden>Fashion Studio</a></nav>
   <button class="hbtn" id="btnSaveTop" title="Serialize the current outfit">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7V3M8 21v-7h8v7"/></svg>
     Save look
@@ -3246,11 +3270,11 @@ function triggerNearby(){
     /* seat the avatar at the spot, play sit pose, offer stand */
     player.group.position.set(it.spot[0], currentRoom === "island" || currentRoom === "teenIsland" ? islandHeight(it.spot[0], it.spot[1]) : 0, it.spot[1]);
     player.group.rotation.y = it.spotRot || 0;
-    player.anim.playEmote("pose", 0.3);
+    playUserEmote("pose", 0.3);
     toast("Sitting down — press Leave/ESC to stand and move.");
     setNearby(null);
   } else if (it.kind === "dance"){
-    player.anim.playEmote("dance", 0.3);
+    playUserEmote("dance", 0.3);
     toast("Dancing on the " + ROOMS[currentRoom].name + " floor.");
   } else if (it.kind === "photo"){
     const fr = document.getElementById("photoFrame");
@@ -3265,7 +3289,7 @@ function triggerNearby(){
     toast("Photo saved from " + (it.label || "the photo spot") + ".");
     setNearby(null);
   } else if (it.kind === "use"){
-    player.anim.playEmote("wave", 0.25);
+    playUserEmote("wave", 0.25);
     toast(it.toast || (it.verb + " — nice touch."));
     setNearby(null);
   }
@@ -3470,7 +3494,7 @@ window.addEventListener("keydown", (e)=>{
 });
 document.querySelectorAll(".emote-btn").forEach(b=>{
   b.addEventListener("click", ()=>{
-    player.anim.playEmote(b.dataset.emote, 0.25);
+    playUserEmote(b.dataset.emote, 0.25);
     b.classList.add("active"); setTimeout(()=> b.classList.remove("active"), 900);
   });
 });
@@ -3528,7 +3552,15 @@ function resize(){
   camera.aspect = w / hgt; camera.updateProjectionMatrix();
 }
 window.addEventListener("resize", ()=>{ resize(); fitCameraToAvatar(); });
-resize(); renderTabs(); renderPanel(); renderRoomSwitcher(); refreshString(); renderLobby();
+resize();
+/* PBR is checked by default: convert any legacy toon materials still present
+   on the initial player/friend avatars before the first rendered frame. */
+if (glam){
+  glam.setPBR(true, scene, gradientMap);
+  glam.retintEquipped([player.root, friend.root]);
+  glam.retireOldMaterials([player.root, friend.root]);
+}
+renderTabs(); renderPanel(); renderRoomSwitcher(); refreshString(); renderLobby();
 /* quality init (M2A) */
 Q.autoTier = detectTier();
 Q.tier = Q.autoTier;
@@ -3550,6 +3582,27 @@ document.getElementById("pbrToggle").addEventListener("change", (e)=>{
     : "Toon fallback enabled — " + changed + " avatar meshes updated.");
 });
 
+const motionPreference = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+let reduceMotion = !!(motionPreference && motionPreference.matches);
+let userMotionUntil = 0;
+if (reduceMotion && turntableBox) turntableBox.checked = false;
+function playUserEmote(name, fadeDuration){
+  const emote = EMOTES[name];
+  if (!emote) return false;
+  const fade = Number.isFinite(fadeDuration) ? Math.max(0, fadeDuration) : 0.25;
+  userMotionUntil = performance.now() + (emote.dur + fade) * 1000;
+  player.anim.playEmote(name, fade);
+  return true;
+}
+if (motionPreference){
+  const onMotionPreferenceChange = event => {
+    reduceMotion = !!event.matches;
+    if (reduceMotion && turntableBox) turntableBox.checked = false;
+  };
+  if (typeof motionPreference.addEventListener === "function") motionPreference.addEventListener("change", onMotionPreferenceChange);
+  else if (typeof motionPreference.addListener === "function") motionPreference.addListener(onMotionPreferenceChange);
+}
+
 const clock = new THREE.Clock();
 let firstFrame = true;
 function animate(){
@@ -3557,10 +3610,10 @@ function animate(){
   const dt = Math.min(clock.getDelta(), 0.1); /* frame-rate independence: everything scales by dt (clamped so a backgrounded tab can't teleport animations) */
   elapsed += dt;
   updateMovement(dt);
-  player.update(dt);
-  friend.update(dt);
+  player.update(reduceMotion && performance.now() >= userMotionUntil ? 0 : dt);
+  friend.update(reduceMotion ? 0 : dt);
   /* Island World life: restrained water waves + campfire flicker (tier-aware) */
-  if (currentRoom === "island"){
+  if (currentRoom === "island" && !reduceMotion){
     const dens = TIERS[tierActive()].particles;
     const t = elapsed;
     const wpos = scene.getObjectByName && islandGroup.getObjectByName("islandWater");
@@ -3578,9 +3631,11 @@ function animate(){
     if (flame) flame.scale.y = 1 + Math.sin(t * 9) * 0.18 * dens + Math.sin(t * 23) * 0.08;
   }
   updateNearby();
-  Object.values(ROOM_LIFE).forEach(s => s.update(dt));
-  friendWaveT -= dt;
-  if(friendWaveT <= 0){ friend.anim.playEmote("wave", 0.25); friendWaveT = 6 + Math.random()*5; }
+  if (!reduceMotion) Object.values(ROOM_LIFE).forEach(s => s.update(dt));
+  if (!reduceMotion){
+    friendWaveT -= dt;
+    if(friendWaveT <= 0){ friend.anim.playEmote("wave", 0.25); friendWaveT = 6 + Math.random()*5; }
+  }
   if(friend.label) friend.label.lookAt(camera.position);
   updateCamera(dt);
   renderer.render(scene, camera);
@@ -3671,6 +3726,13 @@ window.addEventListener("message", function(event){
 if(window.parent !== window){
   window.parent.postMessage({type:"MCS_AVATAR_READY"},window.location.origin);
 }
+(function(){
+  var link = document.getElementById("mcs-open-fashion-studio");
+  if (!link || window.top === window) return;
+  fetch("/fashion-studio/index.html", {method:"GET", cache:"no-store"})
+    .then(function(response){ if (response.ok) link.hidden = false; })
+    .catch(function(){});
+})();
 </script>
 </body>
 </html>

@@ -63,16 +63,25 @@
       var baseEmissive = mat.emissive ? mat.emissive.clone() : new THREE.Color(0x000000);
       mat.onBeforeCompile = function(shader){
         shader.uniforms.uSSS = { value: new THREE.Color(sssColor || 0xb4554d) };
+        /* Declare the uniform immediately before main(), rather than relying
+           on a shader chunk that may be absent/reordered in the pinned r128
+           physical-material program. A missing insertion point must fail
+           loudly instead of emitting a shader that references an undeclared
+           uSSS (the regression recorded in the earlier PBR QA artifact). */
+        var mainMarker = "void main() {";
+        var mainIndex = shader.fragmentShader.indexOf(mainMarker);
+        if (mainIndex < 0) throw new Error("MCS PBR SSS: fragment shader main() insertion point not found");
+        shader.fragmentShader = shader.fragmentShader.slice(0, mainIndex) +
+          "uniform vec3 uSSS; /* MCS SSS approximation (NOT true SSS) */\n" +
+          shader.fragmentShader.slice(mainIndex);
+        var emissiveMarker = "#include <emissivemap_fragment>";
+        if (shader.fragmentShader.indexOf(emissiveMarker) < 0) throw new Error("MCS PBR SSS: emissive shader chunk not found");
         shader.fragmentShader = shader.fragmentShader.replace(
-          "#include <common>",
-          "#include <common>\n" +
-          "uniform vec3 uSSS; /* MCS SSS approximation (NOT true SSS) */"
-        ).replace(
-          "#include <emissivemap_fragment>",
-          "#include <emissivemap_fragment>\n" +
+          emissiveMarker,
+          emissiveMarker + "\n" +
           "/* MCS SSS approximation: warm wrap on grazing angles (NOT true SSS) */\n" +
           "float sssWrap = clamp(1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition))), 0.0, 1.0);\n" +
-          "totalEmissiveRadiance += uSSS.rgb * pow(sssWrap, 2.2) * 0.35;"
+          "totalEmissiveRadiance += uSSS * pow(sssWrap, 2.2) * 0.35;"
         );
       };
       mat.userData.__sssBaseEmissive = baseEmissive;
@@ -291,9 +300,23 @@
       retintEquipped: function(roots){
         var env = PBR ? studioEnvironment() : null;
         var count = 0;
-        function retintOne(old){
+        function retintOne(old, mesh){
           if (!old) return old;
           var role = old.userData && old.userData.__role;
+          /* Procedural face details and a few legacy avatar parts are still
+             authored with toonMat() rather than the semantic factory. Convert
+             those remaining toon materials too, otherwise PBR mode is only
+             partially applied. Prefer mesh/material names for semantic roles;
+             use fabric as the safe neutral fallback for other avatar surfaces. */
+          if (!role && old.isMeshToonMaterial){
+            var label = String((mesh && mesh.name) || "") + " " + String(old.name || "");
+            label = label.toLowerCase();
+            if ((mesh && mesh.userData && mesh.userData.isSkin) || /skin|body|face|neck|torso|arm|leg|hand/.test(label)) role = "skin";
+            else if (/hair|brow|lash/.test(label)) role = "hair";
+            else if (/lip|mouth/.test(label)) role = "lips";
+            else if (/eye|pupil|iris/.test(label)) role = "plastic";
+            else role = "fabric";
+          }
           if (!role) return old;
           var hex = old.color && old.color.getHexString ? "#" + old.color.getHexString() : "#ffffff";
           var nm = makeMat(role, hex, env);
@@ -315,8 +338,8 @@
           if (!root) return;
           root.traverse(function(o){
             if (!o.isMesh || !o.material) return;
-            if (Array.isArray(o.material)) o.material = o.material.map(retintOne);
-            else o.material = retintOne(o.material);
+            if (Array.isArray(o.material)) o.material = o.material.map(function(mat){ return retintOne(mat, o); });
+            else o.material = retintOne(o.material, o);
           });
         });
         return count;
