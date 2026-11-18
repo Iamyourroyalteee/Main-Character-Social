@@ -654,10 +654,10 @@ assert.equal(mixerUncached, 1, "animation runtime should uncache its model root"
 assert.throws(() => animation.play("Idle"), /disposed/, "disposed animation runtime must reject playback");
 console.log("PASS: skeletal animation runtime supports clips, crossfades, facial morphs, playback controls, and cleanup.");
 
-assert.match(html, /id="mcs-open-fashion-studio" href="\\/fashion-studio\\/index\\.html" target="_top"[^>]*hidden/, "embedded Avatar Builder should expose a separate Fashion Studio link when the route exists");
-assert.match(html, /\\.mode-nav a\\[hidden\\]\\{display:none!important\\}/, "Fashion Studio link must remain hidden when its route is unavailable");
-assert.match(html, /fetch\\("\\/fashion-studio\\/index\\.html", \\{method:"GET", cache:"no-store"\\}\\)/, "Fashion Studio link should be shown only when the same-origin route is available");
-assert.match(html, /if \\(!reduceMotion\\)\\s*\\{\\s*friendWaveT -= dt;/, "automatic friend waves must pause for reduced-motion users");
+assert.ok(html.includes('id="mcs-open-fashion-studio" href="/fashion-studio/index.html" target="_top" aria-label="Open the separate Fashion Studio experience" hidden'), "embedded Avatar Builder should expose a separate Fashion Studio link when the route exists");
+assert.ok(html.includes(".mode-nav a[hidden]{display:none!important}"), "Fashion Studio link must remain hidden when its route is unavailable");
+assert.ok(html.includes('fetch("/fashion-studio/index.html", {method:"GET", cache:"no-store"})'), "Fashion Studio link should be shown only when the same-origin route is available");
+assert.ok(html.includes("if (!reduceMotion){\n    friendWaveT -= dt;"), "automatic friend waves must pause for reduced-motion users");
 console.log("PASS: multi-material PBR retint preserves arrays and disposes replaced materials safely.");
 
 }
