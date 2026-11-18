@@ -7,7 +7,7 @@
     var mixer = new THREE.AnimationMixer(modelRoot);
     var clips = Array.isArray(options.clips) ? options.clips.slice() : [];
     var actions = Object.create(null), morphTargets = Object.create(null), validationErrors = [];
-    var disposed = false, current = null, skeletonCount = 0;
+    var disposed = false, current = null, skeletonCount = 0, playbackSpeed = 1, paused = false;
     function finiteArray(values){
       if (!values || typeof values.length !== "number" || values.length === 0) return false;
       for (var i=0;i<values.length;i++) if (!Number.isFinite(values[i])) return false;
@@ -63,9 +63,10 @@
       return true;
     }
     function update(deltaSeconds){ if (disposed || !Number.isFinite(deltaSeconds) || deltaSeconds < 0) return; mixer.update(Math.min(deltaSeconds, 0.1)); }
-    function pause(){ ensureLive(); mixer.timeScale = 0; }
-    function resume(){ ensureLive(); mixer.timeScale = 1; }
-    function setSpeed(value){ ensureLive(); if (!Number.isFinite(value)) return false; mixer.timeScale = Math.max(0, Math.min(3, value)); return true; }
+    function syncPlaybackRate(){ mixer.timeScale = paused ? 0 : playbackSpeed; }
+    function pause(){ ensureLive(); paused = true; syncPlaybackRate(); }
+    function resume(){ ensureLive(); paused = false; syncPlaybackRate(); }
+    function setSpeed(value){ ensureLive(); if (!Number.isFinite(value)) return false; playbackSpeed = Math.max(0, Math.min(3, value)); syncPlaybackRate(); return true; }
     function seek(seconds){ ensureLive(); if (!Number.isFinite(seconds)) return false; mixer.setTime(Math.max(0, seconds)); return true; }
     function stop(fadeSeconds){ ensureLive(); if (current && fadeSeconds > 0 && typeof current.fadeOut === "function") current.fadeOut(fadeSeconds); else mixer.stopAllAction(); current = null; }
     function setMorphTarget(name, value){
