@@ -324,6 +324,7 @@
     .hbtn,.mode-nav a,.room-btn,.emote-btn,#btnLeaveRoom,#tabs button,.segmented button,.swatch,#qualityHud select{min-height:44px}
     .mode-nav a{display:inline-flex;align-items:center}
     .mode-nav a[hidden]{display:none!important}
+    .mode-nav a[hidden]{display:none!important}
     .swatch{width:44px;height:44px}
     input[type=range]{height:44px}
     .toggle{min-height:44px}
@@ -340,7 +341,7 @@
   </div>
   <div class="proto-tag">Main Character Social — Avatar Experiences</div>
   <div class="spacer"></div>
-  <nav class="mode-nav" aria-label="Main Character Social modes"><a href="?mode=rooms" data-mode-link="rooms">Avatar Rooms</a><a href="?mode=builder" data-mode-link="builder">Avatar Builder</a></nav>
+  <nav class="mode-nav" aria-label="Main Character Social modes"><a href="?mode=rooms" data-mode-link="rooms">Avatar Rooms</a><a href="?mode=builder" data-mode-link="builder">Avatar Builder</a><a id="mcs-open-fashion-studio" href="/fashion-studio/index.html" target="_top" aria-label="Open the separate Fashion Studio experience" hidden>Fashion Studio</a></nav>
   <button class="hbtn" id="btnSaveTop" title="Serialize the current outfit">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7V3M8 21v-7h8v7"/></svg>
     Save look
@@ -3690,6 +3691,13 @@ window.addEventListener("message", function(event){
 if(window.parent !== window){
   window.parent.postMessage({type:"MCS_AVATAR_READY"},window.location.origin);
 }
+(function(){
+  var link = document.getElementById("mcs-open-fashion-studio");
+  if (!link || window.top === window) return;
+  fetch("/fashion-studio/index.html", {method:"GET", cache:"no-store"})
+    .then(function(response){ if (response.ok) link.hidden = false; })
+    .catch(function(){});
+})();
 </script>
 </body>
 </html>
