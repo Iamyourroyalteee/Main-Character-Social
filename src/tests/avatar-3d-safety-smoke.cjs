@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const html = fs.readFileSync(path.join(__dirname, "../avatar-3d/index.html"), "utf8");
-assert.match(html, /name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/, "avatar viewport must preserve safe areas and user zoom");
+assert.ok(html.includes('name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"') || html.includes('name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"'), "avatar viewport must preserve safe areas and user zoom");
 assert.doesNotMatch(html, /user-scalable=no|maximum-scale=1/, "avatar UI must not disable user zoom");
 const embeddedAvatarHtml = fs.readFileSync(path.join(__dirname, "../src/avatar-3d/index.html"), "utf8");
 assert.equal(embeddedAvatarHtml, html, "standalone and embedded avatar pages must stay byte-for-byte synchronized");
