@@ -36,7 +36,7 @@ assert.ok(Object.prototype.hasOwnProperty.call(skinnedAttributes, "WEIGHTS_0"), 
 assert.equal(skinnedGltfFixture.animations[0].name, "MCS_Test_Idle", "skinned fixture must include a named animation clip");
 assert.ok(browserSmoke.includes("assets/test-fixtures/minimal-skinned.gltf"), "browser smoke page must load the rigged repository fixture");
 assert.ok(browserSmoke.includes("skinnedMeshCount") && browserSmoke.includes("MCS_Test_Idle"), "browser smoke page must validate and play a real skinned fixture");
-const browserSmoke = fs.readFileSync(path.join(__dirname, "../avatar-3d/asset-pipeline-smoke.html"), "utf8");
+
 const avatarAnimationRuntime = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSAvatarAnimationRuntime.js"), "utf8");
 const embeddedAvatarAnimationRuntime = fs.readFileSync(path.join(__dirname, "../src/avatar-3d/MCSAvatarAnimationRuntime.js"), "utf8");
 assert.equal(embeddedAvatarAnimationRuntime, avatarAnimationRuntime, "standalone and main-app animation runtime copies must stay in sync");
