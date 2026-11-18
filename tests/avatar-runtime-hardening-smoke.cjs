@@ -7,9 +7,9 @@ const vm = require("node:vm");
 const runtimeSource = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSAvatarAnimationRuntime.js"), "utf8");
 const animationWindow = {};
 vm.runInNewContext(runtimeSource, { window: animationWindow });
-let clipActions = 0;
+let clipActions = 0, lastMixer = null;
 class MockMixer {
-  constructor(root){ this.root = root; }
+  constructor(root){ this.root = root; this.timeScale = 1; lastMixer = this; }
   clipAction(){ clipActions++; return { reset(){return this;}, setEffectiveWeight(){return this;}, setEffectiveTimeScale(){return this;}, play(){return this;}, stop(){return this;}, crossFadeTo(){return this;} }; }
   update(){}
   stopAllAction(){}
@@ -39,6 +39,19 @@ assert.ok(animation.validationErrors().some(x=>x.includes("duration")));
 assert.ok(animation.validationErrors().some(x=>x.includes("monotonic")));
 assert.ok(animation.validationErrors().some(x=>x.includes("duplicate")));
 assert.ok(animation.validationErrors().some(x=>x.includes("morph target index")));
+assert.equal(animation.setSpeed(0.5),true);
+assert.equal(lastMixer.timeScale,0.5);
+animation.pause();
+assert.equal(lastMixer.timeScale,0,"pause must stop mixer time");
+animation.resume();
+assert.equal(lastMixer.timeScale,0.5,"resume must restore the selected playback speed");
+animation.pause();
+assert.equal(animation.setSpeed(0.75),true);
+assert.equal(lastMixer.timeScale,0,"changing speed while paused must not resume playback");
+animation.resume();
+assert.equal(lastMixer.timeScale,0.75,"resume must apply the latest speed selected while paused");
+assert.equal(animation.setSpeed(9),true);
+assert.equal(lastMixer.timeScale,3,"playback speed remains clamped to the documented maximum");
 animation.dispose();
 
 const loaderSource = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSAvatarLoader.js"), "utf8");
