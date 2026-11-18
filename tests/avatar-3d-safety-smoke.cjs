@@ -68,6 +68,7 @@ assert.ok((html.match(/isAdultProfile\(\)/g) || []).length >= 5, "adult gate mus
 assert.match(html, /AVATAR_CHARACTER_STORAGE_KEY\s*=\s*"mcs_avatar_character_v1"/, "avatar look should have a stable local persistence key");
 assert.match(html, /function restoreCharacterLocally\(\)/, "saved character should be restored when either avatar experience loads");
 assert.match(html, /id="mcs-open-fashion-studio" href="\/fashion-studio\/index\.html" target="_top"[^>]*hidden/, "embedded Avatar Builder should expose a separate Fashion Studio link when the route exists");
+assert.match(html, /\.mode-nav a\[hidden\]\{display:none!important\}/, "Fashion Studio link must remain hidden when its route is unavailable");
 assert.match(html, /fetch\("\/fashion-studio\/index\.html", \{method:"GET", cache:"no-store"\}\)/, "Fashion Studio link should be shown only when the same-origin route is available");
 assert.match(html, /function persistCharacterLocally\(\)/, "avatar edits should persist without relying on the export string");
 assert.match(html, /function catalogArt\(slot, color, itemId\)/, "catalog cards should render category-specific visual artwork");
