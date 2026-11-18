@@ -330,6 +330,18 @@
     .toggle{min-height:44px}
   }
 </style>
+<style id="mcs-touch-accessibility">@media (pointer: coarse){button,[role="button"],.mode-nav a,.pick,.chip,.swatch,.swatch-lg{min-width:44px;min-height:44px}button,.mode-nav a,.pick,.chip{-webkit-tap-highlight-color:transparent;touch-action:manipulation}}</style>
+<style id="mcs-reduced-motion">
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within { scroll-behavior: auto !important; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+</style>
 </head>
 <body>
 <script>document.documentElement.dataset.mcsMode = new URLSearchParams(location.search).get("mode") === "builder" ? "builder" : "rooms";</script>
@@ -3258,11 +3270,11 @@ function triggerNearby(){
     /* seat the avatar at the spot, play sit pose, offer stand */
     player.group.position.set(it.spot[0], currentRoom === "island" || currentRoom === "teenIsland" ? islandHeight(it.spot[0], it.spot[1]) : 0, it.spot[1]);
     player.group.rotation.y = it.spotRot || 0;
-    player.anim.playEmote("pose", 0.3);
+    playUserEmote("pose", 0.3);
     toast("Sitting down — press Leave/ESC to stand and move.");
     setNearby(null);
   } else if (it.kind === "dance"){
-    player.anim.playEmote("dance", 0.3);
+    playUserEmote("dance", 0.3);
     toast("Dancing on the " + ROOMS[currentRoom].name + " floor.");
   } else if (it.kind === "photo"){
     const fr = document.getElementById("photoFrame");
@@ -3277,7 +3289,7 @@ function triggerNearby(){
     toast("Photo saved from " + (it.label || "the photo spot") + ".");
     setNearby(null);
   } else if (it.kind === "use"){
-    player.anim.playEmote("wave", 0.25);
+    playUserEmote("wave", 0.25);
     toast(it.toast || (it.verb + " — nice touch."));
     setNearby(null);
   }
@@ -3482,7 +3494,7 @@ window.addEventListener("keydown", (e)=>{
 });
 document.querySelectorAll(".emote-btn").forEach(b=>{
   b.addEventListener("click", ()=>{
-    player.anim.playEmote(b.dataset.emote, 0.25);
+    playUserEmote(b.dataset.emote, 0.25);
     b.classList.add("active"); setTimeout(()=> b.classList.remove("active"), 900);
   });
 });
@@ -3570,6 +3582,27 @@ document.getElementById("pbrToggle").addEventListener("change", (e)=>{
     : "Toon fallback enabled — " + changed + " avatar meshes updated.");
 });
 
+const motionPreference = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+let reduceMotion = !!(motionPreference && motionPreference.matches);
+let userMotionUntil = 0;
+if (reduceMotion && turntableBox) turntableBox.checked = false;
+function playUserEmote(name, fadeDuration){
+  const emote = EMOTES[name];
+  if (!emote) return false;
+  const fade = Number.isFinite(fadeDuration) ? Math.max(0, fadeDuration) : 0.25;
+  userMotionUntil = performance.now() + (emote.dur + fade) * 1000;
+  player.anim.playEmote(name, fade);
+  return true;
+}
+if (motionPreference){
+  const onMotionPreferenceChange = event => {
+    reduceMotion = !!event.matches;
+    if (reduceMotion && turntableBox) turntableBox.checked = false;
+  };
+  if (typeof motionPreference.addEventListener === "function") motionPreference.addEventListener("change", onMotionPreferenceChange);
+  else if (typeof motionPreference.addListener === "function") motionPreference.addListener(onMotionPreferenceChange);
+}
+
 const clock = new THREE.Clock();
 let firstFrame = true;
 function animate(){
@@ -3577,10 +3610,10 @@ function animate(){
   const dt = Math.min(clock.getDelta(), 0.1); /* frame-rate independence: everything scales by dt (clamped so a backgrounded tab can't teleport animations) */
   elapsed += dt;
   updateMovement(dt);
-  player.update(dt);
-  friend.update(dt);
+  player.update(reduceMotion && performance.now() >= userMotionUntil ? 0 : dt);
+  friend.update(reduceMotion ? 0 : dt);
   /* Island World life: restrained water waves + campfire flicker (tier-aware) */
-  if (currentRoom === "island"){
+  if (currentRoom === "island" && !reduceMotion){
     const dens = TIERS[tierActive()].particles;
     const t = elapsed;
     const wpos = scene.getObjectByName && islandGroup.getObjectByName("islandWater");
@@ -3598,9 +3631,11 @@ function animate(){
     if (flame) flame.scale.y = 1 + Math.sin(t * 9) * 0.18 * dens + Math.sin(t * 23) * 0.08;
   }
   updateNearby();
-  Object.values(ROOM_LIFE).forEach(s => s.update(dt));
-  friendWaveT -= dt;
-  if(friendWaveT <= 0){ friend.anim.playEmote("wave", 0.25); friendWaveT = 6 + Math.random()*5; }
+  if (!reduceMotion) Object.values(ROOM_LIFE).forEach(s => s.update(dt));
+  if (!reduceMotion){
+    friendWaveT -= dt;
+    if(friendWaveT <= 0){ friend.anim.playEmote("wave", 0.25); friendWaveT = 6 + Math.random()*5; }
+  }
   if(friend.label) friend.label.lookAt(camera.position);
   updateCamera(dt);
   renderer.render(scene, camera);
