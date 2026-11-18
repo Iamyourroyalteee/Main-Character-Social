@@ -30,7 +30,7 @@ for (const file of mirroredAvatarFiles) {
   assert.equal(deployedFile, rootFile, "prototype and main-app avatar runtime must stay synchronized: " + file);
 }
 for (const source of [rootAvatarHtml, deployedAvatarHtml]) {
-  assert.match(source, /name="viewport" content="width=device-width, initial-scale=1(?:\\.0)?, viewport-fit=cover"/, "avatar experience must preserve safe-area and user zoom");
+  assert.match(source, /name="viewport" content="width=device-width, initial-scale=1(?:\.0)?, viewport-fit=cover"/, "avatar experience must preserve safe-area and user zoom");
   assert.doesNotMatch(source, /user-scalable=no|maximum-scale=1/, "avatar experience must not disable user zoom");
 }
 const avatarItemSlots = new Map(
