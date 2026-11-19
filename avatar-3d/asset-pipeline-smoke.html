@@ -40,7 +40,8 @@
     report("FAIL: Three.js, GLTFLoader, or MCSAvatarLoader did not load.", "fail");
     return;
   }
-  let renderer, engine, glam, animationController;
+  let renderer, engine, glam, animationController, camera, disposed = false;
+  const reduceMotion = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   try {
     renderer = new THREE.WebGLRenderer({canvas:canvas, antialias:true, alpha:false});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
@@ -48,7 +49,7 @@
     renderer.outputEncoding = THREE.sRGBEncoding;
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x181722);
-    const camera = new THREE.PerspectiveCamera(38, canvas.clientWidth / Math.max(1,canvas.clientHeight), 0.1, 50);
+    camera = new THREE.PerspectiveCamera(38, canvas.clientWidth / Math.max(1,canvas.clientHeight), 0.1, 50);
     camera.position.set(0,0.55,3.4);
     camera.lookAt(0,0.5,0);
     scene.add(new THREE.HemisphereLight(0xffffff,0x4a3b2e,1.2));
@@ -114,7 +115,7 @@
           "This is a minimal rigged test fixture, not a production avatar or iPad performance certification.",
           "pass"
         );
-        function animate(){ requestAnimationFrame(animate); animationController.update(0.016); pbrRoot.rotation.y += 0.003; renderer.render(scene,camera); }
+        function animate(){ if (disposed) return; requestAnimationFrame(animate); animationController.update(0.016); if (!reduceMotion) pbrRoot.rotation.y += 0.003; renderer.render(scene,camera); }
         animate();
       },function(error){
         report("FAIL: rigged GLTF fixture: " + error, "fail");
@@ -128,9 +129,12 @@
   window.addEventListener("resize",function(){
     if (!renderer) return;
     const stage=document.getElementById("stage");
+    camera.aspect = stage.clientWidth / Math.max(1,stage.clientHeight);
+    camera.updateProjectionMatrix();
     renderer.setSize(stage.clientWidth,stage.clientHeight,false);
   });
   window.addEventListener("pagehide",function(){
+    disposed = true;
     if (animationController) animationController.dispose();
     if (engine) engine.teardown();
     if (glam) glam.dispose();
