@@ -654,6 +654,9 @@ assert.equal(mixerUncached, 1, "animation runtime should uncache its model root"
 assert.throws(() => animation.play("Idle"), /disposed/, "disposed animation runtime must reject playback");
 console.log("PASS: skeletal animation runtime supports clips, crossfades, facial morphs, playback controls, and cleanup.");
 
+assert.ok(html.includes('id="mcs-open-fashion-studio" href="/fashion-studio/index.html" target="_top" aria-label="Open the separate Fashion Studio experience" hidden'), "Avatar Builder should expose a separate Fashion Studio link");
+assert.ok(html.includes(".mode-nav a[hidden]{display:none!important}"), "Fashion Studio link must remain hidden until the route is available");
+assert.ok(html.includes('fetch("/fashion-studio/index.html", {method:"GET", cache:"no-store"})'), "Fashion Studio link should probe the same-origin route before showing");
 console.log("PASS: multi-material PBR retint preserves arrays and disposes replaced materials safely.");
 
 }
