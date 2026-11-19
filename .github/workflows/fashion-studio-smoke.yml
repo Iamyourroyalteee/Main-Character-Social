@@ -1,0 +1,41 @@
+name: Fashion Studio smoke tests
+on:
+  pull_request:
+    paths:
+      - "fashion-studio/**"
+      - "avatar-3d/**"
+      - "src/index.html"
+      - "src/fashion-studio/**"
+      - "src/avatar-3d/**"
+      - "tests/fashion-studio-smoke.cjs"
+      - "tests/avatar-3d-safety-smoke.cjs"
+      - "tests/avatar-account-bridge-smoke.cjs"
+      - ".github/workflows/fashion-studio-smoke.yml"
+  push:
+    branches:
+      - "feature/fashion-creator-studio"
+      - "integration/avatar-p0-hardening-2026-11-18"
+    paths:
+      - "fashion-studio/**"
+      - "avatar-3d/**"
+      - "src/index.html"
+      - "src/fashion-studio/**"
+      - "tests/avatar-3d-safety-smoke.cjs"
+      - "tests/avatar-account-bridge-smoke.cjs"
+      - "src/avatar-3d/**"
+      - "tests/fashion-studio-smoke.cjs"
+      - ".github/workflows/fashion-studio-smoke.yml"
+jobs:
+  fashion-studio:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Run Fashion Studio interaction and mapping tests
+        run: node tests/fashion-studio-smoke.cjs
+      - name: Run 3D avatar loader, PBR, animation, and lifecycle tests
+        run: node tests/avatar-3d-safety-smoke.cjs
+      - name: Run avatar account bridge tests
+        run: node tests/avatar-account-bridge-smoke.cjs
