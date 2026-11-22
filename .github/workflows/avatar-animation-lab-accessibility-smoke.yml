@@ -1,0 +1,19 @@
+name: Avatar Animation Lab accessibility smoke
+on:
+  pull_request:
+    paths:
+      - "src/index.html"
+      - "tests/avatar-animation-lab-accessibility-smoke.cjs"
+      - ".github/workflows/avatar-animation-lab-accessibility-smoke.yml"
+  push:
+    branches:
+      - "fix/avatar-animation-lab-reduced-motion-2026-11-22"
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tests/avatar-animation-lab-accessibility-smoke.cjs
