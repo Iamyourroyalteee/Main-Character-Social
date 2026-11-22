@@ -1,0 +1,20 @@
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const html = fs.readFileSync(path.join(__dirname, "..", "src", "index.html"), "utf8");
+const reduceStart = html.indexOf("@media (prefers-reduced-motion: reduce)");
+const styleEnd = html.indexOf("</style>", reduceStart);
+assert.ok(reduceStart >= 0 && styleEnd > reduceStart, "reduced-motion stylesheet block must exist");
+const reduceCss = html.slice(reduceStart, styleEnd);
+assert.match(reduceCss, /\.av-motion-stage\.is-playing \.stage-avatar\s*,\s*\.av-motion-stage\.is-playing \.av-focus-dot\s*\{\s*animation\s*:\s*none\s*!important\s*;\s*\}/, "avatar and focus-dot keyframe animations must stop for reduced motion");
+assert.match(reduceCss, /\.av-motion-stage \.stage-avatar\s*\{\s*will-change\s*:\s*auto\s*;\s*\}/, "reduced-motion mode must release the animation compositing hint");
+assert.ok(html.includes("Explore a 2D SVG motion study"), "the lab must disclose that its preview is 2D SVG");
+assert.ok(html.includes("does not edit a 3D rig or export animation clips"), "the lab must not imply it edits production 3D rigs");
+assert.ok(html.includes("Mark review checkpoints"), "frame buttons must be described as review markers");
+assert.ok(html.includes("do not scrub or sample a rigged animation clip"), "checkpoint limitations must be explicit");
+assert.ok(html.includes("dressUpSVG(draft,205)"), "the audited preview implementation must remain the SVG stage");
+assert.ok(!html.includes('data-act="avanim-camera"'), "the no-op camera/path toggle must be removed");
+assert.ok(!html.includes('case "avanim-camera"'), "the removed camera/path control must have no event handler");
+assert.ok(!html.includes("Camera-space path") && !html.includes("Switch to 3D path"), "misleading 3D/camera-path labels must be absent");
+console.log("Avatar Animation Lab accessibility smoke: PASS");
