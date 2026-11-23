@@ -8,6 +8,9 @@ assert.match(html, /name="viewport" content="width=device-width, initial-scale=1
 assert.doesNotMatch(html, /user-scalable=no|maximum-scale=1/, "avatar UI must not disable user zoom");
 const embeddedAvatarHtml = fs.readFileSync(path.join(__dirname, "../src/avatar-3d/index.html"), "utf8");
 assert.equal(embeddedAvatarHtml, html, "standalone and embedded avatar pages must stay byte-for-byte synchronized");
+assert.ok(html.includes('<script src="MCSAvatarCatalogAnimationBridge.js"></script>'), "avatar page must load the catalog animation bridge");
+assert.ok(html.includes("window.__mcsCatalogAnimationBridge.update(dt)"), "the main render loop must advance imported catalog animation mixers");
+assert.ok(html.includes("previewCatalogAsset:"), "the avatar integration must expose a catalog preview loader");
 assert.ok(html.includes("@media (prefers-reduced-motion: reduce)"), "avatar CSS must respect reduced-motion preferences");
 assert.ok(html.includes('window.matchMedia("(prefers-reduced-motion: reduce)")'), "avatar runtime must detect reduced-motion preferences");
 assert.ok(html.includes("function playUserEmote(name, fadeDuration)"), "user-triggered emotes must remain explicitly available");
@@ -36,6 +39,7 @@ for (const file of [
   "MCSAvatarLoader.js",
   "MCSGlamMaterialFactory.js",
   "MCSAvatarAnimationRuntime.js",
+  "MCSAvatarCatalogAnimationBridge.js",
   "MCSCameraSetup.js",
   "MCSStudioLighting.js",
   "assets/manifest.json",

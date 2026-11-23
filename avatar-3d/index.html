@@ -450,6 +450,7 @@
 <script src="MCSCameraSetup.js"></script>
 <script src="MCSAvatarLoader.js"></script>
 <script src="MCSAvatarAnimationRuntime.js"></script>
+<script src="MCSAvatarCatalogAnimationBridge.js"></script>
 <script>
 "use strict";
 /* =====================================================================
@@ -3599,6 +3600,7 @@ function animate(){
   const dt = Math.min(clock.getDelta(), 0.1); /* frame-rate independence: everything scales by dt (clamped so a backgrounded tab can't teleport animations) */
   elapsed += dt;
   updateMovement(dt);
+  if (window.__mcsCatalogAnimationBridge) window.__mcsCatalogAnimationBridge.update(dt);
   player.update(reduceMotion && performance.now() >= userMotionUntil ? 0 : dt);
   friend.update(reduceMotion ? 0 : dt);
   /* Island World life: restrained water waves + campfire flicker (tier-aware) */
@@ -3677,10 +3679,22 @@ if (engine){
   });
 }
 
+const catalogAnimationBridge = engine && window.MCSAvatarCatalogAnimationBridge
+  ? window.MCSAvatarCatalogAnimationBridge.create(THREE, engine, scene, {
+      createAnimationController: (modelRoot, clips)=> window.MCSAvatarAnimationRuntime.create(THREE, modelRoot, { clips })
+    })
+  : null;
+window.__mcsCatalogAnimationBridge = catalogAnimationBridge;
+window.addEventListener("pagehide", function(){
+  if (catalogAnimationBridge) catalogAnimationBridge.dispose();
+}, { once:true });
+
 /* QA / integration hooks */
 window.MCS = { THREE, scene, camera, renderer, player, friend, outfit, FRIEND_OUTFIT,
   AnimationRuntime: window.MCSAvatarAnimationRuntime,
   createAnimationController: (modelRoot, clips)=> window.MCSAvatarAnimationRuntime.create(THREE, modelRoot, { clips }),
+  CatalogAnimationBridge: catalogAnimationBridge,
+  previewCatalogAsset: (asset, options)=> catalogAnimationBridge ? catalogAnimationBridge.load(asset, options) : null,
   ITEMS, assetCache, alphaTexCache, SLOT_IDS, normalizeOutfit, setWaypoint, mover,
   EMOTES, MAKEUP, SKIN_TONES, HAIR_COLORS,
   mainRoomGroup, loungeGroup, isAdultProfile, setProfile, switchRoom, ADULT_SAFE_FALLBACK,

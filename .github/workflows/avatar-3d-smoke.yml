@@ -7,6 +7,7 @@ on:
       - "src/avatar-3d/**"
       - "tests/avatar-3d-safety-smoke.cjs"
       - "tests/avatar-runtime-hardening-smoke.cjs"
+      - "tests/avatar-catalog-animation-bridge-smoke.cjs"
       - ".github/workflows/avatar-3d-smoke.yml"
   push:
     branches:
@@ -17,6 +18,7 @@ on:
       - "src/avatar-3d/**"
       - "tests/avatar-3d-safety-smoke.cjs"
       - "tests/avatar-runtime-hardening-smoke.cjs"
+      - "tests/avatar-catalog-animation-bridge-smoke.cjs"
       - ".github/workflows/avatar-3d-smoke.yml"
 
 jobs:
@@ -33,3 +35,5 @@ jobs:
         run: node tests/avatar-3d-safety-smoke.cjs
       - name: Run avatar animation and resource lifecycle regression tests
         run: node tests/avatar-runtime-hardening-smoke.cjs
+      - name: Run catalog animation bridge regression tests
+        run: node tests/avatar-catalog-animation-bridge-smoke.cjs
