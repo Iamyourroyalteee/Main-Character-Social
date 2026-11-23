@@ -52,6 +52,11 @@ for (const file of [
 assert.match(glam, /Array\.isArray\(o\.material\).*?map\(function\(mat\)\{ return retintOne\(mat, o\); \}\)/s, "PBR factory must retint each material in imported material arrays");
 assert.match(html, /glam\.setPBR\(true, scene, gradientMap\);\s*glam\.retintEquipped\(\[player\.root, friend\.root\]\)/, "PBR must convert remaining legacy avatar toon materials before the first frame");
 assert.match(glam, /var mats = Array\.isArray\(o\.material\) \? o\.material : \[o\.material\]/, "PBR factory must track every material when retiring old materials");
+assert.match(glam, /shader\.uniforms\.uSSS\s*=\s*\{ value: new THREE\.Color\(sssColor \|\| 0xb4554d\) \}/, "PBR SSS approximation must bind its uSSS uniform");
+assert.match(glam, /var mainMarker = "void main\(\) \{";[\s\S]*?shader\.fragmentShader = shader\.fragmentShader\.slice\(0, mainIndex\)\s*\+\s*"uniform vec3 uSSS;/, "PBR SSS uniform must be declared before main() to prevent the historical undeclared-uniform shader failure");
+assert.match(glam, /var emissiveMarker = "#include <emissivemap_fragment>";[\s\S]*?if \(shader\.fragmentShader\.indexOf\(emissiveMarker\) < 0\) throw new Error/, "PBR SSS injection must fail explicitly if the pinned shader chunk changes");
+assert.doesNotMatch(glam, /uSSS\.rgb/, "PBR SSS must use the vec3 uniform directly, not an invalid .rgb field");
+assert.match(glam, /NOT true SSS/, "skin subsurface appearance must remain accurately labeled as an approximation");
 const assetSchema = JSON.parse(fs.readFileSync(path.join(__dirname, "../docs/3d-asset-manifest.schema.json"), "utf8"));
 const assetManifest = JSON.parse(fs.readFileSync(path.join(__dirname, "../avatar-3d/assets/manifest.json"), "utf8"));
 const gltfFixture = JSON.parse(fs.readFileSync(path.join(__dirname, "fixtures/minimal-pbr.gltf"), "utf8"));
