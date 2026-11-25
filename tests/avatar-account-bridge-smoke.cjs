@@ -6,17 +6,21 @@ const vm = require("node:vm");
 
 const html = fs.readFileSync(path.join(__dirname, "../src/index.html"), "utf8");
 const avatarRoot = path.join(__dirname, "../src/avatar-3d");
-const avatarFiles = ["index.html","MCSAvatarLoader.js","MCSCameraSetup.js","MCSGlamMaterialFactory.js","MCSStudioLighting.js","MCSAvatarAnimationRuntime.js","assets/manifest.json"];
+const avatarFiles = ["index.html","MCSAvatarLoader.js","MCSCameraSetup.js","MCSGlamMaterialFactory.js","MCSStudioLighting.js","MCSAvatarAnimationRuntime.js","MCSRoomWorlds.js","assets/manifest.json"];
 for (const file of avatarFiles) assert.ok(fs.existsSync(path.join(avatarRoot,file)), "main-app deployment must include avatar asset: " + file);
 const embeddedAvatar = fs.readFileSync(path.join(avatarRoot,"index.html"),"utf8");
+const roomWorlds = fs.readFileSync(path.join(avatarRoot,"MCSRoomWorlds.js"),"utf8");
 for (const script of ["MCSStudioLighting.js","MCSGlamMaterialFactory.js","MCSCameraSetup.js","MCSAvatarLoader.js","MCSAvatarAnimationRuntime.js"]) assert.ok(embeddedAvatar.includes(script), "embedded avatar runtime must reference " + script);
 assert.match(embeddedAvatar, /roomId = roomBand\(\) === "teen" \? "teenHangout" : "main"/, "invalid room access must fail closed into the matching age-band room");
 assert.match(embeddedAvatar, /currentRoom\] && ROOMS\[currentRoom\]\.band !== "teen"\) switchRoom\("teenHangout"\)/, "switching a profile to teen must leave every adult room");
-for (const group of ["teenHangoutGroup","teenStudioGroup","teenRunwayGroup","teenGamesGroup","teenMusicGroup","teenIslandGroup"]) {
-  assert.ok(embeddedAvatar.includes("const " + group), "each teen destination must have its own environment group: " + group);
-  assert.ok(embeddedAvatar.includes(group + ".visible = roomId ==="), "room switching must activate the matching teen environment: " + group);
+for (const id of ["teenHangout","teenStudio","teenRunway","teenGames","teenMusic"]) {
+  assert.ok(roomWorlds.includes('base("' + id + '"'), "procedural Teen World module must define " + id);
 }
-assert.match(embeddedAvatar, /const teenIslandGroup = islandGroup\.clone\(true\)/, "teen island must have separate scene visibility from the adult island");
+assert.match(embeddedAvatar, /const teenIslandGroup = islandGroup\.clone\(true\)/, "Teen Island must have its own scene group instead of reusing the adult island group");
+assert.match(embeddedAvatar, /teenIslandWater\.geometry = teenIslandWater\.geometry\.clone\(\)/, "Teen Island water animation must not mutate adult island geometry");
+assert.match(embeddedAvatar, /islandGroup\.visible = roomId === "island";\s*teenIslandGroup\.visible = roomId === "teenIsland"/, "adult and teen island scene visibility must be mutually exclusive");
+assert.match(embeddedAvatar, /currentRoom === "island" \|\| currentRoom === "teenIsland"/, "both island variants must receive their own scene animation");
+assert.match(embeddedAvatar, /activeIslandGroup\.getObjectByName\("islandWater"\)/, "island animation must update only the active room group");
 const marker = '<script id="mcs-avatar-account-bridge">';
 const start = html.indexOf(marker);
 assert.notEqual(start, -1, "main app must include the avatar account bridge");
