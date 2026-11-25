@@ -16,7 +16,8 @@ assert.ok(html.includes('window.matchMedia("(prefers-reduced-motion: reduce)")')
 assert.ok(html.includes("function playUserEmote(name, fadeDuration)"), "user-triggered emotes must remain explicitly available");
 assert.ok(html.includes("player.update(reduceMotion && performance.now() >= userMotionUntil ? 0 : dt)"), "ambient avatar motion must pause outside user-requested emotes");
 assert.ok(html.includes("friend.update(reduceMotion ? 0 : dt)"), "remote demo avatar motion must pause for reduced-motion users");
-assert.ok(html.includes('if (currentRoom === "island" && !reduceMotion)'), "island water and fire motion must pause for reduced-motion users");
+assert.ok(html.includes('if ((currentRoom === "island" || currentRoom === "teenIsland") && !reduceMotion)'), "adult and teen island water and fire motion must pause for reduced-motion users");
+assert.ok(html.includes('const activeIslandGroup = currentRoom === "teenIsland" ? teenIslandGroup : islandGroup'), "island animation must target only the active room group");
 assert.ok(html.includes("if (!reduceMotion) Object.values(ROOM_LIFE)"), "room particle systems must pause for reduced-motion users");
 assert.ok(html.includes("playUserEmote(b.dataset.emote, 0.25)"), "manual emote controls must remain functional");
 assert.match(html, /@media \(pointer: coarse\)[\s\S]*?min-width:44px;min-height:44px/, "coarse-pointer controls must meet the 44px minimum target");
