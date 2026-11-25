@@ -935,6 +935,12 @@ function buildIsland(){
   islandGroup.add(towel);
 }
 buildIsland();
+/* Keep the teen island as its own scene group: same original terrain assets,
+   separate visibility and room theme from the adult island destination. */
+const teenIslandGroup = islandGroup.clone(true);
+teenIslandGroup.name = "teenIslandWorld";
+teenIslandGroup.visible = false;
+scene.add(teenIslandGroup);
 
 function buildRoom(){
   const wallMat = new THREE.MeshBasicMaterial({ color:0x1a1826 });
@@ -1053,8 +1059,107 @@ function makeBlobShadow(){
   x.fillStyle = g; x.fillRect(0,0,128,128);
   const m = new THREE.Mesh(new THREE.PlaneGeometry(1.9,1.9),
     new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(c), transparent:true, depthWrite:false }));
+
   m.rotation.x = -Math.PI/2; m.position.y = 0.012; return m;
 }
+
+/* ==================== TEEN-SAFE ROOM ENVIRONMENTS ====================
+   Each protected teen destination owns a distinct Three.js group. The
+   avatar, camera, movement and room registry remain shared across rooms. */
+function teenBox(group,w,h,d,color,x,y,z){
+  const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),toonMat(color));
+  mesh.position.set(x,y,z);group.add(mesh);return mesh;
+}
+function teenCylinder(group,rTop,rBottom,h,color,x,y,z,segments){
+  const mesh=new THREE.Mesh(new THREE.CylinderGeometry(rTop,rBottom,h,segments||16),toonMat(color));
+  mesh.position.set(x,y,z);group.add(mesh);return mesh;
+}
+function teenSphere(group,rx,ry,rz,color,x,y,z){
+  const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,18,14),toonMat(color));
+  mesh.scale.set(rx,ry,rz);mesh.position.set(x,y,z);group.add(mesh);return mesh;
+}
+function teenRing(group,r,color,x,z){
+  const mesh=new THREE.Mesh(new THREE.TorusGeometry(r,0.035,8,64),new THREE.MeshBasicMaterial({color:color}));
+  mesh.rotation.x=Math.PI/2;mesh.position.set(x,0.035,z);group.add(mesh);return mesh;
+}
+function createTeenRoomGroup(name,kind,palette){
+  const group=new THREE.Group();group.name=name;group.visible=false;scene.add(group);
+  const floor=new THREE.Mesh(new THREE.CircleGeometry(8.5,48),new THREE.MeshBasicMaterial({color:palette.floor}));
+  floor.rotation.x=-Math.PI/2;floor.name=name+"Floor";group.add(floor);
+  const wall=toonMat(palette.wall),trim=new THREE.MeshBasicMaterial({color:palette.trim});
+  [[0,-6.4,0],[-5.6,-3.4,0.9],[5.6,-3.4,-0.9]].forEach(([x,z,rot],i)=>{
+    const panel=new THREE.Mesh(new THREE.BoxGeometry(11,5.1,0.22),wall);
+    panel.position.set(x,2.55,z);panel.rotation.y=rot;group.add(panel);
+    const line=new THREE.Mesh(new THREE.BoxGeometry(11,0.075,0.25),trim);
+    line.position.set(x,4.25,z);line.rotation.y=rot;group.add(line);
+  });
+  teenRing(group,6.8,palette.trim,0,0);
+  if(kind==="hangout"){
+    teenBox(group,2.8,0.22,1.0,palette.accent,0,0.62,-3.4);
+    [-1.0,0,1.0].forEach(x=>teenCylinder(group,0.07,0.07,0.62,palette.trim,x,0.31,-3.4));
+    [[-2.5,1.7],[2.5,1.7],[-2.7,-1.0],[2.7,-1.0]].forEach(([x,z],i)=>{
+      teenSphere(group,0.78,0.46,0.68,i%2?palette.accent:palette.secondary,x,0.46,z);
+      teenSphere(group,0.44,0.20,0.42,palette.trim,x,0.78,z-0.08);
+    });
+    teenBox(group,1.6,0.85,0.55,palette.secondary,-4.0,0.43,2.8);
+    teenSphere(group,0.36,0.8,0.36,0x4d9864,4.2,0.8,-2.8);
+  }else if(kind==="studio"){
+    [-2.8,0,2.8].forEach(x=>{
+      teenBox(group,1.9,0.16,1.1,palette.accent,x,1.05,-2.0);
+      [-0.65,0.65].forEach(dx=>teenBox(group,0.10,1.0,0.10,palette.trim,x+dx,0.5,-2.0));
+      teenBox(group,0.8,0.12,0.5,palette.secondary,x,0.58,-0.95);
+      teenBox(group,0.8,0.8,0.12,palette.trim,x,2.2,-5.75);
+      teenBox(group,0.58,0.48,0.04,palette.secondary,x,2.2,-5.65);
+    });
+    teenCylinder(group,0.48,0.48,0.10,palette.trim,-4.0,0.78,1.8,24);
+    teenBox(group,0.12,1.3,0.12,palette.accent,-4.0,1.45,1.8);
+    teenBox(group,0.9,0.08,0.12,palette.secondary,-4.0,2.0,1.8);
+  }else if(kind==="runway"){
+    teenBox(group,3.0,0.24,8.2,palette.accent,0,0.18,-0.4);
+    teenBox(group,3.35,0.08,8.5,palette.trim,0,0.34,-0.4);
+    [-1.8,1.8].forEach(x=>{
+      for(let z=-3.6;z<=3.6;z+=1.2){
+        teenSphere(group,0.12,0.12,0.12,palette.trim,x,0.55,z);
+      }
+      [-4.6,-3.2,3.1,4.5].forEach(z=>teenBox(group,1.1,0.65,0.75,palette.secondary,x*2,0.35,z));
+    });
+    teenBox(group,5.2,3.4,0.18,palette.wall,0,2.0,-5.7);
+    teenRing(group,1.5,palette.trim,0,-5.4);
+    teenCylinder(group,0.18,0.18,2.4,palette.accent,-3.7,1.2,-4.8);
+    teenCylinder(group,0.18,0.18,2.4,palette.accent,3.7,1.2,-4.8);
+  }else if(kind==="games"){
+    [-3.5,-1.2,1.2,3.5].forEach((x,i)=>{
+      teenBox(group,1.0,1.8,0.55,palette.secondary,x,0.9,-4.8);
+      teenBox(group,0.78,0.78,0.06,palette.trim,x,1.25,-4.48);
+      teenBox(group,0.18,0.06,0.06,palette.accent,x-0.2,0.68,-4.42);
+      teenSphere(group,0.10,0.10,0.10,palette.trim,x+0.18,0.68,-4.4);
+      teenSphere(group,0.65,0.38,0.55,i%2?palette.accent:palette.floor,x,0.38,1.8+i%2);
+    });
+    teenBox(group,2.8,0.18,1.2,palette.accent,0,1.1,4.0);
+    teenCylinder(group,0.08,0.08,1.0,palette.trim,-1.0,0.5,4.0);
+    teenCylinder(group,0.08,0.08,1.0,palette.trim,1.0,0.5,4.0);
+  }else if(kind==="music"){
+    teenBox(group,3.4,0.55,1.1,palette.secondary,0,0.55,-4.6);
+    teenBox(group,2.8,0.12,0.8,palette.trim,0,0.9,-4.6);
+    [-4.2,4.2].forEach(x=>{
+      teenBox(group,0.9,2.8,0.75,palette.secondary,x,1.4,-4.8);
+      teenBox(group,0.65,0.85,0.08,palette.accent,x,1.9,-4.38);
+      teenSphere(group,0.23,0.23,0.12,palette.trim,x,0.8,-4.36);
+    });
+    teenRing(group,2.0,palette.trim,0,0);
+    teenRing(group,3.2,palette.accent,0,0);
+    teenCylinder(group,0.20,0.20,0.18,palette.accent,-2.8,0.09,2.7,24);
+    teenCylinder(group,0.20,0.20,0.18,palette.accent,2.8,0.09,2.7,24);
+    group.add(new THREE.PointLight(palette.trim,0.8,12).position.set(-3,3,1));
+    group.add(new THREE.PointLight(palette.accent,0.7,12).position.set(3,3,1));
+  }
+  return group;
+}
+const teenHangoutGroup=createTeenRoomGroup("teenHangoutEnvironment","hangout",{floor:0x16251d,wall:0x1b2c22,trim:0x9bd6a2,accent:0x466e57,secondary:0x304b3b});
+const teenStudioGroup=createTeenRoomGroup("teenStudioEnvironment","studio",{floor:0x18202d,wall:0x202d3c,trim:0x9ed8f1,accent:0x6b8aa8,secondary:0x3c526b});
+const teenRunwayGroup=createTeenRoomGroup("teenRunwayEnvironment","runway",{floor:0x25152b,wall:0x301d36,trim:0xf1c66d,accent:0x8e477d,secondary:0x4e3154});
+const teenGamesGroup=createTeenRoomGroup("teenGamesEnvironment","games",{floor:0x111d2c,wall:0x19283a,trim:0x78d8ee,accent:0x315c80,secondary:0x263d59});
+const teenMusicGroup=createTeenRoomGroup("teenMusicEnvironment","music",{floor:0x21172d,wall:0x2c1e3d,trim:0xd6a7ff,accent:0x744c9c,secondary:0x432d60});
 
 /* ==================== 3. PROCEDURAL BODY FACTORY ==================== */
 /* The avatar is a hierarchy of THREE.Group "bones":
@@ -2081,6 +2186,12 @@ addRoomItem("teenHangout", { id:"th-photo",   verb:"Friend photo",   kind:"photo
 addRoomItem("teenStudio",  { id:"ts-desk",    verb:"Sit and sketch", kind:"sit",   pos:[-1.8, 0.8], spot:[-1.8,0.6], spotRot:0 });
 addRoomItem("teenStudio",  { id:"ts-moodboard",verb:"Pin your look", kind:"use",   pos:[2.6, -2.4] });
 addRoomItem("teenStudio",  { id:"ts-photo",   verb:"Studio shot",    kind:"photo", pos:[0, -3.4],  label:"Creative Studio Shot" });
+addRoomItem("teenRunway", { id:"tr-walk", verb:"Walk the runway", kind:"use", pos:[0, -0.5], toast:"You take your place on the runway." });
+addRoomItem("teenRunway", { id:"tr-photo", verb:"Runway portrait", kind:"photo", pos:[0, -4.2], label:"Runway Portrait" });
+addRoomItem("teenGames", { id:"tg-arcade", verb:"Play an arcade game", kind:"use", pos:[-3.5, -4.2], toast:"Game on — challenge your friends." });
+addRoomItem("teenGames", { id:"tg-table", verb:"Join a game", kind:"sit", pos:[0, 4.0], spot:[0,3.6], spotRot:Math.PI });
+addRoomItem("teenMusic", { id:"tm-dance", verb:"Join the dance floor", kind:"dance", pos:[0, 1.8] });
+addRoomItem("teenMusic", { id:"tm-photo", verb:"Dance-floor photo", kind:"photo", pos:[0, -3.8], label:"Dance Floor Shot" });
 /* Life effects: dust motes in Main + sparkles on teen dance floors (density by tier) */
 function buildLifeSystem(group, count, color, area){
   const geo = new THREE.BufferGeometry();
@@ -3407,7 +3518,13 @@ function switchRoom(roomId){
   const theme = ROOM_THEME[roomId] || ROOM_THEME.main;
   mainRoomGroup.visible = roomId === "main";
   loungeGroup.visible = lounge;
-  islandGroup.visible = island;
+  islandGroup.visible = roomId === "island";
+  teenIslandGroup.visible = roomId === "teenIsland";
+  teenHangoutGroup.visible = roomId === "teenHangout";
+  teenStudioGroup.visible = roomId === "teenStudio";
+  teenRunwayGroup.visible = roomId === "teenRunway";
+  teenGamesGroup.visible = roomId === "teenGames";
+  teenMusicGroup.visible = roomId === "teenMusic";
   friend.group.visible = roomId === "main"; /* friend demo lives in the Main Room */
   scene.background.set(theme.bg);
   scene.fog.color.set(theme.fog);
