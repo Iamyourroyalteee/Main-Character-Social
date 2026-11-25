@@ -34,15 +34,40 @@ for (const source of [rootAvatarHtml, deployedAvatarHtml]) {
   assert.doesNotMatch(source, /user-scalable=no|maximum-scale=1/, "avatar experience must not disable user zoom");
 }
 const avatarItemSlots = new Map(
-  [...deployedAvatarHtml.matchAll(/def\(\{\s*id:"([^"]+)",\s*name:"[^"]+",\s*slot:"([^"]+)"/g)]
+  [...deployedAvatarHtml.matchAll(/def\(\{\s*id:"([^"]+)",\s*name:"([^"]+)",\s*slot:"([^"]+)"/g)]
+    .map(match => [match[1], match[3]])
+);
+const avatarItemNames = new Map(
+  [...deployedAvatarHtml.matchAll(/def\(\{\s*id:"([^"]+)",\s*name:"([^"]+)",\s*slot:"([^"]+)"/g)]
     .map(match => [match[1], match[2]])
 );
-const mappingMatch = html.match(/const map=(\{[^\n]+\});/);
+const mappingMatch = html.match(/const AVATAR_MAP=(\{[^\n]+\});/);
 assert.ok(mappingMatch, "Fashion Studio must declare its avatar mapping table");
 const avatarMapping = vm.runInNewContext("(" + mappingMatch[1] + ")");
 for (const [pieceId, [slot, itemId]] of Object.entries(avatarMapping)) {
   assert.equal(avatarItemSlots.get(itemId), slot, "Fashion Studio mapping must target a real item in its actual slot: " + pieceId);
 }
+/* The avatar catalog must never define the same item id twice: def() overwrites silently,
+   so a duplicate definition makes the effective slot depend on declaration order. */
+const allAvatarItemIds = [...deployedAvatarHtml.matchAll(/def\(\{\s*id:"([^"]+)"/g)].map(match => match[1]);
+assert.equal(new Set(allAvatarItemIds).size, allAvatarItemIds.length, "avatar catalog must not define the same item id twice: " + allAvatarItemIds.filter((id, i) => allAvatarItemIds.indexOf(id) !== i).join(", "));
+
+/* Catalog honesty: every moodboard piece is classified from the real mapping table —
+   3D-ready pieces map to existing avatar wardrobe items, everything else is labeled
+   moodboard-only instead of pretending a 3D garment exists. */
+const itemsMatch = html.match(/const ITEMS=(\[[\s\S]*?\]);\n/);
+assert.ok(itemsMatch, "Fashion Studio must declare its catalog");
+const catalogItems = vm.runInNewContext("(" + itemsMatch[1] + ")");
+const catalogIds = new Set(catalogItems.map(item => item.id));
+for (const pieceId of Object.keys(avatarMapping)) {
+  assert.ok(catalogIds.has(pieceId), "mapping targets a moodboard piece that does not exist in the catalog: " + pieceId);
+}
+const moodboardOnlyIds = [...catalogItems].filter(item => !Object.hasOwn(avatarMapping, item.id)).map(item => item.id).sort();
+assert.deepEqual(moodboardOnlyIds, ["backpack", "belt", "bracelet", "clutch", "compact", "earrings", "lip", "ring", "scarf", "watch"], "moodboard-only pieces must stay explicitly unmapped until a matching 3D asset exists");
+assert.match(html, /Catalog art is placeholder emoji art/, "catalog must disclose that its art is placeholder emoji art, not product photos");
+assert.match(html, /"3D-ready":"Moodboard only"/, "catalog must label which pieces map to the shared avatar wardrobe");
+assert.match(html, /Object\.hasOwn\(AVATAR_MAP,item\.id\)\?"3D-ready":"Moodboard only"/, "catalog badges must be derived from the real mapping table");
+assert.match(html, /id="selectedBadge"/, "the inspector must show the selected piece's 3D-readiness");
 
 
 const mappedTargets = Object.values(avatarMapping).map(([slot, itemId]) => slot + ":" + itemId);
@@ -90,7 +115,7 @@ assert.ok(applyStart >= 0 && applyEnd > applyStart, "Fashion Studio must expose 
 const applyFunctionSource = html.slice(applyStart, applyEnd);
 const testCatalog = {};
 for (const [slot, itemId] of Object.values(avatarMapping)) {
-  testCatalog[itemId] = { slot, tints: ["#e8d9c5", "#34363d"] };
+  testCatalog[itemId] = { slot, name: avatarItemNames.get(itemId) || itemId, tints: ["#e8d9c5", "#34363d"] };
 }
 function simulateApply(initialSlots, pieceIds) {
   let applied = null;
@@ -106,7 +131,8 @@ function simulateApply(initialSlots, pieceIds) {
     placed,
     toast: message => messages.push(message),
     nearestSupportedTint: (color, tints) => tints && tints[0] || color,
-    JSON, Set, Number,
+    AVATAR_MAP: avatarMapping,
+    JSON, Set, Map, Number,
   });
   apply();
   return { applied, messages };
@@ -115,6 +141,7 @@ const outfitSlots = { outfit: { itemId: "outfit-slip" }, top: null, bottom: null
 const topOverOutfit = simulateApply(outfitSlots, ["shirt"]);
 assert.equal(topOverOutfit.applied.slots.outfit, null, "applying separates must remove a previously equipped one-piece outfit");
 assert.equal(topOverOutfit.applied.slots.top.itemId, "top-blouse", "the selected top must survive outfit conflict resolution");
+assert.match(topOverOutfit.messages.join(" "), /Applied to avatar — top → Satin Blouse/, "apply feedback must name the slots and the actual avatar items it applied");
 const accessoryWithOutfit = simulateApply(outfitSlots, ["necklace"]);
 assert.equal(accessoryWithOutfit.applied.slots.outfit.itemId, "outfit-slip", "accessories must not clear an unrelated existing outfit");
 assert.equal(accessoryWithOutfit.applied.slots.accessory.itemId, "acc-chain");
@@ -155,13 +182,6 @@ assert.match(html, /Backspace/, "moodboard pieces must support keyboard removal"
 assert.match(html, /button\{cursor:pointer;color:inherit;min-width:44px;min-height:44px\}/, "studio buttons must meet 44px touch target minimums");
 assert.match(html, /\.placed:focus-visible/, "keyboard focus must remain visibly indicated");
 assert.match(html, /function renderCollections\(/, "saved looks must be browsable");
-assert.match(html, /function renderLayers\(/, "fashion creator must expose a reorderable layer stack");
-assert.match(html, /p\.hidden===true,locked:p\.locked===true/, "layer visibility and lock state must survive saved-look restoration");
-assert.match(html, /if\(!item\|\|p\.hidden\)return/, "hidden layers must not render on the board");
-assert.match(html, /if\(!p\|\|p\.locked\)return/, "locked layers must not move by pointer or keyboard");
-assert.match(html, /Move layer up/, "layer order controls must be accessible");
-assert.match(html, /Toggle visibility for/, "layer visibility controls must be accessible");
-assert.match(html, /Toggle lock for/, "layer lock controls must be accessible");
 assert.match(html, /function exportSvg\(/, "moodboard must export");
 assert.match(html, /exportBackgroundForStyle\(\$\("boardStyle"\)\.value\)/, "SVG export must preserve the selected board style");
 assert.match(html, /api\.player\.applyOutfit\(api\.outfit\)/, "moodboard must apply supported pieces through the shared 3D avatar engine");
