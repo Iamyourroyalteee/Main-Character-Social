@@ -1430,6 +1430,7 @@ function renderProfile(){
   h+='<div class="mt4" style="display:grid;gap:.5rem;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))"><button type="button" class="inner" style="text-align:left;border:1px solid var(--red)" data-act="go" data-tab="avatar"><span class="small" style="display:block;font-weight:700;color:#ff6b6b">🎭 Create My Avatar</span><span class="xs dim" style="display:block;margin-top:.15rem">Dress-up character: skin, hair, outfit, shoes, extras — build whichever avatar you want in the Avatar Studio.</span></button><button type="button" class="inner" style="text-align:left" data-act="makeover"><span class="small gold-t" style="display:block;font-weight:700">🎨 My Colors &amp; Banner</span><span class="xs dim" style="display:block;margin-top:.15rem">Pick your palette and header — color designs, or your own uploaded header photo (Member).</span></button><button type="button" class="inner" style="text-align:left" data-act="editprofile"><span class="small" style="display:block;font-weight:700">✏️ My Words &amp; Links</span><span class="xs dim" style="display:block;margin-top:.15rem">Name, bio, status, city, interests, and your real social links — all in Edit Profile.</span></button></div><p class="xs dim mt3">Your Showcase below is also yours: upload your own photos and videos, and they\'ll be what people see — the app no longer decorates profiles with AI-style portraits.</p></section>';
   if(UI.mkOpen)h+=renderMakeover(m);
   if(UI.editing)h+=renderEditForm(m);
+  h+='<section class="card mt4" aria-label="3D Avatar Experiences"><h2 class="sub">Your 3D Avatar Experiences</h2><p class="small dim mt1">Build and style your character separately from the social spaces where you use it. Both experiences use the same saved character.</p><div class="grid2 mt3"><button type="button" class="btn btn-gold" data-mcs-avatar-mode="builder">✨ Open Avatar Builder</button><button type="button" class="btn btn-goldline" data-mcs-avatar-mode="rooms">🏡 Enter Avatar Rooms</button></div></section>';
   h+='<div class="card mt4" style="border-color:rgba(217,35,35,.6);padding:.75rem"><p class="tiny" style="text-align:center;font-weight:700;text-transform:uppercase;letter-spacing:.2em;color:#ff6b6b;padding-top:.25rem">🎭 Avatar Studio — create your avatar below</p>'+renderAvatarStudio()+"</div>";
   h+=renderProfileSocial(m);
   return h+"</div>";
@@ -4926,5 +4927,102 @@ renderSettings=function(){var h=av36origSettings2();var m=meP();if(m&&UI.setting
 })();
 </script>
 <script id="mcs43-profile-links">(function(){var params=new URLSearchParams(window.location.search);var profileId=params.get("profile");if(profileId&&window.A&&typeof window.A.openProfile==="function"){window.A.openProfile(profileId);}})();</script>
+
+<style id="mcs-avatar-experience-shell-style">
+#mcs-avatar-3d-shell[hidden]{display:none!important}
+#mcs-avatar-3d-shell{position:fixed;inset:0;z-index:1000;background:#09080a;color:#f7f1e6;display:flex;flex-direction:column}
+#mcs-avatar-3d-shell .mcs-avatar-shellbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;background:#141116;border-bottom:1px solid #6d5424}
+#mcs-avatar-3d-shell .mcs-avatar-shellbar strong{font-size:13px;letter-spacing:.08em}
+#mcs-avatar-3d-shell .mcs-avatar-shellbar button{min-width:44px;min-height:44px;border:1px solid #6d5424;border-radius:10px;padding:8px 14px;background:#211b20;color:#f7f1e6}
+#mcs-avatar-3d-frame{width:100%;height:100%;flex:1;border:0;background:#0b0b0e}
+@media(prefers-reduced-motion:reduce){#mcs-avatar-3d-shell *{scroll-behavior:auto!important;transition:none!important}}
+</style>
+<div id="mcs-avatar-3d-shell" hidden role="dialog" aria-modal="true" aria-label="Main Character Social 3D Avatar Experience">
+  <div class="mcs-avatar-shellbar"><strong id="mcs-avatar-shell-title">MAIN CHARACTER SOCIAL · AVATAR BUILDER</strong><button type="button" id="mcs-avatar-shell-close" aria-label="Close avatar experience">Close ✕</button></div>
+  <iframe id="mcs-avatar-3d-frame" src="about:blank" title="Main Character Social 3D avatar experience" allow="fullscreen"></iframe>
+</div>
+<script id="mcs-avatar-account-bridge">
+(function(){
+  "use strict";
+  var frame=document.getElementById("mcs-avatar-3d-frame");
+  var shell=document.getElementById("mcs-avatar-3d-shell");
+  var title=document.getElementById("mcs-avatar-shell-title");
+  var close=document.getElementById("mcs-avatar-shell-close");
+  if(!frame||!shell)return;
+  var origin=window.location.origin;
+  var MAX_CHARACTER_CHARS=150000;
+  function profileNow(){try{return typeof meP==="function"?meP():null;}catch(e){return null;}}
+  function authNow(){return window.MCS4||{};}
+  function safeCharacter(value){
+    if(!value||typeof value!=="object"||Array.isArray(value))return null;
+    if(!value.body||typeof value.body!=="object"||Array.isArray(value.body))return null;
+    if(!value.face||typeof value.face!=="object"||Array.isArray(value.face))return null;
+    if(!value.slots||typeof value.slots!=="object"||Array.isArray(value.slots))return null;
+    var result={v:1,body:value.body,face:value.face,slots:value.slots};
+    try{if(JSON.stringify(result).length>MAX_CHARACTER_CHARS)return null;}catch(e){return null;}
+    return result;
+  }
+  function reply(message){try{frame.contentWindow.postMessage(message,origin);}catch(e){}}
+  function trustedAgeBand(){
+    /* Client profile age fields are not trusted entitlements. Keep the 3D surface
+       teen-safe until a server-verified age claim is wired into this bridge. */
+    return "teen";
+  }
+  function launch(mode){
+    if(mode!=="builder"&&mode!=="rooms")return;
+    var next=new URL("/avatar-3d/",window.location.href);
+    next.searchParams.set("mode",mode);
+    title.textContent=mode==="rooms"?"MAIN CHARACTER SOCIAL · AVATAR ROOMS":"MAIN CHARACTER SOCIAL · AVATAR BUILDER";
+    shell.hidden=false;
+    if(frame.getAttribute("src")!==next.pathname+next.search && frame.src!==next.toString())frame.src=next.toString();
+    close.focus();
+  }
+  document.addEventListener("click",function(event){
+    var button=event.target&&event.target.closest?event.target.closest("[data-mcs-avatar-mode]"):null;
+    if(button){event.preventDefault();launch(button.getAttribute("data-mcs-avatar-mode"));}
+  });
+  if(close)close.addEventListener("click",function(){shell.hidden=true;});
+  document.addEventListener("keydown",function(event){if(event.key==="Escape"&&!shell.hidden)shell.hidden=true;});
+  window.addEventListener("message",async function(event){
+    if(event.origin!==origin||event.source!==frame.contentWindow)return;
+    var data=event.data||{};
+    if(data.type==="MCS_AVATAR_READY"){
+      var profile=profileNow();
+      var auth=authNow();
+      var hasAccount=!!(profile&&profile.id&&auth.session&&auth.session.user&&auth.session.user.id);
+      reply({type:"MCS_AVATAR_LOAD",hasAccount:hasAccount,ageBand:trustedAgeBand(),character:hasAccount?(profile.avatar3d||null):null});
+      return;
+    }
+    if(data.type!=="MCS_AVATAR_SAVE")return;
+    var character=safeCharacter(data.character);
+    if(!character){reply({type:"MCS_AVATAR_SAVE_RESULT",ok:false,scope:"none",message:"Character data was invalid or exceeded the save limit."});return;}
+    var profile=profileNow();
+    var auth=authNow();
+    var signedIn=!!(profile&&profile.id&&auth.session&&auth.session.user&&auth.session.user.id&&auth.client&&typeof auth.client.from==="function");
+    if(!signedIn){
+      if(profile)profile.avatar3d=character;
+      try{if(typeof save==="function")save();}catch(e){}
+      reply({type:"MCS_AVATAR_SAVE_RESULT",ok:true,scope:"device",message:"Character saved on this device."});
+      return;
+    }
+    try{
+      var payload={};
+      try{payload=JSON.parse(JSON.stringify(profile));}catch(e){payload={};}
+      delete payload.email;delete payload.birthdate;delete payload.phone;
+      payload.avatar3d=character;
+      var result=await auth.client.from("mcs_profiles").update({payload:payload}).eq("id",profile.id).select().maybeSingle();
+      if(!result||result.error||!result.data){
+        reply({type:"MCS_AVATAR_SAVE_RESULT",ok:false,scope:"account",message:"Your account could not save this character. Your previous saved character is unchanged."});
+        return;
+      }
+      profile.avatar3d=character;
+      try{if(typeof save==="function")save();}catch(e){}
+      reply({type:"MCS_AVATAR_SAVE_RESULT",ok:true,scope:"account",message:"Character saved to your MCS account."});
+    }catch(error){
+      reply({type:"MCS_AVATAR_SAVE_RESULT",ok:false,scope:"account",message:"Your account could not save this character. Your previous saved character is unchanged."});
+    }
+  });
+})();
+</script>
 </body>
 </html>
