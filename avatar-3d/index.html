@@ -1469,19 +1469,9 @@ def({ id:"hat-crown", name:"Gold Crown", slot:"hat", premium:true, tints:["#d4af
 }});
 
 /* ---------- ACCESSORIES & PROPS (rigid bone parenting) ---------- */
-def({ id:"acc-shades", name:"Designer Shades", slot:"accessory", tints:["#14100e","#d4af37","#c8102e","#e8e8ec"], build(){
-  const frame = MATF(0x14100e);
-  const parts = [];
-  [-1,1].forEach(s=>{
-    parts.push(M3(new THREE.BoxGeometry(0.19, 0.13, 0.03), frame, { p:[s*0.155, 0.335, 0.435], role:"fixed" }));
-    parts.push(M3(new THREE.BoxGeometry(0.03, 0.03, 0.34), frame, { p:[s*0.42, 0.36, 0.28], role:"fixed" }));
-  });
-  parts.push(M3(new THREE.BoxGeometry(0.13, 0.025, 0.03), frame, { p:[0, 0.36, 0.44], role:"fixed" }));
-  const lens = new THREE.MeshBasicMaterial({ color:0x101018, transparent:true, opacity:0.55 });
-  [-1,1].forEach(s=> parts.push(M3(new THREE.BoxGeometry(0.16, 0.10, 0.012),
-    s<0 ? lens : lens, { p:[s*0.155, 0.335, 0.452], role:"fixed" })));
-  return [{ bone:"head", obj:grp(parts) }];
-}});
+/* Designer Shades live in the glasses section below (slot:"glasses", socket:"glasses").
+   An earlier duplicate definition here (slot:"accessory") was dead code — def() overwrites
+   by id, so the glasses version always won. Removed 2026-11 to remove the ambiguity. */
 def({ id:"acc-chain", name:"Gold Chain", slot:"accessory", tints:["#d4af37","#e8e8ec"], build(){
   const chain = M3(new THREE.TorusGeometry(0.155, 0.021, 8, 28), MATF(0xd4af37),
     { p:[0, 0.665, 0.115], r:[1.15, 0, 0], role:"fixed" });
