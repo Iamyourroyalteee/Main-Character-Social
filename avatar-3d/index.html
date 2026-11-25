@@ -498,9 +498,51 @@ function shapeById(id){ return SHAPES_FEM.concat(SHAPES_MASC).find(s=>s.id===id)
    remain unavailable until a server-authoritative entitlement is wired. */
 function clampBodyForBand(body, ageBand){
   if (isAdultProfile() || !body) return body;
-  const mid = v => 0.5 + (Math.max(0, Math.min(1, v == null ? 0.5 : v)) - 0.5) * 0.5;
-  body.hips = mid(body.hips); body.glutes = mid(body.glutes); body.waist = mid(body.waist);
+  /* Unknown/teen values are bounded, not repeatedly eased toward 0.5.
+     A bounded clamp is idempotent, so saved proportions do not drift on
+     every restore or Apply. */
+  const bounded = v => {
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.max(0.25, Math.min(0.75, n)) : 0.5;
+  };
+  body.hips = bounded(body.hips); body.glutes = bounded(body.glutes); body.waist = bounded(body.waist);
   return body;
+}
+function sanitizeBodyForBuilder(body){
+  const source = body && typeof body === "object" ? body : {};
+  const unit = (value, fallback) => {
+    const n = Number(value);
+    return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : fallback;
+  };
+  const shapes = SHAPES_FEM.concat(SHAPES_MASC).map(shape => shape.id);
+  const presentation = source.presentation === "masc" ? "masc" : "fem";
+  const defaultShape = presentation === "masc" ? "natural-m" : "natural-f";
+  return {
+    presentation,
+    shape: shapes.includes(source.shape) ? source.shape : defaultShape,
+    bust: unit(source.bust, 0.55),
+    chest: unit(source.chest, 0.35),
+    hips: unit(source.hips, 0.5),
+    glutes: unit(source.glutes, 0.5),
+    waist: unit(source.waist, 0.5),
+    skin: SKIN_TONES.includes(source.skin) ? source.skin : SKIN_TONES[4],
+    height: Math.max(0.93, Math.min(1.07, unit(source.height, 1)))
+  };
+}
+function sanitizeFaceForBuilder(face){
+  const source = face && typeof face === "object" ? face : {};
+  const safe = Object.assign({
+    eyes:"almond", brows:"arched", lipShape:"full", lipColor:LIP_COLORS[0], makeup:"softglam",
+    eyeSpacing:0.5, eyeSize:0.5, eyeTilt:0.5, browHeight:0.5, browThickness:0.5,
+    noseWidth:0.5, noseBridge:0.5, noseTip:0.5, lipFullness:0.5, lipWidth:0.5,
+    jawWidth:0.5, chinLength:0.5, cheekbone:0.5
+  }, source);
+  ["eyeSpacing","eyeSize","eyeTilt","browHeight","browThickness","noseWidth","noseBridge","noseTip","lipFullness","lipWidth","jawWidth","chinLength","cheekbone"].forEach(key=>{
+    const n = Number(source[key]);
+    safe[key] = Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : 0.5;
+  });
+  if (!LIP_COLORS.includes(safe.lipColor)) safe.lipColor = LIP_COLORS[0];
+  return safe;
 }
 
 /* THE OUTFIT DICTIONARY — the single source of truth.
@@ -2541,10 +2583,17 @@ class AnimationController {
   }
 }
 /* ==================== 9–10. SCENE, MOVEMENT, FRIEND ==================== */
+const FACE_LIMITS = {
+  eyeSpacing:[0.86, 1.14], eyeSize:[0.85, 1.18], eyeTilt:[-0.12, 0.12],
+  browHeight:[-0.06, 0.05], browThickness:[0.7, 1.6],
+  noseWidth:[0.75, 1.25], noseBridge:[0.55, 1.45], noseTip:[0.7, 1.35],
+  lipFullness:[0.6, 1.5], lipWidth:[0.8, 1.2],
+  jawWidth:[0.85, 1.15], chinLength:[0.8, 1.2], cheekbone:[0.0, 1.0]
+};
 function normalizeOutfit(d){
   const base = {
     v:1,
-    profile:{ ageBand:"adult" },
+    profile:{ ageBand:"unknown" },
     body:{ presentation:"fem", shape:"natural-f", bust:0.55, chest:0.35, hips:0.5, glutes:0.5, waist:0.5, skin:SKIN_TONES[4], height:1 },
     face:{ eyes:"almond", brows:"arched", lipShape:"full", lipColor:LIP_COLORS[0], makeup:"softglam",
       eyeSpacing:0.5, eyeSize:0.5, eyeTilt:0.5, browHeight:0.5, browThickness:0.5,
@@ -2553,11 +2602,11 @@ function normalizeOutfit(d){
     slots:{ hair:null, top:null, bottom:null, outfit:null, shoes:null, hat:null, glasses:null, accessory:null, prop:null }
   };
   if(!d || typeof d !== "object") return base;
-  if(d.profile && d.profile.ageBand) base.profile.ageBand = d.profile.ageBand === "teen" ? "teen" : "adult";
-  Object.assign(base.body, d.body || {});
+  /* Profile age is never accepted from an outfit string. Only the trusted
+     account bridge may establish entitlement; standalone/unknown stays safe. */
+  base.body = sanitizeBodyForBuilder(Object.assign({}, base.body, d.body || {}));
   clampBodyForBand(base.body, base.profile.ageBand);
-  Object.assign(base.face, d.face || {});
-  /* Phase B: enforce band limits on pasted/saved strings (teen = conservative) */
+  base.face = sanitizeFaceForBuilder(Object.assign({}, base.face, d.face || {}));
   clampFaceForBand(base.face, base.profile.ageBand);
   Object.keys(base.slots).forEach(k=>{ base.slots[k] = (d.slots && d.slots[k]) || null; });
   return base;
@@ -2578,8 +2627,8 @@ function restoreCharacterLocally(){
   try{
     const saved = JSON.parse(localStorage.getItem(AVATAR_CHARACTER_STORAGE_KEY) || "null");
     if(!saved || typeof saved !== "object") return false;
-    if(saved.body && typeof saved.body === "object") Object.assign(outfit.body, saved.body);
-    if(saved.face && typeof saved.face === "object") Object.assign(outfit.face, saved.face);
+    Object.assign(outfit.body, sanitizeBodyForBuilder(saved.body));
+    Object.assign(outfit.face, sanitizeFaceForBuilder(saved.face));
     delete outfit.face.effective; delete outfit.face.__presetId;
     clampBodyForBand(outfit.body, outfit.profile.ageBand);
     clampFaceForBand(outfit.face, outfit.profile.ageBand);
@@ -2750,13 +2799,7 @@ function syncBody(){ player.body = clone(outfit.body); applyBodyScalers(player);
 /* Phase B — facial sculpt: geometry scalers + texture-composited feature drift.
    All params are 0..1 with 0.5 = shipped default. applyFaceScalers maps them to
    node scales (clamped so the silhouette stays plausible — no uncanny ranges). */
-const FACE_LIMITS = {
-  eyeSpacing:[0.86, 1.14], eyeSize:[0.85, 1.18], eyeTilt:[-0.12, 0.12],
-  browHeight:[-0.06, 0.05], browThickness:[0.7, 1.6],
-  noseWidth:[0.75, 1.25], noseBridge:[0.55, 1.45], noseTip:[0.7, 1.35],
-  lipFullness:[0.6, 1.5], lipWidth:[0.8, 1.2],
-  jawWidth:[0.85, 1.15], chinLength:[0.8, 1.2], cheekbone:[0.0, 1.0]
-};
+
 /* ---------- Face saved-look presets (Phase B part 2) ----------
    localStorage "mcs3d_face_presets" — prototype-only persistence. Stores the
    face dict; applying re-runs clampFaceForBand so a teen account can never
@@ -2797,7 +2840,7 @@ function facePresetApply(id){
   if (!p) return false;
   const face = clone(p.face);
   delete face.effective;
-  outfit.face = Object.assign(clone(outfit.face), face);
+  outfit.face = sanitizeFaceForBuilder(Object.assign(clone(outfit.face), face));
   clampFaceForBand(outfit.face);
   outfit.face.__presetId = id; /* active-preset marker (UI only; stripped on save/export) */
   syncFace(); renderPanel();
@@ -2805,12 +2848,13 @@ function facePresetApply(id){
   return true;
 }
 function clampFaceForBand(f, band){
-  const b = band || (outfit && outfit.profile && outfit.profile.ageBand) || "adult";
-  if (b !== "teen") return;
-  /* Teen World: pull every sculpt param toward the 0.5 midpoint (conservative,
-     proportionate, non-sexualized) — same policy as clampBodyForBand. */
+  const b = band || (outfit && outfit.profile && outfit.profile.ageBand) || "unknown";
+  if (b === "adult" && isAdultProfile()) return;
+  /* Unknown/teen face values are bounded rather than eased repeatedly.
+     This keeps the restriction stable across Save, restore and Apply. */
   Object.keys(FACE_LIMITS).forEach(k=>{
-    if (typeof f[k] === "number") f[k] = 0.5 + (f[k] - 0.5) * 0.5;
+    const n = Number(f[k]);
+    f[k] = Number.isFinite(n) ? Math.max(0.25, Math.min(0.75, n)) : 0.5;
   });
 }
 /* Combined-drift limiter (uncanny-valley guard, validated by the 6-angle matrix):
@@ -3399,7 +3443,7 @@ function renderRoomSwitcher(){
 }
 function switchRoom(roomId){
   const room = ROOMS[roomId];
-  if(room && room.band && room.band !== roomBand()) roomId = roomBand() === "teen" ? "main" : "main"; /* AGE GATE enforced in code, not just UI */
+  if(room && room.band && room.band !== roomBand()) roomId = roomBand() === "teen" ? "teenHangout" : "main"; /* Fail closed into the caller's own age-band room. */
   if(!ROOMS[roomId]) roomId = "main";
   currentRoom = roomId;
   const lounge = roomId === "lounge";
