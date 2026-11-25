@@ -982,6 +982,14 @@ function buildIsland(){
   islandGroup.add(towel);
 }
 buildIsland();
+/* Teen Island is a separate scene graph. Static geometry/materials are shared
+   to avoid doubling GPU buffers; animated water geometry is independent. */
+const teenIslandGroup = islandGroup.clone(true);
+teenIslandGroup.name = "teenIslandWorld";
+teenIslandGroup.visible = false;
+const teenIslandWater = teenIslandGroup.getObjectByName("islandWater");
+if (teenIslandWater) teenIslandWater.geometry = teenIslandWater.geometry.clone();
+scene.add(teenIslandGroup);
 
 function buildRoom(){
   const wallMat = new THREE.MeshBasicMaterial({ color:0x1a1826 });
@@ -3473,7 +3481,8 @@ function switchRoom(roomId){
   const theme = ROOM_THEME[roomId] || ROOM_THEME.main;
   mainRoomGroup.visible = roomId === "main";
   loungeGroup.visible = lounge;
-  islandGroup.visible = island;
+  islandGroup.visible = roomId === "island";
+  teenIslandGroup.visible = roomId === "teenIsland";
   Object.keys(teenRoomWorlds.groups).forEach(id => { teenRoomWorlds.groups[id].visible = id === roomId; });
   friend.group.visible = roomId === "main"; /* friend demo lives in the Main Room */
   scene.background.set(theme.bg);
@@ -3672,10 +3681,11 @@ function animate(){
   player.update(reduceMotion && performance.now() >= userMotionUntil ? 0 : dt);
   friend.update(reduceMotion ? 0 : dt);
   /* Island World life: restrained water waves + campfire flicker (tier-aware) */
-  if (currentRoom === "island" && !reduceMotion){
+  if ((currentRoom === "island" || currentRoom === "teenIsland") && !reduceMotion){
+    const activeIslandGroup = currentRoom === "teenIsland" ? teenIslandGroup : islandGroup;
     const dens = TIERS[tierActive()].particles;
     const t = elapsed;
-    const wpos = scene.getObjectByName && islandGroup.getObjectByName("islandWater");
+    const wpos = activeIslandGroup.getObjectByName("islandWater");
     if (wpos){
       const wp = wpos.geometry.attributes.position;
       const amp = 0.05 * dens, k = 1.6;
@@ -3686,7 +3696,7 @@ function animate(){
       wp.needsUpdate = true;
       if (dens < 0.3) wpos.geometry.attributes.position.needsUpdate = false; /* eco: static */
     }
-    const flame = islandGroup.getObjectByName && islandGroup.getObjectByName("campfireFlame");
+    const flame = activeIslandGroup.getObjectByName("campfireFlame");
     if (flame) flame.scale.y = 1 + Math.sin(t * 9) * 0.18 * dens + Math.sin(t * 23) * 0.08;
   }
   updateNearby();
