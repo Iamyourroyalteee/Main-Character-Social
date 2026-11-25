@@ -160,6 +160,10 @@ assert.match(html, /button\{cursor:pointer;color:inherit;min-width:44px;min-heig
 assert.match(html, /\.placed:focus-visible/, "keyboard focus must remain visibly indicated");
 assert.match(html, /function renderCollections\(/, "saved looks must be browsable");
 assert.match(html, /function renderLayers\(/, "fashion creator must expose a reorderable layer stack");
+assert.match(html, /function applyHistory\(delta\)/, "fashion creator must support undo and redo");
+assert.match(html, /id="undo"/, "undo control must be available");
+assert.match(html, /id="redo"/, "redo control must be available");
+assert.match(html, /history\.length>60/, "history must be bounded to avoid unbounded memory growth");
 assert.match(html, /hidden:p.hidden===true,locked:p.locked===true/, "layer visibility and lock state must survive saved-look restoration");
 assert.match(html, /if\(!item\|\|p.hidden\)return/, "hidden layers must not render on the board");
 assert.match(html, /if\(!p\|\|p.locked\)return/, "locked layers must not move by pointer or keyboard");
