@@ -103,6 +103,7 @@ assert.ok(clamp, "conservative body-shape clamp must exist");
 assert.match(clamp[1], /isAdultProfile\(\)/, "unverified/teen profiles must use conservative body-shape limits");
 assert.match(html, /function sanitizeBodyForBuilder\(body\)/, "saved and imported body values must be sanitized");
 assert.match(html, /function sanitizeFaceForBuilder\(face\)/, "saved and imported face values must be sanitized");
+assert.match(html, /room\.band && room\.band !== roomBand\(\)\) roomId = roomBand\(\) === "teen" \? "teenHangout" : "main"/, "room fallback must remain inside the caller's age-band experience");
 assert.match(html, /profile:\s*\{\s*ageBand:\s*"unknown"/, "standalone outfit data must default to unknown age");
 assert.doesNotMatch(html, /base\.profile\.ageBand\s*=\s*d\.profile/, "an outfit string must never self-assert adult entitlement");
 
