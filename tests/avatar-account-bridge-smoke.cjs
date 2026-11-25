@@ -12,6 +12,15 @@ const embeddedAvatar = fs.readFileSync(path.join(avatarRoot,"index.html"),"utf8"
 for (const script of ["MCSStudioLighting.js","MCSGlamMaterialFactory.js","MCSCameraSetup.js","MCSAvatarLoader.js","MCSAvatarAnimationRuntime.js"]) assert.ok(embeddedAvatar.includes(script), "embedded avatar runtime must reference " + script);
 assert.match(embeddedAvatar, /roomId = roomBand\(\) === "teen" \? "teenHangout" : "main"/, "invalid room access must fail closed into the matching age-band room");
 assert.match(embeddedAvatar, /currentRoom\] && ROOMS\[currentRoom\]\.band !== "teen"\) switchRoom\("teenHangout"\)/, "switching a profile to teen must leave every adult room");
+const roomWorlds = fs.readFileSync(path.join(avatarRoot,"MCSRoomWorlds.js"),"utf8");
+["teenHangout","teenStudio","teenRunway","teenGames","teenMusic"].forEach(id=>{
+  assert.ok(roomWorlds.includes('base("'+id+'"'), "procedural Teen World module must define "+id);
+});
+assert.match(embeddedAvatar, /const teenIslandGroup = islandGroup\.clone\(true\)/, "Teen Island must have its own scene group instead of reusing the adult island group");
+assert.match(embeddedAvatar, /teenIslandWater\.geometry = teenIslandWater\.geometry\.clone\(\)/, "Teen Island water animation must not mutate the adult island geometry");
+assert.match(embeddedAvatar, /islandGroup\.visible = roomId === "island";\s*teenIslandGroup\.visible = roomId === "teenIsland"/, "adult and teen island scene visibility must be mutually exclusive");
+assert.match(embeddedAvatar, /currentRoom === "island" \|\| currentRoom === "teenIsland"/, "both island variants must receive their own scene animation");
+assert.match(embeddedAvatar, /activeIslandGroup\.getObjectByName\("islandWater"\)/, "island animation must update only the active room group");
 const marker = '<script id="mcs-avatar-account-bridge">';
 const start = html.indexOf(marker);
 assert.notEqual(start, -1, "main app must include the avatar account bridge");
