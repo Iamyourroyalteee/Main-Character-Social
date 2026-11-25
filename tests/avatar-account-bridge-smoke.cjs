@@ -12,6 +12,11 @@ const embeddedAvatar = fs.readFileSync(path.join(avatarRoot,"index.html"),"utf8"
 for (const script of ["MCSStudioLighting.js","MCSGlamMaterialFactory.js","MCSCameraSetup.js","MCSAvatarLoader.js","MCSAvatarAnimationRuntime.js"]) assert.ok(embeddedAvatar.includes(script), "embedded avatar runtime must reference " + script);
 assert.match(embeddedAvatar, /roomId = roomBand\(\) === "teen" \? "teenHangout" : "main"/, "invalid room access must fail closed into the matching age-band room");
 assert.match(embeddedAvatar, /currentRoom\] && ROOMS\[currentRoom\]\.band !== "teen"\) switchRoom\("teenHangout"\)/, "switching a profile to teen must leave every adult room");
+for (const group of ["teenHangoutGroup","teenStudioGroup","teenRunwayGroup","teenGamesGroup","teenMusicGroup","teenIslandGroup"]) {
+  assert.ok(embeddedAvatar.includes("const " + group), "each teen destination must have its own environment group: " + group);
+  assert.ok(embeddedAvatar.includes(group + ".visible = roomId ==="), "room switching must activate the matching teen environment: " + group);
+}
+assert.match(embeddedAvatar, /const teenIslandGroup = islandGroup\.clone\(true\)/, "teen island must have separate scene visibility from the adult island");
 const marker = '<script id="mcs-avatar-account-bridge">';
 const start = html.indexOf(marker);
 assert.notEqual(start, -1, "main app must include the avatar account bridge");
