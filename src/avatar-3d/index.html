@@ -3399,7 +3399,7 @@ function renderRoomSwitcher(){
 }
 function switchRoom(roomId){
   const room = ROOMS[roomId];
-  if(room && room.band && room.band !== roomBand()) roomId = roomBand() === "teen" ? "main" : "main"; /* AGE GATE enforced in code, not just UI */
+  if(room && room.band && room.band !== roomBand()) roomId = roomBand() === "teen" ? "teenHangout" : "main"; /* Fail closed into the caller's own age-band room. */
   if(!ROOMS[roomId]) roomId = "main";
   currentRoom = roomId;
   const lounge = roomId === "lounge";
@@ -3436,7 +3436,7 @@ function setProfile(ageBand){
   outfit.profile = { ageBand: ageBand === "teen" ? "teen" : "adult" };
   document.querySelectorAll("#profileSeg button").forEach(x=> x.classList.toggle("on", x.dataset.profile === outfit.profile.ageBand));
   clampBodyForBand(outfit.body, outfit.profile.ageBand);
-  if(outfit.profile.ageBand === "teen" && currentRoom === "lounge") switchRoom("main");
+  if(outfit.profile.ageBand === "teen" && ROOMS[currentRoom] && ROOMS[currentRoom].band !== "teen") switchRoom("teenHangout");
   player.applyOutfit(outfit);
   refreshString(); renderRoomSwitcher(); renderPanel();
   if (lobbyOpen) renderLobby();
