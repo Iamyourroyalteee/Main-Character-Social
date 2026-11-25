@@ -39,3 +39,10 @@ Run `node tests/fashion-studio-smoke.cjs`.
 - Corrected semantic mapping so unsupported jewelry and bag variants are reported instead of falsely mapping to the same accessory or handbag model.
 - Hardened local saved-look restoration against duplicate/invalid IDs, out-of-range coordinates and scales, unsafe color strings, and unknown catalog items.
 - Fixed SVG export so its background reflects the selected board style. Regression coverage is in `tests/fashion-studio-smoke.cjs`.
+
+## 2026-11-13 catalog honesty and mapping correctness
+- The wardrobe catalog now labels every piece from the real mapping table: **3D-ready** pieces map to an existing avatar wardrobe item; **Moodboard only** pieces have no matching 3D garment and are never aliased. The panel discloses that catalog art is placeholder emoji art, not product photos, and that "3D-ready" means the shared avatar's procedural wardrobe (the GLTF asset manifest currently ships zero assets).
+- The look inspector shows the same 3D-readiness label for the selected piece.
+- "Apply moodboard to model" feedback now names each slot and the actual avatar item applied (e.g. `top → Satin Blouse`) instead of a bare count, so users can see exactly what changed on the avatar.
+- Removed a dead duplicate `acc-shades` definition from the avatar catalog (it was defined twice with different slots; the later `glasses` definition always won). The smoke test now asserts the avatar catalog never defines the same item id twice, so this class of silent-ordering bug cannot return.
+- `AVATAR_MAP` is hoisted as the single source of truth for mapping and badge classification; tests pin the moodboard-only item list so new pieces must be consciously classified.
