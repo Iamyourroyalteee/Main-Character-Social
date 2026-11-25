@@ -39,6 +39,7 @@ for (const file of [
   "MCSAvatarLoader.js",
   "MCSGlamMaterialFactory.js",
   "MCSAvatarAnimationRuntime.js",
+  "MCSRoomWorlds.js",
   "MCSAvatarCatalogAnimationBridge.js",
   "MCSCameraSetup.js",
   "MCSStudioLighting.js",
