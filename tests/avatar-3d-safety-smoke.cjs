@@ -2,6 +2,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const vm = require("node:vm");
 
 const html = fs.readFileSync(path.join(__dirname, "../avatar-3d/index.html"), "utf8");
 assert.match(html, /name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/, "avatar viewport must preserve safe areas and user zoom");
@@ -184,7 +185,7 @@ assert.match(loader, /pending = pending\.filter/, "completed GLTF requests must 
 assert.match(loader, /handle\.cancelled \|\| !alive/, "cancelled or torn-down requests must not attach loaded assets");
 console.log("PASS: 3D prototype age gate fails closed; unverified body proportions are clamped; loader entitlement defaults to deny.");
 /* Exercise the actual loader module with a controllable GLTFLoader mock. */
-const vm = require("node:vm");
+
 const sandboxWindow = {};
 vm.runInNewContext(loader, { window: sandboxWindow });
 let calls = [];
