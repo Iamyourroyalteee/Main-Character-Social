@@ -913,7 +913,7 @@ async function shareText(text){try{if(navigator.share){await navigator.share({te
 /* ---------------- Saved state (this device, this browser) ---------------- */
 const LS_KEY="mcs-standalone-v1";
 function refCodeFor(username){const base=(username||"").toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,16);return base||"MAINCHARACTER";}
-function defaultSettings(){return{notify_follows:true,notify_likes:true,notify_comments:true,notify_messages:true,notify_tips:true,notify_saves:true,show_online:true,allow_collabs:true,show_birthday:true,discoverable:true,saved_post_ids:[],fashion_looks:[]};}
+function defaultSettings(){return{notify_follows:true,notify_likes:true,notify_comments:true,notify_messages:true,notify_tips:true,notify_saves:true,show_online:true,allow_collabs:true,show_birthday:true,discoverable:true,saved_post_ids:[],fashion_looks:[],avatar_looks:[]};}
 function defaultAV(){return{skin:"glow",hair:"waves",hair_color:"black",outfit:"satin",shoes:"heels",accessory:"hoops",face:"classic",lashes:"natural",hair_texture:"wavy",hair_length:"long",nail_shape:"coffin",nail_style:"base-nude",custom_icon:"",custom_color:"",custom_name:"",custom_fashion:null,custom_makeup:null};}
 function newProfile(o){return Object.assign({id:uid(),username:"",display_name:"",avatar:"gold",photo:"",audience:"anyone",city:"",bio:"",status:"",interests:[],tier:"free",official:false,email:"",phone:"",birthdate:"",birthday:"",theme_id:"brand",header_id:"brand",header_src:"",custom_banner:"",custom_accent:"",custom_bg:"",socials:{instagram:"",tiktok:"",youtube:"",x:"",spotify:"",apple_music:""},av:defaultAV(),parent_code:String(Math.floor(100000+Math.random()*900000)),created_at:nowISO(),guardian_ids:[],pc_msg_policy:"friends",pc_purchases:"restricted",pc_spend_limit_cents:0,pc_follow_requests:true,streak_days:[],total_tips_cents:0,invited_by:"",legal_name:"",viewed_stories:[],custom_items:[],myFashion:[],myMakeup:[],library_migrated:false},o||{});}
 function seedDB(){
@@ -2206,10 +2206,10 @@ document.addEventListener("click",e=>{
     case "avanim-load":{const a=(DB.avatarAnimations||[]).find(x=>x.id===id&&x.pid===m.id);if(a){UI.avAnimPose=a.pose;UI.avSquash=a.squash;UI.avSpeed=a.speed;UI.avAnimFocus=a.focus;UI.avAnimPlaying=false;render();}break;}
     case "avanim-delete":DB.avatarAnimations=(DB.avatarAnimations||[]).filter(x=>x.id!==id||x.pid!==m.id);R();toast("Motion preset deleted.");break;
     case "avwear":if(UI.avDraft){m.av=Object.assign({},UI.avDraft);save();toast("Avatar saved — looking like the main character.");render();}break;
-    case "avsavelook":{const inp=document.querySelector("[data-lookname]");const name=inp?inp.value.trim():"";if(!name){toast("Name this look first.");break;}const draft=UI.avDraft||m.av;const lt=document.querySelector("[data-looktut]");DB.avatarLooks.unshift({id:uid(),pid:m.id,name:name,av:Object.assign({},draft),allow_tut:!!(lt&&lt.checked),created_at:nowISO()});save();toast("Look saved to your collection — make as many as you want, and post your favorites.");render();break;}
+    case "avsavelook":{const inp=document.querySelector("[data-lookname]");const name=inp?inp.value.trim():"";if(!name){toast("Name this look first.");break;}const draft=UI.avDraft||m.av;const lt=document.querySelector("[data-looktut]");const savedLook={id:uid(),pid:m.id,name:name,av:Object.assign({},draft),allow_tut:!!(lt&&lt.checked),created_at:nowISO()};DB.avatarLooks.unshift(savedLook);const settings=mySettings();if(!Array.isArray(settings.avatar_looks))settings.avatar_looks=[];settings.avatar_looks.unshift(savedLook);settings.avatar_looks=settings.avatar_looks.slice(0,100);save();toast("Look saved to your account collection — post your favorites from here.");render();break;}
     case "lookwear":{const l=DB.avatarLooks.find(x=>x.id===id);if(l){const locked=Object.keys(l.av).some(k=>{const cat=WARDROBE_CATS.find(c=>c.id===k);const item=cat?cat.items.find(x=>x.id===l.av[k]):null;return item&&item.access==="member"&&!isMember();});if(locked){toast("That look has a Member piece — it unlocks with Membership.");break;}m.av=Object.assign({},l.av);UI.avDraft=null;save();toast("You're wearing that look now — it's your avatar everywhere.");render();}break;}
     case "lookpost":{const l=DB.avatarLooks.find(x=>x.id===id);if(l){const inp=document.querySelector('[data-lookcaption="'+id+'"]');DB.posts.unshift(modScreenPost({id:uid(),pid:m.id,kind:"avatar",caption:inp?inp.value.trim():"",src:"",url:"",av:Object.assign({},l.av),collab_with:"",allow_tut:!!l.allow_tut,created_at:nowISO(),likes:[],comments:[],saves:[]}));save();toast("Posted! Your look is on your profile and in the feed — find it in Profile to see the love roll in.");render();}break;}
-    case "lookdel":DB.avatarLooks=DB.avatarLooks.filter(x=>x.id!==id);R();toast("Look deleted from your collection.");break;
+    case "lookdel":{DB.avatarLooks=DB.avatarLooks.filter(x=>x.id!==id);const settings=mySettings();settings.avatar_looks=(Array.isArray(settings.avatar_looks)?settings.avatar_looks:[]).filter(x=>x&&x.id!==id);R();toast("Look deleted from your account collection.");break;}
   }
 });
 document.addEventListener("submit",e=>{
@@ -4000,6 +4000,8 @@ renderSettings=function(){var h=av36origSettings2();var m=meP();if(m&&UI.setting
     if (R.settings.data[0] && R.settings.data[0].payload) {
       if (!DB.settingsByPid) DB.settingsByPid = {};
       DB.settingsByPid[me] = R.settings.data[0].payload;
+      var accountAvatarLooks = Array.isArray(DB.settingsByPid[me].avatar_looks) ? DB.settingsByPid[me].avatar_looks : [];
+      DB.avatarLooks = unionById(DB.avatarLooks || [], accountAvatarLooks, function (look) { return look.pid === me; });
     }
     /* posts: payload is the cache; likes/comments tables merge in so
        other clients' engagement shows even when the author's cached
