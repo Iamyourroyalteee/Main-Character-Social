@@ -8,7 +8,7 @@ const deployedFashionPath = path.join(__dirname, "../src/fashion-studio/index.ht
 assert.ok(fs.existsSync(deployedFashionPath), "Fashion Studio must be mirrored into the Vercel src deployment root");
 assert.equal(fs.readFileSync(deployedFashionPath, "utf8"), html, "deployed Fashion Studio route must match the tested source");
 const avatarRoot = path.join(__dirname, "../src/avatar-3d");
-for (const file of ["index.html", "MCSAvatarLoader.js", "MCSGlamMaterialFactory.js", "MCSCameraSetup.js", "MCSStudioLighting.js", "MCSAvatarAnimationRuntime.js", "assets/manifest.json", "asset-pipeline-smoke.html", "assets/test-fixtures/minimal-pbr.gltf"]) {
+for (const file of ["index.html", "MCSAvatarLoader.js", "MCSGlamMaterialFactory.js", "MCSCameraSetup.js", "MCSStudioLighting.js", "MCSAvatarAnimationRuntime.js", "MCSRoomWorlds.js", "assets/manifest.json", "asset-pipeline-smoke.html", "assets/test-fixtures/minimal-pbr.gltf"]) {
   assert.ok(fs.existsSync(path.join(avatarRoot, file)), "main-app deployment must include avatar route asset: " + file);
 }
 const deployedAvatarHtml = fs.readFileSync(path.join(avatarRoot, "index.html"), "utf8");
@@ -20,6 +20,7 @@ const mirroredAvatarFiles = [
   "MCSCameraSetup.js",
   "MCSStudioLighting.js",
   "MCSAvatarAnimationRuntime.js",
+  "MCSRoomWorlds.js",
   "assets/manifest.json",
   "asset-pipeline-smoke.html",
   "assets/test-fixtures/minimal-pbr.gltf",
