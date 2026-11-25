@@ -1,6 +1,6 @@
 # Supabase room entitlement gate
 
-The deployed `mcs-room-entitlement` Edge Function is a fail-closed authorization primitive for Avatar Rooms. It requires a valid Supabase Auth JWT (`verify_jwt = true`) and then reloads the user from Auth before reading age assurance.
+The proposed `mcs-room-entitlement` Edge Function in this draft pull request is a fail-closed authorization primitive for Avatar Rooms. It has not been deployed or wired into the room UI. It requires a valid Supabase Auth JWT (`verify_jwt = true`) and then reloads the user from Auth before reading age assurance.
 
 ## Trusted claim contract
 
@@ -27,6 +27,10 @@ The provider must derive `age_band` from its completed verification result and a
 - Adult: `main`, `lounge`, `island`
 
 Unknown rooms, missing/expired claims, invalid claims, and cross-band requests are denied.
+
+## Known room-mapping gap
+
+The client room registry also contains `teenIsland`, but the current `TEEN_ROOMS` allowlist in the function does not. The endpoint will return `unknown_room` for that destination. Do not bypass the check; reconcile the server allowlist and room policy through an explicitly reviewed security change before enabling that room.
 
 ## Integration boundary
 
