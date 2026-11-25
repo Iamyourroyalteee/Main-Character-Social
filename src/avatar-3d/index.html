@@ -511,12 +511,13 @@ function clampBodyForBand(body, ageBand){
 function sanitizeBodyForBuilder(body){
   const source = body && typeof body === "object" ? body : {};
   const unit = (value, fallback) => {
-    const n = Number(value);
+    const n = value == null || value === "" ? NaN : Number(value);
     return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : fallback;
   };
   const shapes = SHAPES_FEM.concat(SHAPES_MASC).map(shape => shape.id);
   const presentation = source.presentation === "masc" ? "masc" : "fem";
   const defaultShape = presentation === "masc" ? "natural-m" : "natural-f";
+  const rawHeight = source.height == null || source.height === "" ? NaN : Number(source.height);
   return {
     presentation,
     shape: shapes.includes(source.shape) ? source.shape : defaultShape,
@@ -526,7 +527,7 @@ function sanitizeBodyForBuilder(body){
     glutes: unit(source.glutes, 0.5),
     waist: unit(source.waist, 0.5),
     skin: SKIN_TONES.includes(source.skin) ? source.skin : SKIN_TONES[4],
-    height: Math.max(0.93, Math.min(1.07, unit(source.height, 1)))
+    height: Number.isFinite(rawHeight) ? Math.max(0.93, Math.min(1.07, rawHeight)) : 1
   };
 }
 function sanitizeFaceForBuilder(face){
@@ -538,7 +539,8 @@ function sanitizeFaceForBuilder(face){
     jawWidth:0.5, chinLength:0.5, cheekbone:0.5
   }, source);
   ["eyeSpacing","eyeSize","eyeTilt","browHeight","browThickness","noseWidth","noseBridge","noseTip","lipFullness","lipWidth","jawWidth","chinLength","cheekbone"].forEach(key=>{
-    const n = Number(source[key]);
+    const raw = source[key];
+    const n = raw == null || raw === "" ? NaN : Number(raw);
     safe[key] = Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : 0.5;
   });
   if (!LIP_COLORS.includes(safe.lipColor)) safe.lipColor = LIP_COLORS[0];
@@ -2853,7 +2855,8 @@ function clampFaceForBand(f, band){
   /* Unknown/teen face values are bounded rather than eased repeatedly.
      This keeps the restriction stable across Save, restore and Apply. */
   Object.keys(FACE_LIMITS).forEach(k=>{
-    const n = Number(f[k]);
+    const raw = f[k];
+    const n = raw == null || raw === "" ? NaN : Number(raw);
     f[k] = Number.isFinite(n) ? Math.max(0.25, Math.min(0.75, n)) : 0.5;
   });
 }
@@ -3480,7 +3483,7 @@ function setProfile(ageBand){
   outfit.profile = { ageBand: ageBand === "teen" ? "teen" : "adult" };
   document.querySelectorAll("#profileSeg button").forEach(x=> x.classList.toggle("on", x.dataset.profile === outfit.profile.ageBand));
   clampBodyForBand(outfit.body, outfit.profile.ageBand);
-  if(outfit.profile.ageBand === "teen" && currentRoom === "lounge") switchRoom("main");
+  if(outfit.profile.ageBand === "teen" && ROOMS[currentRoom] && ROOMS[currentRoom].band !== "teen") switchRoom("teenHangout");
   player.applyOutfit(outfit);
   refreshString(); renderRoomSwitcher(); renderPanel();
   if (lobbyOpen) renderLobby();
