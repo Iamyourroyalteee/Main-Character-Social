@@ -128,6 +128,7 @@ assert.equal(sanitizedBody.glutes,0.5);
 assert.equal(sanitizedBody.waist,0);
 assert.equal(sanitizedBody.skin,"#e");
 assert.equal(sanitizedBody.height,1.07);
+assert.equal(bodySanitizer({height:null}).height,1,"null height must restore to the neutral default");
 
 const bodyClampMatch = html.match(/function clampBodyForBand\(body, ageBand\)\s*\{[\s\S]*?\n\}/);
 const bodyClamp = vm.runInNewContext("(" + bodyClampMatch[0] + ")", {isAdultProfile:()=>false});
