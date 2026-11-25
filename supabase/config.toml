@@ -1,0 +1,2 @@
+[functions.mcs-room-entitlement]
+verify_jwt = true
