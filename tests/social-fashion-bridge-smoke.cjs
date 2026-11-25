@@ -25,7 +25,7 @@ assert.match(fashion,/MCS_FASHION_DELETE/);
 assert.equal(fashion,deployedFashion,"source and deployed Fashion Studio routes must remain byte-for-byte synchronized");
 function checkInlineScripts(html,label){
   let index=0;
-  for(const match of html.matchAll(/<script\b[^>]*>([\s\\S]*?)<\/script>/gi)){
+  for(const match of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)){
     const source=match[1].trim();
     if(source)assert.doesNotThrow(()=>new vm.Script(source,{filename:label+" inline script "+index}),label+" inline script "+index+" must parse");
     index++;
