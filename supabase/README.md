@@ -34,6 +34,6 @@ The client room registry also contains `teenIsland`, but the current `TEEN_ROOMS
 
 ## Integration boundary
 
-This function is deployed but is **not yet wired into the room-switch UI or any multiplayer/storage APIs**. The current procedural rooms are client-rendered scenes, so this endpoint alone does not make those static scenes access-controlled. Before enabling protected interactions or shared room services, call this endpoint before room entry and enforce the same entitlement at every server-side data/action boundary.
+After an explicitly approved deployment, this function must still be wired into the room-switch UI and any multiplayer/storage APIs. The current procedural rooms are client-rendered scenes, so this endpoint alone does not make those static scenes access-controlled. Before enabling protected interactions or shared room services, call this endpoint before room entry and enforce the same entitlement at every server-side data/action boundary.
 
 No age-assurance provider is currently configured. Until one is integrated and writes the server-managed claim, authenticated users are denied by this endpoint. Do not add a development bypass to production.
