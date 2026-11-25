@@ -1,0 +1,29 @@
+name: MCS Fashion Studio and Avatar Rooms smoke
+on:
+  pull_request:
+    paths:
+      - 'fashion-studio/**'
+      - 'src/fashion-studio/**'
+      - 'avatar-3d/**'
+      - 'src/avatar-3d/**'
+      - 'tests/fashion-studio-smoke.cjs'
+      - 'tests/avatar-3d-safety-smoke.cjs'
+      - 'tests/avatar-account-bridge-smoke.cjs'
+      - '.github/workflows/mcs-fashion-studio-smoke.yml'
+  push:
+    branches:
+      - 'integration/avatar-rooms-fashion-studio-*'
+jobs:
+  creator-and-room-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fashion Studio markup, interactions, and shared avatar integration
+        run: node tests/fashion-studio-smoke.cjs
+      - name: Avatar room age-band and interaction safety
+        run: node tests/avatar-3d-safety-smoke.cjs
+      - name: Avatar account bridge and deploy asset parity
+        run: node tests/avatar-account-bridge-smoke.cjs

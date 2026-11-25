@@ -35,6 +35,8 @@ for (const source of [rootAvatarHtml, deployedAvatarHtml]) {
 assert.match(html, /@media\(max-width:980px\) and \(min-width:721px\)/, "Fashion Studio must use a tablet layout before the three-column layout overflows");
 assert.match(html, /grid-template-columns:minmax\(200px,220px\) minmax\(0,1fr\)/, "tablet layout must keep the catalog and board usable side by side");
 assert.match(html, /button\{[^}]*min-width:44px;min-height:44px/, "Fashion Studio controls must retain 44px touch targets");
+assert.match(html, /\.layer-actions button\{min-width:44px;min-height:44px/, "layer visibility, lock and reorder controls must meet 44px touch targets");
+assert.match(html, /\.boardtools #undo,\.boardtools #redo\{min-width:44px;min-height:44px/, "undo and redo controls must meet 44px touch targets");
 
 }
 const avatarItemSlots = new Map(
@@ -159,6 +161,17 @@ assert.match(html, /Backspace/, "moodboard pieces must support keyboard removal"
 assert.match(html, /button\{cursor:pointer;color:inherit;min-width:44px;min-height:44px\}/, "studio buttons must meet 44px touch target minimums");
 assert.match(html, /\.placed:focus-visible/, "keyboard focus must remain visibly indicated");
 assert.match(html, /function renderCollections\(/, "saved looks must be browsable");
+assert.match(html, /function renderLayers\(/, "fashion creator must expose a reorderable layer stack");
+assert.match(html, /function applyHistory\(delta\)/, "fashion creator must support undo and redo");
+assert.match(html, /id="undo"/, "undo control must be available");
+assert.match(html, /id="redo"/, "redo control must be available");
+assert.match(html, /history\.length>60/, "history must be bounded to avoid unbounded memory growth");
+assert.match(html, /hidden:p.hidden===true,locked:p.locked===true/, "layer visibility and lock state must survive saved-look restoration");
+assert.match(html, /if\(!item\|\|p.hidden\)return/, "hidden layers must not render on the board");
+assert.match(html, /if\(!p\|\|p.locked\)return/, "locked layers must not move by pointer or keyboard");
+assert.match(html, /Move layer up/, "layer order controls must be accessible");
+assert.match(html, /Toggle visibility for/, "layer visibility controls must be accessible");
+assert.match(html, /Toggle lock for/, "layer lock controls must be accessible");
 assert.match(html, /function exportSvg\(/, "moodboard must export");
 assert.match(html, /exportBackgroundForStyle\(\$\("boardStyle"\)\.value\)/, "SVG export must preserve the selected board style");
 assert.match(html, /api\.player\.applyOutfit\(api\.outfit\)/, "moodboard must apply supported pieces through the shared 3D avatar engine");

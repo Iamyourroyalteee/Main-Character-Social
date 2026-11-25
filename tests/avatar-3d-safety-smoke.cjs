@@ -15,9 +15,20 @@ assert.ok(html.includes("previewCatalogAsset:"), "the avatar integration must ex
 assert.ok(html.includes("@media (prefers-reduced-motion: reduce)"), "avatar CSS must respect reduced-motion preferences");
 assert.ok(html.includes('window.matchMedia("(prefers-reduced-motion: reduce)")'), "avatar runtime must detect reduced-motion preferences");
 assert.ok(html.includes("function playUserEmote(name, fadeDuration)"), "user-triggered emotes must remain explicitly available");
+assert.ok(html.includes('<script src="MCSRoomWorlds.js"></script>'), "the protected Teen World room environment module must load");
+assert.ok(html.includes("const teenRoomWorlds = window.MCSRoomWorlds.create(THREE, scene)"), "Teen World rooms must be instantiated in the shared avatar scene");
+["teenHangout","teenStudio","teenRunway","teenGames","teenMusic"].forEach(id=>{
+  assert.ok(html.includes('teenRoomWorlds.groups.'+id), "a dedicated environment must exist for "+id);
+  assert.ok(html.includes('id === roomId'), "room switching must select the requested environment");
+});
+assert.ok(html.includes('roomBand() === "teen" ? "teenHangout" : "main"'), "unknown and invalid room routes must fail closed into the caller's own age band");
+assert.ok(html.includes('addRoomItem("teenRunway"'), "Teen Runway must expose in-room activities");
+assert.ok(html.includes('addRoomItem("teenGames"'), "Teen Games must expose in-room activities");
+assert.ok(html.includes('addRoomItem("teenMusic"'), "Teen Music must expose in-room activities");
 assert.ok(html.includes("player.update(reduceMotion && performance.now() >= userMotionUntil ? 0 : dt)"), "ambient avatar motion must pause outside user-requested emotes");
 assert.ok(html.includes("friend.update(reduceMotion ? 0 : dt)"), "remote demo avatar motion must pause for reduced-motion users");
-assert.ok(html.includes('if (currentRoom === "island" && !reduceMotion)'), "island water and fire motion must pause for reduced-motion users");
+assert.ok(html.includes('if ((currentRoom === "island" || currentRoom === "teenIsland") && !reduceMotion)'), "adult and teen island water and fire motion must pause for reduced-motion users");
+assert.ok(html.includes('const activeIslandGroup = currentRoom === "teenIsland" ? teenIslandGroup : islandGroup'), "island animation must target only the active room group");
 assert.ok(html.includes("if (!reduceMotion) Object.values(ROOM_LIFE)"), "room particle systems must pause for reduced-motion users");
 assert.ok(html.includes("playUserEmote(b.dataset.emote, 0.25)"), "manual emote controls must remain functional");
 assert.match(html, /@media \(pointer: coarse\)[\s\S]*?min-width:44px;min-height:44px/, "coarse-pointer controls must meet the 44px minimum target");

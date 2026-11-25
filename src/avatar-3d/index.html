@@ -451,6 +451,7 @@
 <script src="MCSAvatarLoader.js"></script>
 <script src="MCSAvatarAnimationRuntime.js"></script>
 <script src="MCSAvatarCatalogAnimationBridge.js"></script>
+<script src="MCSRoomWorlds.js"></script>
 <script>
 "use strict";
 /* =====================================================================
@@ -766,6 +767,8 @@ function makeFloorTexture(){
    click-to-glide, the camera and the movement code never change —
    switching rooms only toggles group visibility + ambience. */
 const mainRoomGroup = new THREE.Group(); mainRoomGroup.name = "mainRoom"; scene.add(mainRoomGroup);
+/* Dedicated room scenes; the avatar/player object stays shared across all groups. */
+const teenRoomWorlds = window.MCSRoomWorlds.create(THREE, scene);
 const floor = new THREE.Mesh(
   new THREE.CircleGeometry(8.5, 48),
   new THREE.MeshBasicMaterial({ map: makeFloorTexture() })
@@ -979,6 +982,14 @@ function buildIsland(){
   islandGroup.add(towel);
 }
 buildIsland();
+/* Teen Island is a separate scene graph. Static geometry/materials are shared
+   to avoid doubling GPU buffers; animated water geometry is independent. */
+const teenIslandGroup = islandGroup.clone(true);
+teenIslandGroup.name = "teenIslandWorld";
+teenIslandGroup.visible = false;
+const teenIslandWater = teenIslandGroup.getObjectByName("islandWater");
+if (teenIslandWater) teenIslandWater.geometry = teenIslandWater.geometry.clone();
+scene.add(teenIslandGroup);
 
 function buildRoom(){
   const wallMat = new THREE.MeshBasicMaterial({ color:0x1a1826 });
@@ -2096,7 +2107,7 @@ def({ id:"acc-sparkle-choker", name:"Sparkle Choker — After Dark", slot:"acces
 
 /* ---------- M2A: room interactables + life effects ---------- */
 const ROOM_ITEMS = {};
-const ROOM_ITEMS_BY_ROOM = { main: [], lounge: [], teenHangout: [], teenStudio: [] };
+const ROOM_ITEMS_BY_ROOM = { main: [], lounge: [], teenHangout: [], teenStudio: [], teenRunway: [], teenGames: [], teenMusic: [], teenIsland: [], island: [] };
 const ROOM_LIFE = {};
 function addRoomItem(room, it){
   ROOM_ITEMS[it.id] = it;
@@ -2125,6 +2136,16 @@ addRoomItem("teenHangout", { id:"th-photo",   verb:"Friend photo",   kind:"photo
 addRoomItem("teenStudio",  { id:"ts-desk",    verb:"Sit and sketch", kind:"sit",   pos:[-1.8, 0.8], spot:[-1.8,0.6], spotRot:0 });
 addRoomItem("teenStudio",  { id:"ts-moodboard",verb:"Pin your look", kind:"use",   pos:[2.6, -2.4] });
 addRoomItem("teenStudio",  { id:"ts-photo",   verb:"Studio shot",    kind:"photo", pos:[0, -3.4],  label:"Creative Studio Shot" });
+/* Teen World environment activities — each action uses the shared avatar controller. */
+addRoomItem("teenRunway", { id:"tr-walk", verb:"Walk the runway", kind:"dance", pos:[0, 1.5] });
+addRoomItem("teenRunway", { id:"tr-photo", verb:"Runway portrait", kind:"photo", pos:[0, -3.4], label:"Runway Look" });
+addRoomItem("teenRunway", { id:"tr-stage", verb:"Take the spotlight", kind:"use", pos:[0, 4.7] });
+addRoomItem("teenGames", { id:"tg-arcade", verb:"Play an arcade round", kind:"use", pos:[0, -3.2], toast:"Arcade station selected — multiplayer game service is not connected yet." });
+addRoomItem("teenGames", { id:"tg-table", verb:"Join the game table", kind:"sit", pos:[0, 1.6], spot:[0, 2.2], spotRot:Math.PI });
+addRoomItem("teenGames", { id:"tg-photo", verb:"Game-night photo", kind:"photo", pos:[3.5, 3.2], label:"Game Lounge Snapshot" });
+addRoomItem("teenMusic", { id:"tm-dance", verb:"Join the dance floor", kind:"dance", pos:[0, 1.0] });
+addRoomItem("teenMusic", { id:"tm-dj", verb:"Visit the DJ booth", kind:"use", pos:[0, -3.7], toast:"DJ booth selected — live audio and DJ streaming are not connected yet." });
+addRoomItem("teenMusic", { id:"tm-photo", verb:"Music-room photo", kind:"photo", pos:[3.4, 3.1], label:"Music & Dance Snapshot" });
 /* Life effects: dust motes in Main + sparkles on teen dance floors (density by tier) */
 function buildLifeSystem(group, count, color, area){
   const geo = new THREE.BufferGeometry();
@@ -2152,7 +2173,12 @@ function buildLifeSystem(group, count, color, area){
 }
 ROOM_LIFE.dust    = buildLifeSystem(mainRoomGroup,  140, 0xd4af37, 6.5);
 ROOM_LIFE.sparkle = buildLifeSystem(loungeGroup,    180, 0xff8ac4, 8.0);
-ROOM_LIFE.spark2  = buildLifeSystem(loungeGroup, 90, 0x9fd4e8, 6.0); /* teen rooms get their own system when built out (M2B) */
+ROOM_LIFE.spark2  = buildLifeSystem(loungeGroup, 90, 0x9fd4e8, 6.0);
+ROOM_LIFE.teenHangout = buildLifeSystem(teenRoomWorlds.groups.teenHangout, 90, 0xb8e5c4, 6.0);
+ROOM_LIFE.teenStudio = buildLifeSystem(teenRoomWorlds.groups.teenStudio, 110, 0xf1c5dc, 6.0);
+ROOM_LIFE.teenRunway = buildLifeSystem(teenRoomWorlds.groups.teenRunway, 120, 0xf5d5ee, 6.0);
+ROOM_LIFE.teenGames = buildLifeSystem(teenRoomWorlds.groups.teenGames, 100, 0xa8e9f7, 6.0);
+ROOM_LIFE.teenMusic = buildLifeSystem(teenRoomWorlds.groups.teenMusic, 140, 0xd7c3ff, 6.0);
 
 /* ==================== 7. WARDROBE, SOCKETS, AVATAR ==================== */
 /* Slot replacement model — slots replace wholesale on equip, numbered
@@ -3445,16 +3471,19 @@ function renderRoomSwitcher(){
   wrap.appendChild(open);
 }
 function switchRoom(roomId){
-  const room = ROOMS[roomId];
-  if(room && room.band && room.band !== roomBand()) roomId = roomBand() === "teen" ? "teenHangout" : "main"; /* Fail closed into the caller's own age-band room. */
-  if(!ROOMS[roomId]) roomId = "main";
+  let room = ROOMS[roomId];
+  if(room && room.band && room.band !== roomBand()) roomId = roomBand() === "teen" ? "teenHangout" : "main";
+  if(!ROOMS[roomId]) roomId = roomBand() === "teen" ? "teenHangout" : "main";
+  room = ROOMS[roomId];
   currentRoom = roomId;
   const lounge = roomId === "lounge";
   const island = roomId === "island" || roomId === "teenIsland";
   const theme = ROOM_THEME[roomId] || ROOM_THEME.main;
   mainRoomGroup.visible = roomId === "main";
   loungeGroup.visible = lounge;
-  islandGroup.visible = island;
+  islandGroup.visible = roomId === "island";
+  teenIslandGroup.visible = roomId === "teenIsland";
+  Object.keys(teenRoomWorlds.groups).forEach(id => { teenRoomWorlds.groups[id].visible = id === roomId; });
   friend.group.visible = roomId === "main"; /* friend demo lives in the Main Room */
   scene.background.set(theme.bg);
   scene.fog.color.set(theme.fog);
@@ -3648,13 +3677,15 @@ function animate(){
   elapsed += dt;
   updateMovement(dt);
   if (window.__mcsCatalogAnimationBridge) window.__mcsCatalogAnimationBridge.update(dt);
+  if (teenRoomWorlds) teenRoomWorlds.update(dt, elapsed, reduceMotion);
   player.update(reduceMotion && performance.now() >= userMotionUntil ? 0 : dt);
   friend.update(reduceMotion ? 0 : dt);
   /* Island World life: restrained water waves + campfire flicker (tier-aware) */
-  if (currentRoom === "island" && !reduceMotion){
+  if ((currentRoom === "island" || currentRoom === "teenIsland") && !reduceMotion){
+    const activeIslandGroup = currentRoom === "teenIsland" ? teenIslandGroup : islandGroup;
     const dens = TIERS[tierActive()].particles;
     const t = elapsed;
-    const wpos = scene.getObjectByName && islandGroup.getObjectByName("islandWater");
+    const wpos = activeIslandGroup.getObjectByName("islandWater");
     if (wpos){
       const wp = wpos.geometry.attributes.position;
       const amp = 0.05 * dens, k = 1.6;
@@ -3665,7 +3696,7 @@ function animate(){
       wp.needsUpdate = true;
       if (dens < 0.3) wpos.geometry.attributes.position.needsUpdate = false; /* eco: static */
     }
-    const flame = islandGroup.getObjectByName && islandGroup.getObjectByName("campfireFlame");
+    const flame = activeIslandGroup.getObjectByName("campfireFlame");
     if (flame) flame.scale.y = 1 + Math.sin(t * 9) * 0.18 * dens + Math.sin(t * 23) * 0.08;
   }
   updateNearby();
