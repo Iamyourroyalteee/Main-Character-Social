@@ -1150,8 +1150,10 @@ function createTeenRoomGroup(name,kind,palette){
     teenRing(group,3.2,palette.accent,0,0);
     teenCylinder(group,0.20,0.20,0.18,palette.accent,-2.8,0.09,2.7,24);
     teenCylinder(group,0.20,0.20,0.18,palette.accent,2.8,0.09,2.7,24);
-    group.add(new THREE.PointLight(palette.trim,0.8,12).position.set(-3,3,1));
-    group.add(new THREE.PointLight(palette.accent,0.7,12).position.set(3,3,1));
+    const musicKeyLight=new THREE.PointLight(palette.trim,0.8,12);
+    musicKeyLight.position.set(-3,3,1);group.add(musicKeyLight);
+    const musicRimLight=new THREE.PointLight(palette.accent,0.7,12);
+    musicRimLight.position.set(3,3,1);group.add(musicRimLight);
   }
   return group;
 }
