@@ -159,6 +159,13 @@ assert.match(html, /Backspace/, "moodboard pieces must support keyboard removal"
 assert.match(html, /button\{cursor:pointer;color:inherit;min-width:44px;min-height:44px\}/, "studio buttons must meet 44px touch target minimums");
 assert.match(html, /\.placed:focus-visible/, "keyboard focus must remain visibly indicated");
 assert.match(html, /function renderCollections\(/, "saved looks must be browsable");
+assert.match(html, /function renderLayers\(/, "fashion creator must expose a reorderable layer stack");
+assert.match(html, /hidden:p.hidden===true,locked:p.locked===true/, "layer visibility and lock state must survive saved-look restoration");
+assert.match(html, /if\(!item\|\|p.hidden\)return/, "hidden layers must not render on the board");
+assert.match(html, /if\(!p\|\|p.locked\)return/, "locked layers must not move by pointer or keyboard");
+assert.match(html, /Move layer up/, "layer order controls must be accessible");
+assert.match(html, /Toggle visibility for/, "layer visibility controls must be accessible");
+assert.match(html, /Toggle lock for/, "layer lock controls must be accessible");
 assert.match(html, /function exportSvg\(/, "moodboard must export");
 assert.match(html, /exportBackgroundForStyle\(\$\("boardStyle"\)\.value\)/, "SVG export must preserve the selected board style");
 assert.match(html, /api\.player\.applyOutfit\(api\.outfit\)/, "moodboard must apply supported pieces through the shared 3D avatar engine");
