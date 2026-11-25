@@ -1,0 +1,23 @@
+name: MCS Social and Fashion Studio smoke
+on:
+  pull_request:
+    paths:
+      - "src/index.html"
+      - "fashion-studio/**"
+      - "src/fashion-studio/**"
+      - "tests/social-fashion-bridge-smoke.cjs"
+      - ".github/workflows/mcs-social-fashion-smoke.yml"
+  push:
+    branches: ["feature/social-fashion-publishing-2026-11-25"]
+jobs:
+  social-fashion-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tests/social-fashion-bridge-smoke.cjs
+      - run: node tests/fashion-studio-smoke.cjs
+      - run: node tests/avatar-account-bridge-smoke.cjs
+      - run: node tests/security-smoke.cjs
