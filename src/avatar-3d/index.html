@@ -451,6 +451,7 @@
 <script src="MCSAvatarLoader.js"></script>
 <script src="MCSAvatarAnimationRuntime.js"></script>
 <script src="MCSAvatarCatalogAnimationBridge.js"></script>
+<script src="MCSRoomWorlds.js"></script>
 <script>
 "use strict";
 /* =====================================================================
@@ -498,9 +499,53 @@ function shapeById(id){ return SHAPES_FEM.concat(SHAPES_MASC).find(s=>s.id===id)
    remain unavailable until a server-authoritative entitlement is wired. */
 function clampBodyForBand(body, ageBand){
   if (isAdultProfile() || !body) return body;
-  const mid = v => 0.5 + (Math.max(0, Math.min(1, v == null ? 0.5 : v)) - 0.5) * 0.5;
-  body.hips = mid(body.hips); body.glutes = mid(body.glutes); body.waist = mid(body.waist);
+  /* Unknown/teen values are bounded, not repeatedly eased toward 0.5.
+     A bounded clamp is idempotent, so saved proportions do not drift on
+     every restore or Apply. */
+  const bounded = v => {
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.max(0.25, Math.min(0.75, n)) : 0.5;
+  };
+  body.hips = bounded(body.hips); body.glutes = bounded(body.glutes); body.waist = bounded(body.waist);
   return body;
+}
+function sanitizeBodyForBuilder(body){
+  const source = body && typeof body === "object" ? body : {};
+  const unit = (value, fallback) => {
+    const n = value == null || value === "" ? NaN : Number(value);
+    return Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : fallback;
+  };
+  const shapes = SHAPES_FEM.concat(SHAPES_MASC).map(shape => shape.id);
+  const presentation = source.presentation === "masc" ? "masc" : "fem";
+  const defaultShape = presentation === "masc" ? "natural-m" : "natural-f";
+  const rawHeight = source.height == null || source.height === "" ? NaN : Number(source.height);
+  return {
+    presentation,
+    shape: shapes.includes(source.shape) ? source.shape : defaultShape,
+    bust: unit(source.bust, 0.55),
+    chest: unit(source.chest, 0.35),
+    hips: unit(source.hips, 0.5),
+    glutes: unit(source.glutes, 0.5),
+    waist: unit(source.waist, 0.5),
+    skin: SKIN_TONES.includes(source.skin) ? source.skin : SKIN_TONES[4],
+    height: Number.isFinite(rawHeight) ? Math.max(0.93, Math.min(1.07, rawHeight)) : 1
+  };
+}
+function sanitizeFaceForBuilder(face){
+  const source = face && typeof face === "object" ? face : {};
+  const safe = Object.assign({
+    eyes:"almond", brows:"arched", lipShape:"full", lipColor:LIP_COLORS[0], makeup:"softglam",
+    eyeSpacing:0.5, eyeSize:0.5, eyeTilt:0.5, browHeight:0.5, browThickness:0.5,
+    noseWidth:0.5, noseBridge:0.5, noseTip:0.5, lipFullness:0.5, lipWidth:0.5,
+    jawWidth:0.5, chinLength:0.5, cheekbone:0.5
+  }, source);
+  ["eyeSpacing","eyeSize","eyeTilt","browHeight","browThickness","noseWidth","noseBridge","noseTip","lipFullness","lipWidth","jawWidth","chinLength","cheekbone"].forEach(key=>{
+    const raw = source[key];
+    const n = raw == null || raw === "" ? NaN : Number(raw);
+    safe[key] = Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : 0.5;
+  });
+  if (!LIP_COLORS.includes(safe.lipColor)) safe.lipColor = LIP_COLORS[0];
+  return safe;
 }
 
 /* THE OUTFIT DICTIONARY — the single source of truth.
@@ -722,6 +767,8 @@ function makeFloorTexture(){
    click-to-glide, the camera and the movement code never change —
    switching rooms only toggles group visibility + ambience. */
 const mainRoomGroup = new THREE.Group(); mainRoomGroup.name = "mainRoom"; scene.add(mainRoomGroup);
+/* Dedicated room scenes; the avatar/player object stays shared across all groups. */
+const teenRoomWorlds = window.MCSRoomWorlds.create(THREE, scene);
 const floor = new THREE.Mesh(
   new THREE.CircleGeometry(8.5, 48),
   new THREE.MeshBasicMaterial({ map: makeFloorTexture() })
@@ -935,12 +982,6 @@ function buildIsland(){
   islandGroup.add(towel);
 }
 buildIsland();
-/* Keep the teen island as its own scene group: same original terrain assets,
-   separate visibility and room theme from the adult island destination. */
-const teenIslandGroup = islandGroup.clone(true);
-teenIslandGroup.name = "teenIslandWorld";
-teenIslandGroup.visible = false;
-scene.add(teenIslandGroup);
 
 function buildRoom(){
   const wallMat = new THREE.MeshBasicMaterial({ color:0x1a1826 });
@@ -1059,109 +1100,8 @@ function makeBlobShadow(){
   x.fillStyle = g; x.fillRect(0,0,128,128);
   const m = new THREE.Mesh(new THREE.PlaneGeometry(1.9,1.9),
     new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(c), transparent:true, depthWrite:false }));
-
   m.rotation.x = -Math.PI/2; m.position.y = 0.012; return m;
 }
-
-/* ==================== TEEN-SAFE ROOM ENVIRONMENTS ====================
-   Each protected teen destination owns a distinct Three.js group. The
-   avatar, camera, movement and room registry remain shared across rooms. */
-function teenBox(group,w,h,d,color,x,y,z){
-  const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),toonMat(color));
-  mesh.position.set(x,y,z);group.add(mesh);return mesh;
-}
-function teenCylinder(group,rTop,rBottom,h,color,x,y,z,segments){
-  const mesh=new THREE.Mesh(new THREE.CylinderGeometry(rTop,rBottom,h,segments||16),toonMat(color));
-  mesh.position.set(x,y,z);group.add(mesh);return mesh;
-}
-function teenSphere(group,rx,ry,rz,color,x,y,z){
-  const mesh=new THREE.Mesh(new THREE.SphereGeometry(1,18,14),toonMat(color));
-  mesh.scale.set(rx,ry,rz);mesh.position.set(x,y,z);group.add(mesh);return mesh;
-}
-function teenRing(group,r,color,x,z){
-  const mesh=new THREE.Mesh(new THREE.TorusGeometry(r,0.035,8,64),new THREE.MeshBasicMaterial({color:color}));
-  mesh.rotation.x=Math.PI/2;mesh.position.set(x,0.035,z);group.add(mesh);return mesh;
-}
-function createTeenRoomGroup(name,kind,palette){
-  const group=new THREE.Group();group.name=name;group.visible=false;scene.add(group);
-  const floor=new THREE.Mesh(new THREE.CircleGeometry(8.5,48),new THREE.MeshBasicMaterial({color:palette.floor}));
-  floor.rotation.x=-Math.PI/2;floor.name=name+"Floor";group.add(floor);
-  const wall=toonMat(palette.wall),trim=new THREE.MeshBasicMaterial({color:palette.trim});
-  [[0,-6.4,0],[-5.6,-3.4,0.9],[5.6,-3.4,-0.9]].forEach(([x,z,rot],i)=>{
-    const panel=new THREE.Mesh(new THREE.BoxGeometry(11,5.1,0.22),wall);
-    panel.position.set(x,2.55,z);panel.rotation.y=rot;group.add(panel);
-    const line=new THREE.Mesh(new THREE.BoxGeometry(11,0.075,0.25),trim);
-    line.position.set(x,4.25,z);line.rotation.y=rot;group.add(line);
-  });
-  teenRing(group,6.8,palette.trim,0,0);
-  if(kind==="hangout"){
-    teenBox(group,2.8,0.22,1.0,palette.accent,0,0.62,-3.4);
-    [-1.0,0,1.0].forEach(x=>teenCylinder(group,0.07,0.07,0.62,palette.trim,x,0.31,-3.4));
-    [[-2.5,1.7],[2.5,1.7],[-2.7,-1.0],[2.7,-1.0]].forEach(([x,z],i)=>{
-      teenSphere(group,0.78,0.46,0.68,i%2?palette.accent:palette.secondary,x,0.46,z);
-      teenSphere(group,0.44,0.20,0.42,palette.trim,x,0.78,z-0.08);
-    });
-    teenBox(group,1.6,0.85,0.55,palette.secondary,-4.0,0.43,2.8);
-    teenSphere(group,0.36,0.8,0.36,0x4d9864,4.2,0.8,-2.8);
-  }else if(kind==="studio"){
-    [-2.8,0,2.8].forEach(x=>{
-      teenBox(group,1.9,0.16,1.1,palette.accent,x,1.05,-2.0);
-      [-0.65,0.65].forEach(dx=>teenBox(group,0.10,1.0,0.10,palette.trim,x+dx,0.5,-2.0));
-      teenBox(group,0.8,0.12,0.5,palette.secondary,x,0.58,-0.95);
-      teenBox(group,0.8,0.8,0.12,palette.trim,x,2.2,-5.75);
-      teenBox(group,0.58,0.48,0.04,palette.secondary,x,2.2,-5.65);
-    });
-    teenCylinder(group,0.48,0.48,0.10,palette.trim,-4.0,0.78,1.8,24);
-    teenBox(group,0.12,1.3,0.12,palette.accent,-4.0,1.45,1.8);
-    teenBox(group,0.9,0.08,0.12,palette.secondary,-4.0,2.0,1.8);
-  }else if(kind==="runway"){
-    teenBox(group,3.0,0.24,8.2,palette.accent,0,0.18,-0.4);
-    teenBox(group,3.35,0.08,8.5,palette.trim,0,0.34,-0.4);
-    [-1.8,1.8].forEach(x=>{
-      for(let z=-3.6;z<=3.6;z+=1.2){
-        teenSphere(group,0.12,0.12,0.12,palette.trim,x,0.55,z);
-      }
-      [-4.6,-3.2,3.1,4.5].forEach(z=>teenBox(group,1.1,0.65,0.75,palette.secondary,x*2,0.35,z));
-    });
-    teenBox(group,5.2,3.4,0.18,palette.wall,0,2.0,-5.7);
-    teenRing(group,1.5,palette.trim,0,-5.4);
-    teenCylinder(group,0.18,0.18,2.4,palette.accent,-3.7,1.2,-4.8);
-    teenCylinder(group,0.18,0.18,2.4,palette.accent,3.7,1.2,-4.8);
-  }else if(kind==="games"){
-    [-3.5,-1.2,1.2,3.5].forEach((x,i)=>{
-      teenBox(group,1.0,1.8,0.55,palette.secondary,x,0.9,-4.8);
-      teenBox(group,0.78,0.78,0.06,palette.trim,x,1.25,-4.48);
-      teenBox(group,0.18,0.06,0.06,palette.accent,x-0.2,0.68,-4.42);
-      teenSphere(group,0.10,0.10,0.10,palette.trim,x+0.18,0.68,-4.4);
-      teenSphere(group,0.65,0.38,0.55,i%2?palette.accent:palette.floor,x,0.38,1.8+i%2);
-    });
-    teenBox(group,2.8,0.18,1.2,palette.accent,0,1.1,4.0);
-    teenCylinder(group,0.08,0.08,1.0,palette.trim,-1.0,0.5,4.0);
-    teenCylinder(group,0.08,0.08,1.0,palette.trim,1.0,0.5,4.0);
-  }else if(kind==="music"){
-    teenBox(group,3.4,0.55,1.1,palette.secondary,0,0.55,-4.6);
-    teenBox(group,2.8,0.12,0.8,palette.trim,0,0.9,-4.6);
-    [-4.2,4.2].forEach(x=>{
-      teenBox(group,0.9,2.8,0.75,palette.secondary,x,1.4,-4.8);
-      teenBox(group,0.65,0.85,0.08,palette.accent,x,1.9,-4.38);
-      teenSphere(group,0.23,0.23,0.12,palette.trim,x,0.8,-4.36);
-    });
-    teenRing(group,2.0,palette.trim,0,0);
-    teenRing(group,3.2,palette.accent,0,0);
-    teenCylinder(group,0.20,0.20,0.18,palette.accent,-2.8,0.09,2.7,24);
-    teenCylinder(group,0.20,0.20,0.18,palette.accent,2.8,0.09,2.7,24);
-    const musicKeyLight=new THREE.PointLight(palette.trim,0.8,12);
-    musicKeyLight.position.set(-3,3,1);group.add(musicKeyLight);
-    const musicRimLight=new THREE.PointLight(palette.accent,0.7,12);
-    musicRimLight.position.set(3,3,1);group.add(musicRimLight);
-  }
-  return group;
-}
-const teenHangoutGroup=createTeenRoomGroup("teenHangoutEnvironment","hangout",{floor:0x16251d,wall:0x1b2c22,trim:0x9bd6a2,accent:0x466e57,secondary:0x304b3b});
-const teenStudioGroup=createTeenRoomGroup("teenStudioEnvironment","studio",{floor:0x18202d,wall:0x202d3c,trim:0x9ed8f1,accent:0x6b8aa8,secondary:0x3c526b});
-const teenRunwayGroup=createTeenRoomGroup("teenRunwayEnvironment","runway",{floor:0x25152b,wall:0x301d36,trim:0xf1c66d,accent:0x8e477d,secondary:0x4e3154});
-const teenGamesGroup=createTeenRoomGroup("teenGamesEnvironment","games",{floor:0x111d2c,wall:0x19283a,trim:0x78d8ee,accent:0x315c80,secondary:0x263d59});
-const teenMusicGroup=createTeenRoomGroup("teenMusicEnvironment","music",{floor:0x21172d,wall:0x2c1e3d,trim:0xd6a7ff,accent:0x744c9c,secondary:0x432d60});
 
 /* ==================== 3. PROCEDURAL BODY FACTORY ==================== */
 /* The avatar is a hierarchy of THREE.Group "bones":
@@ -2159,7 +2099,7 @@ def({ id:"acc-sparkle-choker", name:"Sparkle Choker — After Dark", slot:"acces
 
 /* ---------- M2A: room interactables + life effects ---------- */
 const ROOM_ITEMS = {};
-const ROOM_ITEMS_BY_ROOM = { main: [], lounge: [], teenHangout: [], teenStudio: [] };
+const ROOM_ITEMS_BY_ROOM = { main: [], lounge: [], teenHangout: [], teenStudio: [], teenRunway: [], teenGames: [], teenMusic: [], teenIsland: [], island: [] };
 const ROOM_LIFE = {};
 function addRoomItem(room, it){
   ROOM_ITEMS[it.id] = it;
@@ -2188,12 +2128,16 @@ addRoomItem("teenHangout", { id:"th-photo",   verb:"Friend photo",   kind:"photo
 addRoomItem("teenStudio",  { id:"ts-desk",    verb:"Sit and sketch", kind:"sit",   pos:[-1.8, 0.8], spot:[-1.8,0.6], spotRot:0 });
 addRoomItem("teenStudio",  { id:"ts-moodboard",verb:"Pin your look", kind:"use",   pos:[2.6, -2.4] });
 addRoomItem("teenStudio",  { id:"ts-photo",   verb:"Studio shot",    kind:"photo", pos:[0, -3.4],  label:"Creative Studio Shot" });
-addRoomItem("teenRunway", { id:"tr-walk", verb:"Walk the runway", kind:"use", pos:[0, -0.5], toast:"You take your place on the runway." });
-addRoomItem("teenRunway", { id:"tr-photo", verb:"Runway portrait", kind:"photo", pos:[0, -4.2], label:"Runway Portrait" });
-addRoomItem("teenGames", { id:"tg-arcade", verb:"Play an arcade game", kind:"use", pos:[-3.5, -4.2], toast:"Game on — challenge your friends." });
-addRoomItem("teenGames", { id:"tg-table", verb:"Join a game", kind:"sit", pos:[0, 4.0], spot:[0,3.6], spotRot:Math.PI });
-addRoomItem("teenMusic", { id:"tm-dance", verb:"Join the dance floor", kind:"dance", pos:[0, 1.8] });
-addRoomItem("teenMusic", { id:"tm-photo", verb:"Dance-floor photo", kind:"photo", pos:[0, -3.8], label:"Dance Floor Shot" });
+/* Teen World environment activities — each action uses the shared avatar controller. */
+addRoomItem("teenRunway", { id:"tr-walk", verb:"Walk the runway", kind:"dance", pos:[0, 1.5] });
+addRoomItem("teenRunway", { id:"tr-photo", verb:"Runway portrait", kind:"photo", pos:[0, -3.4], label:"Runway Look" });
+addRoomItem("teenRunway", { id:"tr-stage", verb:"Take the spotlight", kind:"use", pos:[0, 4.7] });
+addRoomItem("teenGames", { id:"tg-arcade", verb:"Play an arcade round", kind:"use", pos:[0, -3.2], toast:"Arcade station selected — multiplayer game service is not connected yet." });
+addRoomItem("teenGames", { id:"tg-table", verb:"Join the game table", kind:"sit", pos:[0, 1.6], spot:[0, 2.2], spotRot:Math.PI });
+addRoomItem("teenGames", { id:"tg-photo", verb:"Game-night photo", kind:"photo", pos:[3.5, 3.2], label:"Game Lounge Snapshot" });
+addRoomItem("teenMusic", { id:"tm-dance", verb:"Join the dance floor", kind:"dance", pos:[0, 1.0] });
+addRoomItem("teenMusic", { id:"tm-dj", verb:"Visit the DJ booth", kind:"use", pos:[0, -3.7], toast:"DJ booth selected — live audio and DJ streaming are not connected yet." });
+addRoomItem("teenMusic", { id:"tm-photo", verb:"Music-room photo", kind:"photo", pos:[3.4, 3.1], label:"Music & Dance Snapshot" });
 /* Life effects: dust motes in Main + sparkles on teen dance floors (density by tier) */
 function buildLifeSystem(group, count, color, area){
   const geo = new THREE.BufferGeometry();
@@ -2221,7 +2165,12 @@ function buildLifeSystem(group, count, color, area){
 }
 ROOM_LIFE.dust    = buildLifeSystem(mainRoomGroup,  140, 0xd4af37, 6.5);
 ROOM_LIFE.sparkle = buildLifeSystem(loungeGroup,    180, 0xff8ac4, 8.0);
-ROOM_LIFE.spark2  = buildLifeSystem(loungeGroup, 90, 0x9fd4e8, 6.0); /* teen rooms get their own system when built out (M2B) */
+ROOM_LIFE.spark2  = buildLifeSystem(loungeGroup, 90, 0x9fd4e8, 6.0);
+ROOM_LIFE.teenHangout = buildLifeSystem(teenRoomWorlds.groups.teenHangout, 90, 0xb8e5c4, 6.0);
+ROOM_LIFE.teenStudio = buildLifeSystem(teenRoomWorlds.groups.teenStudio, 110, 0xf1c5dc, 6.0);
+ROOM_LIFE.teenRunway = buildLifeSystem(teenRoomWorlds.groups.teenRunway, 120, 0xf5d5ee, 6.0);
+ROOM_LIFE.teenGames = buildLifeSystem(teenRoomWorlds.groups.teenGames, 100, 0xa8e9f7, 6.0);
+ROOM_LIFE.teenMusic = buildLifeSystem(teenRoomWorlds.groups.teenMusic, 140, 0xd7c3ff, 6.0);
 
 /* ==================== 7. WARDROBE, SOCKETS, AVATAR ==================== */
 /* Slot replacement model — slots replace wholesale on equip, numbered
@@ -2654,10 +2603,17 @@ class AnimationController {
   }
 }
 /* ==================== 9–10. SCENE, MOVEMENT, FRIEND ==================== */
+const FACE_LIMITS = {
+  eyeSpacing:[0.86, 1.14], eyeSize:[0.85, 1.18], eyeTilt:[-0.12, 0.12],
+  browHeight:[-0.06, 0.05], browThickness:[0.7, 1.6],
+  noseWidth:[0.75, 1.25], noseBridge:[0.55, 1.45], noseTip:[0.7, 1.35],
+  lipFullness:[0.6, 1.5], lipWidth:[0.8, 1.2],
+  jawWidth:[0.85, 1.15], chinLength:[0.8, 1.2], cheekbone:[0.0, 1.0]
+};
 function normalizeOutfit(d){
   const base = {
     v:1,
-    profile:{ ageBand:"adult" },
+    profile:{ ageBand:"unknown" },
     body:{ presentation:"fem", shape:"natural-f", bust:0.55, chest:0.35, hips:0.5, glutes:0.5, waist:0.5, skin:SKIN_TONES[4], height:1 },
     face:{ eyes:"almond", brows:"arched", lipShape:"full", lipColor:LIP_COLORS[0], makeup:"softglam",
       eyeSpacing:0.5, eyeSize:0.5, eyeTilt:0.5, browHeight:0.5, browThickness:0.5,
@@ -2666,11 +2622,11 @@ function normalizeOutfit(d){
     slots:{ hair:null, top:null, bottom:null, outfit:null, shoes:null, hat:null, glasses:null, accessory:null, prop:null }
   };
   if(!d || typeof d !== "object") return base;
-  if(d.profile && d.profile.ageBand) base.profile.ageBand = d.profile.ageBand === "teen" ? "teen" : "adult";
-  Object.assign(base.body, d.body || {});
+  /* Profile age is never accepted from an outfit string. Only the trusted
+     account bridge may establish entitlement; standalone/unknown stays safe. */
+  base.body = sanitizeBodyForBuilder(Object.assign({}, base.body, d.body || {}));
   clampBodyForBand(base.body, base.profile.ageBand);
-  Object.assign(base.face, d.face || {});
-  /* Phase B: enforce band limits on pasted/saved strings (teen = conservative) */
+  base.face = sanitizeFaceForBuilder(Object.assign({}, base.face, d.face || {}));
   clampFaceForBand(base.face, base.profile.ageBand);
   Object.keys(base.slots).forEach(k=>{ base.slots[k] = (d.slots && d.slots[k]) || null; });
   return base;
@@ -2691,8 +2647,8 @@ function restoreCharacterLocally(){
   try{
     const saved = JSON.parse(localStorage.getItem(AVATAR_CHARACTER_STORAGE_KEY) || "null");
     if(!saved || typeof saved !== "object") return false;
-    if(saved.body && typeof saved.body === "object") Object.assign(outfit.body, saved.body);
-    if(saved.face && typeof saved.face === "object") Object.assign(outfit.face, saved.face);
+    Object.assign(outfit.body, sanitizeBodyForBuilder(saved.body));
+    Object.assign(outfit.face, sanitizeFaceForBuilder(saved.face));
     delete outfit.face.effective; delete outfit.face.__presetId;
     clampBodyForBand(outfit.body, outfit.profile.ageBand);
     clampFaceForBand(outfit.face, outfit.profile.ageBand);
@@ -2863,13 +2819,7 @@ function syncBody(){ player.body = clone(outfit.body); applyBodyScalers(player);
 /* Phase B — facial sculpt: geometry scalers + texture-composited feature drift.
    All params are 0..1 with 0.5 = shipped default. applyFaceScalers maps them to
    node scales (clamped so the silhouette stays plausible — no uncanny ranges). */
-const FACE_LIMITS = {
-  eyeSpacing:[0.86, 1.14], eyeSize:[0.85, 1.18], eyeTilt:[-0.12, 0.12],
-  browHeight:[-0.06, 0.05], browThickness:[0.7, 1.6],
-  noseWidth:[0.75, 1.25], noseBridge:[0.55, 1.45], noseTip:[0.7, 1.35],
-  lipFullness:[0.6, 1.5], lipWidth:[0.8, 1.2],
-  jawWidth:[0.85, 1.15], chinLength:[0.8, 1.2], cheekbone:[0.0, 1.0]
-};
+
 /* ---------- Face saved-look presets (Phase B part 2) ----------
    localStorage "mcs3d_face_presets" — prototype-only persistence. Stores the
    face dict; applying re-runs clampFaceForBand so a teen account can never
@@ -2910,7 +2860,7 @@ function facePresetApply(id){
   if (!p) return false;
   const face = clone(p.face);
   delete face.effective;
-  outfit.face = Object.assign(clone(outfit.face), face);
+  outfit.face = sanitizeFaceForBuilder(Object.assign(clone(outfit.face), face));
   clampFaceForBand(outfit.face);
   outfit.face.__presetId = id; /* active-preset marker (UI only; stripped on save/export) */
   syncFace(); renderPanel();
@@ -2918,12 +2868,14 @@ function facePresetApply(id){
   return true;
 }
 function clampFaceForBand(f, band){
-  const b = band || (outfit && outfit.profile && outfit.profile.ageBand) || "adult";
-  if (b !== "teen") return;
-  /* Teen World: pull every sculpt param toward the 0.5 midpoint (conservative,
-     proportionate, non-sexualized) — same policy as clampBodyForBand. */
+  const b = band || (outfit && outfit.profile && outfit.profile.ageBand) || "unknown";
+  if (b === "adult" && isAdultProfile()) return;
+  /* Unknown/teen face values are bounded rather than eased repeatedly.
+     This keeps the restriction stable across Save, restore and Apply. */
   Object.keys(FACE_LIMITS).forEach(k=>{
-    if (typeof f[k] === "number") f[k] = 0.5 + (f[k] - 0.5) * 0.5;
+    const raw = f[k];
+    const n = raw == null || raw === "" ? NaN : Number(raw);
+    f[k] = Number.isFinite(n) ? Math.max(0.25, Math.min(0.75, n)) : 0.5;
   });
 }
 /* Combined-drift limiter (uncanny-valley guard, validated by the 6-angle matrix):
@@ -3511,22 +3463,18 @@ function renderRoomSwitcher(){
   wrap.appendChild(open);
 }
 function switchRoom(roomId){
-  const room = ROOMS[roomId];
-  if(room && room.band && room.band !== roomBand()) roomId = roomBand() === "teen" ? "teenHangout" : "main"; /* Fail closed into the caller's own age-band room. */
-  if(!ROOMS[roomId]) roomId = "main";
+  let room = ROOMS[roomId];
+  if(room && room.band && room.band !== roomBand()) roomId = roomBand() === "teen" ? "teenHangout" : "main";
+  if(!ROOMS[roomId]) roomId = roomBand() === "teen" ? "teenHangout" : "main";
+  room = ROOMS[roomId];
   currentRoom = roomId;
   const lounge = roomId === "lounge";
   const island = roomId === "island" || roomId === "teenIsland";
   const theme = ROOM_THEME[roomId] || ROOM_THEME.main;
   mainRoomGroup.visible = roomId === "main";
   loungeGroup.visible = lounge;
-  islandGroup.visible = roomId === "island";
-  teenIslandGroup.visible = roomId === "teenIsland";
-  teenHangoutGroup.visible = roomId === "teenHangout";
-  teenStudioGroup.visible = roomId === "teenStudio";
-  teenRunwayGroup.visible = roomId === "teenRunway";
-  teenGamesGroup.visible = roomId === "teenGames";
-  teenMusicGroup.visible = roomId === "teenMusic";
+  islandGroup.visible = island;
+  Object.keys(teenRoomWorlds.groups).forEach(id => { teenRoomWorlds.groups[id].visible = id === roomId; });
   friend.group.visible = roomId === "main"; /* friend demo lives in the Main Room */
   scene.background.set(theme.bg);
   scene.fog.color.set(theme.fog);
@@ -3720,6 +3668,7 @@ function animate(){
   elapsed += dt;
   updateMovement(dt);
   if (window.__mcsCatalogAnimationBridge) window.__mcsCatalogAnimationBridge.update(dt);
+  if (teenRoomWorlds) teenRoomWorlds.update(dt, elapsed, reduceMotion);
   player.update(reduceMotion && performance.now() >= userMotionUntil ? 0 : dt);
   friend.update(reduceMotion ? 0 : dt);
   /* Island World life: restrained water waves + campfire flicker (tier-aware) */
