@@ -4971,7 +4971,7 @@ renderSettings=function(){var h=av36origSettings2();var m=meP();if(m&&UI.setting
   function launch(mode){
     if(mode!=="builder"&&mode!=="rooms")return;
     var next=new URL("/avatar-3d/",window.location.href);
-    next.searchParams.set("mode",mode);
+    next.searchParams.set("mode", mode);
     title.textContent=mode==="rooms"?"MAIN CHARACTER SOCIAL · AVATAR ROOMS":"MAIN CHARACTER SOCIAL · AVATAR BUILDER";
     shell.hidden=false;
     if(frame.getAttribute("src")!==next.pathname+next.search && frame.src!==next.toString())frame.src=next.toString();
