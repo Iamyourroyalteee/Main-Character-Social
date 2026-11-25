@@ -2,6 +2,7 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const vm = require("node:vm");
 
 const html = fs.readFileSync(path.join(__dirname, "../avatar-3d/index.html"), "utf8");
 assert.match(html, /name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/, "avatar viewport must preserve safe areas and user zoom");
@@ -100,6 +101,63 @@ assert.match(html, /profile:\s*\{\s*ageBand:\s*"unknown"\s*\}/, "unverified prof
 const clamp = html.match(/function clampBodyForBand\(body, ageBand\)\s*\{([\s\S]*?)\n\}/);
 assert.ok(clamp, "conservative body-shape clamp must exist");
 assert.match(clamp[1], /isAdultProfile\(\)/, "unverified/teen profiles must use conservative body-shape limits");
+assert.match(html, /function sanitizeBodyForBuilder\(body\)/, "saved and imported body values must be sanitized");
+assert.match(html, /function sanitizeFaceForBuilder\(face\)/, "saved and imported face values must be sanitized");
+assert.match(html, /room\.band && room\.band !== roomBand\(\)\) roomId = roomBand\(\) === "teen" \? "teenHangout" : "main"/, "room fallback must remain inside the caller's age-band experience");
+assert.match(html, /profile:\s*\{\s*ageBand:\s*"unknown"/, "standalone outfit data must default to unknown age");
+assert.doesNotMatch(html, /base\.profile\.ageBand\s*=\s*d\.profile/, "an outfit string must never self-assert adult entitlement");
+
+/* Exercise the real body/face sanitizers and fail-closed clamps. */
+const bodySanitizerMatch = html.match(/function sanitizeBodyForBuilder\(body\)\s*\{[\s\S]*?\n\}/);
+assert.ok(bodySanitizerMatch, "body sanitizer source must be extractable");
+const bodySanitizer = vm.runInNewContext("(" + bodySanitizerMatch[0] + ")", {
+  SHAPES_FEM:[{id:"slim-f"},{id:"natural-f"}],
+  SHAPES_MASC:[{id:"natural-m"}],
+  SKIN_TONES:["#a","#b","#c","#d","#e"]
+});
+const sanitizedBody = bodySanitizer({
+  presentation:"masc", shape:"invalid-shape", bust:9, chest:-2, hips:1.8,
+  glutes:"bad", waist:-4, skin:"url(javascript:alert(1))", height:9
+});
+assert.equal(sanitizedBody.presentation,"masc");
+assert.equal(sanitizedBody.shape,"natural-m");
+assert.equal(sanitizedBody.bust,1);
+assert.equal(sanitizedBody.chest,0);
+assert.equal(sanitizedBody.hips,1);
+assert.equal(sanitizedBody.glutes,0.5);
+assert.equal(sanitizedBody.waist,0);
+assert.equal(sanitizedBody.skin,"#e");
+assert.equal(sanitizedBody.height,1.07);
+assert.equal(bodySanitizer({height:null}).height,1,"null height must restore to the neutral default");
+
+const bodyClampMatch = html.match(/function clampBodyForBand\(body, ageBand\)\s*\{[\s\S]*?\n\}/);
+const bodyClamp = vm.runInNewContext("(" + bodyClampMatch[0] + ")", {isAdultProfile:()=>false});
+const restrictedBody = {hips:0.9,glutes:0.1,waist:0.5};
+bodyClamp(restrictedBody,"unknown");
+assert.deepEqual(restrictedBody,{hips:0.75,glutes:0.25,waist:0.5});
+bodyClamp(restrictedBody,"unknown");
+assert.deepEqual(restrictedBody,{hips:0.75,glutes:0.25,waist:0.5},"body restrictions must be idempotent across repeated restores");
+
+const faceSanitizerMatch = html.match(/function sanitizeFaceForBuilder\(face\)\s*\{[\s\S]*?\n\}/);
+const faceSanitizer = vm.runInNewContext("(" + faceSanitizerMatch[0] + ")", {LIP_COLORS:["#lip"]});
+const sanitizedFace = faceSanitizer({eyeSize:8,noseWidth:-1,cheekbone:"bad",lipColor:"invalid"});
+assert.equal(sanitizedFace.eyeSize,1);
+assert.equal(sanitizedFace.noseWidth,0);
+assert.equal(sanitizedFace.cheekbone,0.5);
+assert.equal(sanitizedFace.lipColor,"#lip");
+
+const faceClampMatch = html.match(/function clampFaceForBand\(f, band\)\s*\{[\s\S]*?\n\}/);
+assert.ok(faceClampMatch,"face clamp must exist");
+const faceClamp = vm.runInNewContext("(" + faceClampMatch[0] + ")", {
+  FACE_LIMITS:{eyeSize:[0,1],noseWidth:[0,1]},
+  isAdultProfile:()=>false,
+  outfit:{profile:{ageBand:"unknown"}}
+});
+const restrictedFace = {eyeSize:0.9,noseWidth:0.1};
+faceClamp(restrictedFace,"unknown");
+assert.deepEqual(restrictedFace,{eyeSize:0.75,noseWidth:0.25});
+faceClamp(restrictedFace,"unknown");
+assert.deepEqual(restrictedFace,{eyeSize:0.75,noseWidth:0.25},"face restrictions must be idempotent across repeated restores");
 
 assert.match(loader, /opts\.getEntitlement\s*\|\|\s*function\(\)\s*\{\s*return Promise\.resolve\(\{\s*adult:false/, "GLTF loader entitlement hook must default to deny");
 assert.ok((html.match(/isAdultProfile\(\)/g) || []).length >= 5, "adult gate must be consulted across the prototype");
@@ -129,7 +187,7 @@ assert.match(loader, /pending = pending\.filter/, "completed GLTF requests must 
 assert.match(loader, /handle\.cancelled \|\| !alive/, "cancelled or torn-down requests must not attach loaded assets");
 console.log("PASS: 3D prototype age gate fails closed; unverified body proportions are clamped; loader entitlement defaults to deny.");
 /* Exercise the actual loader module with a controllable GLTFLoader mock. */
-const vm = require("node:vm");
+
 const sandboxWindow = {};
 vm.runInNewContext(loader, { window: sandboxWindow });
 let calls = [];
