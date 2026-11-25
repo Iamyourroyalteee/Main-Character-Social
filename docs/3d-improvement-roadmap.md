@@ -1,0 +1,184 @@
+# Main Character Social — 3D Improvement Roadmap
+
+This is the execution checklist for the cross-project 3D quality cycle. Work is incremental; preserve the existing product identity, user-created assets, saved data, and the separation between Avatar Builder and Avatar Rooms.
+
+## P0 — Asset pipeline foundation
+- [x] Wire Three.js r128 GLTFLoader into the shared avatar engine.
+- [x] Add schema-validated GLB/GLTF catalog-asset loading with stable IDs, supported slots/formats, safe URLs, age gating, and explicit units.
+- [x] Add safe cancellation guards, error handling, disposal, and graceful procedural fallback across GLTF and per-material texture requests, including engine teardown and explicit imported-root release.
+- [x] Validate GLTF URLs: permit project-relative/HTTPS paths; reject executable, data, blob, file, and protocol-relative schemes.
+- [x] Remove completed requests from pending tracking and prevent cancelled/torn-down loads from attaching assets.
+- [x] Validate imported mesh positions, finite transforms/scales, optional geometry bounds, and configurable mesh/vertex/triangle budgets; report missing normals, UVs, and materials.
+- [x] Reject empty indexed meshes and calculate triangle budgets from the actual index buffer, including zero-count buffers.
+- [x] Validate GLTF skinning when present: SkinnedMesh skeleton/bone-inverse parity, bones attached to the imported root, skinIndex/skinWeight cardinality and four-influence shape, bone-index bounds, finite nonnegative weights, and normalized per-vertex weight sums. This is structural validation, not proof of anatomical deformation quality.
+- [ ] Enforce asset pivot conventions and required normal/UV/material policies.
+- [x] Add and execute automated source/runtime-mocked coverage for GLTF dependency wiring, successful/missing/invalid loads, URL scheme rejection, catalog schema validation, PBR map loading, material binding, cancellation, and disposal/teardown.
+- [x] Add runtime-mocked tests for unsafe URL rejection, valid URL acceptance, successful callback delivery, disposal after cancellation/teardown, catalog schema validation, GLB loading, unit normalization, and default-deny adult gating.
+- [x] Add a real glTF 2.0 fixture and browser smoke harness that imports it through GLTFLoader and the catalog pipeline.
+- [ ] Add binary GLB fixtures plus browser-level malformed-file and real GPU-resource disposal tests. (A real glTF 2.0 fixture and mocked malformed/empty-scene disposal coverage are in place.)
+
+## P1 — Character quality
+- [ ] Replace or augment procedural base characters with original/licensed rigged GLB assets.
+- [ ] Validate skeleton hierarchy, skin weights, deformation, and animation clips.
+- [ ] Add facial morph targets and expression controls.
+- [ ] Improve skin, eyes, teeth, brows, and hair geometry/materials.
+- [ ] Validate diverse body proportions, skin tones, hairstyles, and saved looks.
+- [ ] Connect the production Avatar Animation Lab to the shared 3D avatar rig, skeleton, animation clips, and saved character data; current production implementation is CSS/SVG stage animation rather than skeletal 3D animation.
+- [ ] Improve clothing fit, layered garments, shoes, accessories, and body-zone culling.
+- [ ] Rebuild the hoodie fit review against the latest avatar version; verify front/rear/left/right and animated poses, and close measured waist coverage gaps before acceptance.
+- [ ] Reconcile Avatar Engine version lineage before accepting `version_4ae046e0`: its saved parent is `version_6750df1b`, but its job `executionBaseVersionId` and `script_get.sceneVersionId` are `version_07306ab7`. The new top bounds end at Z=1.449783 m versus 1.623757 m in v6750, and trouser upper bounds are 0.922225 m versus 0.986398 m. Rebuild/verify from the intended exact base; do not treat v4ae as a confirmed improvement.
+- [ ] Replace Avatar Foundation v1's `MCS | Preview underlayer placeholder` (a UV sphere, 482 vertices/960 triangles, tagged `preview_only_underlayer`) with separately selectable, fitted garments. Preserve immutable v1 as rollback; validate front/rear/side coverage and actual fit before acceptance.
+- [ ] Rebuild Fit Review v2 against the current, lineage-verified avatar. Current composite pins avatar `version_d31f1bf` and hoodie `version_223aaffa`; it is unaccepted, and component-pin provenance says ownership/license not established. Resolve provenance before further edits to the composite.
+- [ ] Improve Main Atrium presentation with an interior inspection camera. Its active `CAM | entry to stage` is outside the south wall; default viewer framing shows mostly the exterior shell. A custom interior camera reveals the runway/stage and east lounge. Treat this as camera-framing polish, not a confirmed missing-interior defect.
+- [ ] Keep the failed empty `Avatar + Midnight Hoodie Fit Review v1` project out of the production workflow: its creation failed `OUTPUT_INVALID` with `ANIMATION_LIMIT_EXCEEDED` (maximum 240 source frames). Use the existing 24-frame review project or create a bounded review after the avatar base is resolved.
+- [ ] Verify Main Atrium modifier configuration and evaluated UVs for the 71 meshes whose inspection records do not expose those checks; inspect all five light objects before environment sign-off.
+
+## P1 — PBR and rendering
+- [x] Add PBR texture-map loading/application helpers for base color, normal, roughness, metalness, AO, and emissive channels, including safe URL checks, cancellation, decode-failure cleanup, and owned-texture disposal.
+- [x] Bind manifest texture references by GLTF material name, assign semantic material roles, and preserve texture maps through PBR/toon mode changes.
+- [x] Apply sRGB encoding to base-color/emissive maps and linear encoding to normal/roughness/metalness/AO maps.
+- [ ] Validate GLTF embedded texture preservation and GPU texture compression handling.
+- [x] Preserve multi-material GLTF mesh assignments and existing texture maps during PBR/toon mode switching; retire replaced materials only after reassignment.
+- [x] Add semantic PBR material builders for skin, lips, hair, fabric, denim, metal, gold, chrome, glass, wood, stone, emissive, plastic, leather, rubber, and water.
+- [ ] Apply consistent PBR roles to all furniture, props, rooms, architecture, and set pieces.
+- [ ] Improve environment lighting, shadows, reflections, and camera framing.
+- [ ] Retain an accessible low-cost/toon fallback for weaker devices.
+
+## P2 — Full asset catalog and environments
+- [ ] Inventory all characters, NPCs, pets, creatures, wearables, props, furniture, decor, products, and room assets.
+- [ ] Validate geometry, topology, normals, UVs, scale, pivots, transparency, and material consistency.
+- [ ] Audit Atrium, Island World, After Dark Lounge, and all other available scenes.
+- [ ] Add previews, catalog metadata, supported-format checks, and import/export validation.
+- [ ] Preserve ownership/licensing provenance; do not overwrite user-created or uncertain assets.
+
+## P2 — Creator and social integration
+- [ ] Keep Avatar Builder and Avatar Rooms as separate experiences.
+- [ ] Share one avatar engine and canonical character/outfit data model.
+- [ ] Connect wardrobe, Set Builder, room editor, and social experiences through stable asset IDs.
+- [ ] Add persistent saved characters and looks using existing approved data boundaries.
+- [ ] Keep age-gated access fail-closed until trusted server-side entitlement is available.
+
+## P1 — Performance, accessibility, and release
+- [ ] Profile draw calls, triangles, texture memory, loading time, and frame rate.
+- [ ] Validate touch controls and responsive layouts on iPad, phones, and desktop.
+- [ ] Add asset budgets, lazy loading, LODs, instancing, and disposal checks where justified.
+- [x] Add a GitHub Actions workflow to run the avatar 3D safety/loader smoke test on relevant PR and branch changes.
+- [ ] Run automated tests, lint/static checks, production build, and preview smoke tests.
+- [ ] Deploy only after all applicable release gates pass; verify the deployment after release.
+
+## Additional requirements added during execution
+- [x] Require per-asset owner, license, source, and permitted-use provenance before any catalog asset can load.
+- [x] Define a versioned canonical asset manifest and JSON schema for stable IDs, versions, slots/categories, formats, bounds, units, pivots, material roles, texture references, LODs, and previews. The manifest remains empty until verified assets are available.
+- [x] Load the manifest in the running prototype, validate the full manifest before exposing catalog entries, and surface actionable validation errors.
+- [ ] Add secure asset-origin policy, MIME/extension validation, file-size limits, decompression/triangle/texture budgets, and timeout/retry policy.
+- [ ] Add offline/loading/error states, progress reporting, retry controls, and reduced-motion/accessibility behavior.
+- [ ] Add visual regression captures for representative avatars, wardrobe combinations, props, and each environment under fixed cameras/lighting.
+- [ ] Add cross-device GPU/memory profiling and context-loss/recovery checks for iPad, mobile, and desktop.
+- [ ] Add asset dependency/license scanning and duplicate/orphan asset detection to CI.
+- [ ] Add compatibility/version migration tests for existing saved looks and older catalog records.
+
+## Run log
+- 2026-11-10: Initial baseline established. Confirmed GLTFLoader was not loaded or injected despite loader support. Implementation started on `fix/pbr-default-full-avatar-materials`.
+
+- 2026-11-10: Continued execution. Added GLTF URL allowlisting and request lifecycle guards; added source-level regression assertions. Added runtime-mocked GLTF loader tests and a dedicated GitHub Actions workflow; actual binary GLB fixtures and browser/device validation remain open. Added asset provenance, manifest, resource budgets, accessibility/loading, visual regression, device profiling, CI scanning, and backwards-compatibility requirements. Commits: `471e79d`, `17ea8c3`.
+
+- 2026-11-10: Added runtime-mocked loader tests and CI workflow. Corrected regression assertion patterns before relying on the workflow. Waiting for the new GitHub Actions run to confirm execution.
+
+- 2026-11-10: Added a schema-validated catalog asset loading API, unit normalization (m/cm/mm), and default-deny adult asset gating. Added mocked runtime coverage for these paths. Real asset fixtures and full model bounds/UV/material validation remain open.
+
+- 2026-11-10: Added imported model geometry/transform validation, configurable mesh/vertex/triangle budgets, and warnings for missing normals/UVs/materials. Pivot conventions and strict material/UV policies remain open.
+
+- 2026-11-10: Hardened disposal for empty/malformed GLTF scenes and added a regression test. Browser-side binary fixture validation remains a release gate.
+
+- 2026-11-10: Added versioned manifest/schema, stable-ID and duplicate-ID checks, mandatory per-asset provenance, bounds/pivot/material/texture/LOD metadata validation, and test coverage. No third-party model was added without verifiable ownership/licensing.
+
+- 2026-11-10: Fixed multi-material PBR retint/disposal for imported meshes and added a runtime-mocked regression test. Texture map loading and per-material texture binding remain open.
+
+- 2026-11-10: Added PBR texture map loading/application helpers with safe URL validation, sRGB/linear encoding, cancellation/failure cleanup, and factory-owned texture disposal. Added runtime-mocked tests for all six map channels, color-space assignment, unsafe URL rejection, and partial-load cleanup. Binding manifest maps to individual imported GLTF material names remains open.
+
+- 2026-11-10: Wired the shared PBR material factory into the avatar loader and added named per-material texture bindings from manifest descriptors. Runtime-mocked coverage verifies texture maps attach to the intended GLTF material and role metadata is preserved.
+
+- 2026-11-10: Extended catalog request lifecycle tracking through material texture binding; engine teardown now cancels pending texture requests and disposes uncommitted models. Added a runtime-mocked teardown regression test.
+
+- 2026-11-10: Expanded the semantic PBR factory with material builders for glass, wood, stone, plastic, leather, rubber, water, emissive, and generic metal; added role mapping tests. Environment-wide role assignment remains open.
+
+- 2026-11-10: Latest branch work is committed to PR #10 (`d1e2136`). The newest available Vercel preview is still on earlier commit `80508c1`; a manual preview redeploy was blocked by Vercel's daily API deployment quota (402, retry after 24 hours). Production remains unchanged. GitHub Actions workflow is configured, but no PR-triggered run is visible through the available status endpoint; automated test execution is not yet claimed.
+
+- 2026-11-10: Added a minimal original glTF 2.0 PBR fixture and a browser smoke page that exercises the real Three.js r128 GLTFLoader, schema validation, model validation, and catalog loading. Automated source checks verify the fixture and harness wiring; actual browser execution awaits the next available Vercel preview deployment.
+
+- 2026-11-10: Added a deploy-root glTF fixture at `avatar-3d/assets/test-fixtures/minimal-pbr.gltf` and a browser smoke harness at `avatar-3d/asset-pipeline-smoke.html`. The harness exercises the actual r128 GLTFLoader and catalog pipeline. Latest branch changes remain ahead of the latest Vercel preview because the Vercel deployment API hit its daily deployment quota; browser execution is still pending. No production deployment was made.
+
+- 2026-11-10: Executed the committed smoke-test source and runtime-mocked paths in an isolated JavaScript harness; all assertions passed, including missing asset errors, schema/provenance, unit normalization, named material texture bindings, PBR map channels/color spaces, multi-material retint, cancellation, and teardown disposal. This is not yet a native GitHub Actions run or a real browser/WebGL/iPad run.
+
+- 2026-11-10: Integrated runtime manifest loading into the prototype. Catalog entries remain empty until the complete manifest passes validation; HTTP/JSON/schema failures are surfaced as actionable catalog errors, and in-flight manifest requests are cancellable on engine teardown. Added runtime tests for valid, invalid, and missing manifests. Browser/iPad execution remains a release gate.
+
+- 2026-11-10: The avatar prototype preview deployment was refreshed and is READY on commit `d81fff69` (manifest-loader integration). Verified the preview serves `/index.html`, `/asset-pipeline-smoke.html`, and `/assets/manifest.json` with HTTP 200; the manifest returns schema version 1.0.0 and an intentionally empty asset list. This verifies deployment and static route availability only; the browser smoke harness has not been executed in a real browser/WebGL session, and iPad GPU behavior remains unverified. Subsequent test-source commits `d1d61ac` and `6ce4561` are newer than this preview and are not included in it.
+
+- 2026-11-10: Cross-surface audit of the latest production app commit `eabf89c` found a new Avatar Animation Lab with pose presets, silhouette, CSS motion paths, squash/stretch, timing, focus tracking, and saved motion presets. The deployed page implements the stage as an SVG element animated with CSS; it does not load Three.js/GLTFLoader and has no SkinnedMesh, Skeleton, AnimationMixer, or morph-target implementation. Treat this as a useful 2D animation-authoring surface, not completion of the 3D rigging/animation milestone. The PR #10 avatar prototype still has three separate room groups (Main Room, Island World, After Dark Lounge) and a PBR toggle, but the environment source still instantiates MeshBasicMaterial, MeshLambertMaterial, MeshPhongMaterial, and MeshToonMaterial alongside the avatar material factory. Environment-wide PBR remains open.
+- 2026-11-10: Release-state recheck: PR #10 head is `09dc4225`, still draft/open/unmerged. The latest avatar-prototype preview is READY on `d81fff69`, behind the PR head; the latest app preview is READY on `a16230bc`. The latest production app deployment is READY on main commit `eabf89c`, while the corresponding avatar-prototype production deployment is CANCELED. PR-head commit statuses still report Vercel deployment rate-limit failures and no PR-triggered GitHub Actions run is returned. No merge or production change was made in this audit.
+
+- 2026-11-10: Added `MCSAvatarAnimationRuntime.js` and exposed it through `window.MCS.createAnimationController`. The runtime detects SkinnedMesh skeletons and morph targets; supports named GLTF animation clips, crossfades, bounded playback speed, seek, pause/resume, stop, facial morph controls, and idempotent disposal. Added mocked runtime regression tests and wired the browser smoke page to instantiate/update/dispose the controller. The smoke fixture itself intentionally has zero skeletons and zero clips, so this verifies the runtime integration surface—not a production rig or actual animated character. Production Animation Lab UI/preset integration and a verified rigged avatar remain outstanding.
+
+
+## Execution sequence — parallel workstreams
+
+The Avatar Engine is the shared dependency, not a reason to block independent creator work. Keep Avatar Builder, Fashion Studio, and Avatar Rooms as separate product surfaces.
+
+### Workstream A — shared avatar foundation (critical path)
+- [ ] Freeze and document a versioned character/outfit payload contract with stable catalog IDs, body parameters, appearance, equipped items, and schema migration rules.
+- [ ] Verify one canonical restore/save path across embedded Avatar Builder, standalone Avatar Builder, Fashion Studio fitting room, and Avatar Rooms.
+- [ ] Verify signed-in persistence uses the existing authenticated profile boundary; keep local-only mode explicitly device-local.
+- [ ] Verify teen-safe defaults and server-authoritative adult entitlement on every restore and asset request.
+- [ ] Complete a real rigged GLB validation pass: skeleton hierarchy, skin weights, facial morphs, animation clips, deformation, and cleanup.
+- [ ] Complete browser/WebGL and iPad touch/performance QA before declaring the engine release-ready.
+
+### Workstream B — Avatar Builder (parallel after shared payload contract)
+- [ ] Finish the dedicated character-selection and customization experience.
+- [ ] Validate body/face/hair/skin/wardrobe customization and saved-look round trips.
+- [ ] Verify responsive, touch-friendly category browsing, selected states, and filters.
+
+### Workstream C — Fashion Studio (parallel; does not wait for full avatar polish)
+- [x] Establish the separate moodboard/editor surface and shared-engine fitting-room embed.
+- [ ] Expand the wardrobe catalog only with verified original/licensed assets and stable catalog IDs.
+- [ ] Connect board-to-avatar mapping to the canonical outfit payload contract.
+- [ ] Add account-backed collections, creator sharing/remixing, and publishing only after auth/data boundaries are reviewed.
+- [ ] Validate the complete fitting workflow on desktop and iPad.
+
+### Workstream D — Avatar Rooms (after shared payload contract; parallel environment work)
+- [ ] Keep Rooms as a distinct experience consuming the same saved character payload.
+- [ ] Audit room/environment assets and assign consistent PBR materials, lighting, and performance budgets.
+- [ ] Verify avatar entry, outfit changes, room interactions, and teen-safe room access.
+
+### Integration and release gates
+- [ ] No surface may fork its own incompatible character or outfit format.
+- [ ] No placeholder or unlicensed production assets.
+- [ ] No merge/promotion until automated checks, preview deployment, browser/WebGL checks, and iPad QA pass.
+- [ ] Do not change production settings, billing, or access controls as a workaround for preview/build restrictions.
+
+### 2026-11-11 execution update
+- Avatar Engine PBR/material/GLTF safety foundations and a mocked animation runtime are present in the PBR branch. The versioned asset manifest intentionally contains no unverified production assets.
+- The avatar prototype and main app each have READY Vercel previews on commit `cd3fe30acdbe1c53ecf3e369e2b458eb735db874`; this confirms deployment readiness, not visual/WebGL or iPad QA.
+- The PBR branch has a Vercel deployment for a later commit than the current PR #10 head metadata. Reconcile the branch/PR head and check statuses before treating PR #10 as release-ready.
+- Fashion Studio PR #12 remains a separate draft stacked on the PBR branch; no deployment exists for its exact head commit.
+- Next critical implementation task: formalize and test the canonical character/outfit payload contract and round-trip it across the embedded builder and other surfaces. Continue independent Fashion Studio and room-environment work in parallel.
+
+
+- 2026-11-13: Added import-time structural validation for GLTF skinning and regression cases for valid skeletons, missing skeletons, out-of-range bone indices, non-normalized weights, and skin attributes on non-skinned meshes. The separate Blendstra avatar prototype now contains a provisional 20-bone rig, inverse-distance skin weights, and a one-second breathing test action; weights are explicitly provisional, garments are not bound to that rig, and facial morph targets remain unverified. The latest hoodie/avatar fit-review composition is marked `fit: not-evaluated` and pins an older avatar version than the current model head. No private model asset was changed because source ownership/licensing metadata is not established.
+
+- 2026-11-13: Confirmed a coordinate-axis defect in Blendstra avatar version `version_6750df1ba2a071824ba21d712d39ac493ce00f7bae643b4cdf812b048183e001`. The rig metadata declares source Z-up and the tailored garment objects have identity world transforms, but `MCS Wardrobe Coverage Correction v1` offsets `v.co.y` as if Y were vertical and scales `v.co.z` while describing it as depth. The intended hem/waistband movement therefore does not occur. Source bounds show the top/trouser gap increased from 37.787 mm in the older pinned avatar version to 60.255 mm in the current head. This is a P1 garment-coverage defect. No model asset was edited because the fit-review component provenance still reports ownership/licensing as not established; fix after rights are confirmed or approved original source is supplied.
+
+- 2026-11-15: Extended PR #20 skinning validation to reject skeleton bones that are not descendants of the imported GLTF root; added a runtime regression fixture for detached bone references. This prevents structurally valid-looking skin attributes from binding to an external/unloaded skeleton hierarchy. Garment deformation and the private avatar/hoodie fit issues remain unverified; no private model assets were edited.
+
+- 2026-11-15: Re-audited all seven connected Blendstra projects and all 103 Main Atrium scene objects. The latest Fit Review v2 is animated but pins avatar version `d31f1bf`, not current avatar head `6750df1`; its hoodie torso lower bound is 0.980 m and trouser upper bound 0.896725 m, leaving an 83.275 mm measured vertical gap in the composition. Current avatar head top/trouser bounds leave a 60.255 mm gap. The hoodie hood outer shell reaches 1.99412 m while the current avatar body reaches 1.706487 m; oversized styling may be intentional, so this is a fit-review issue rather than a confirmed design defect. Avatar, hoodie and Fit Review v2 have no accepted review; the avatar brief asks for a complete clothed rig-ready character but no acceptance is recorded. Main Atrium contains 97 meshes, 5 lights and 1 camera; 71 meshes lack available modifier/evaluated-UV evidence and all five lights lack inspectable lighting parameters. These are verification gaps, not proof of broken geometry. The repository `main` tree still has only 8 paths and no `avatar-3d` or `fashion-studio` directories; production source is therefore not integrated with the feature branches. Direct browser route verification was unavailable due preview access restrictions. No private model was edited because source ownership/licensing is not established.
+- 2026-11-16: Extended the shared GLTF validator on PR #15 to reject non-finite position/normal/UV/tangent/color data, mismatched vertex-attribute cardinality, invalid item sizes, malformed triangle index counts, and out-of-range vertex indices. Added regression cases using a structurally valid two-joint fixture. Production manifest remains empty; these checks protect future imports rather than certify production assets.
+- 2026-11-16: A Z-up avatar coverage revision was cancelled before a saved version after pinned component provenance continued to report ownership/licensing as not established. No private model version changed and the job settled at $0. Confirm source rights before modifying pinned avatar/hoodie components.
+- 2026-11-16: CI exposed three stale mock GLTF fixtures in the catalog, material-binding and teardown tests that only declared attribute counts. Updated all three to use finite VEC3 positions/normals, VEC2 UVs and a valid triangle index buffer; rerunning both workflows on the corrected head.
+
+
+- 2026-11-16: Re-inspected all seven connected Blendstra projects. The Realistic Avatar Engine advanced to `version_4ae046e00db1a72bdcafb7c56ca33e963f618a5cb724d3c29d8adc9bffc02e8c` (job `91faab39-1f40-49fb-b702-14428e4f853f`, explicit max charge $0; recorded charge $0). Source comparison against `version_6750df1b...` reports geometry/transform changes only for `MCS_Outfit_TailoredTop` and `MCS_Outfit_TailoredTrousers`. Their global Z bounds now overlap by 32.713 mm, but the saved 8-view contact sheet still shows exposed lower-back skin between top and trousers; global bounds are not a garment-coverage test. The new source includes `MCS_Adult_BaseRig_v1`, but bone structure, garment weights and deformation are not certified; body modifier configuration and evaluated UVs remain unsupported. The hair remains a simple cap, and no version is accepted. The fit-review project still pins an older avatar.  
+- 2026-11-16: Added reduced-motion handling to both byte-identical avatar pages. `prefers-reduced-motion` now minimizes CSS transitions, defaults the turntable off, pauses idle/remote-avatar and room ambient/particle motion, and keeps explicitly user-triggered emotes available. Added static regression assertions and an embedded/standalone parity check. This is source/CI verification only; browser and iPad behavior still require runtime QA.
+
+- 2026-11-17: Fixed an empty-index geometry validation gap: indexed meshes with zero indices could pass as valid and were incorrectly counted using the position-buffer fallback. Validation now rejects index counts below one triangle and computes triangle budgets from the actual index buffer. Added regression coverage for both rejection and zero triangle count. Implemented on `integration/avatar-pbr-reconciled`; preview and CI verification pending.
+
+
+- 2026-11-17: Re-audited all seven connected Blendstra projects and rendered avatar, foundation, hoodie, both fit reviews, and Atrium. Confirmed rear/side garment coverage remains visibly incomplete despite bounding-box overlap; identified Avatar Engine v4ae execution-base mismatch (requested/parent 6750, executed from 07306) and recorded measured top/trouser bound regressions. Foundation v1 still contains a preview-only UV sphere, Fit Review v2 pins the older avatar d31f, and the empty v1 review project failed its 240-frame limit. Custom interior Atrium renders show stage/runway and lounge; the stored exterior camera is a framing limitation. No model asset was changed because fit/rig lineage and composite provenance are not yet sufficient for a safe accepted edit. Added a reversible loader fix for zero-index meshes and verified it on PR15.
