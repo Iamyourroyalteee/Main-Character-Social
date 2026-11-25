@@ -35,6 +35,8 @@ for (const source of [rootAvatarHtml, deployedAvatarHtml]) {
 assert.match(html, /@media\(max-width:980px\) and \(min-width:721px\)/, "Fashion Studio must use a tablet layout before the three-column layout overflows");
 assert.match(html, /grid-template-columns:minmax\(200px,220px\) minmax\(0,1fr\)/, "tablet layout must keep the catalog and board usable side by side");
 assert.match(html, /button\{[^}]*min-width:44px;min-height:44px/, "Fashion Studio controls must retain 44px touch targets");
+assert.match(html, /\.layer-actions button\{min-width:44px;min-height:44px/, "layer visibility, lock and reorder controls must meet 44px touch targets");
+assert.match(html, /\.boardtools #undo,\.boardtools #redo\{min-width:44px;min-height:44px/, "undo and redo controls must meet 44px touch targets");
 
 }
 const avatarItemSlots = new Map(
