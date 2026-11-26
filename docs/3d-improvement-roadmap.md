@@ -48,6 +48,7 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - [ ] Inventory all characters, NPCs, pets, creatures, wearables, props, furniture, decor, products, and room assets.
 - [ ] Validate geometry, topology, normals, UVs, scale, pivots, transparency, and material consistency.
 - [ ] Audit Atrium, Island World, After Dark Lounge, and all other available scenes.
+- [x] Add runtime-mocked construction and reduced-motion tests for all five procedural Teen World room groups; verify standalone/embedded module parity.
 - [ ] Add previews, catalog metadata, supported-format checks, and import/export validation.
 - [ ] Preserve ownership/licensing provenance; do not overwrite user-created or uncertain assets.
 
