@@ -8,6 +8,7 @@ on:
       - "tests/avatar-3d-safety-smoke.cjs"
       - "tests/avatar-runtime-hardening-smoke.cjs"
       - "tests/avatar-catalog-animation-bridge-smoke.cjs"
+      - "tests/avatar-room-worlds-runtime-smoke.cjs"
       - ".github/workflows/avatar-3d-smoke.yml"
   push:
     branches:
@@ -19,6 +20,7 @@ on:
       - "tests/avatar-3d-safety-smoke.cjs"
       - "tests/avatar-runtime-hardening-smoke.cjs"
       - "tests/avatar-catalog-animation-bridge-smoke.cjs"
+      - "tests/avatar-room-worlds-runtime-smoke.cjs"
       - ".github/workflows/avatar-3d-smoke.yml"
 
 jobs:
@@ -37,3 +39,5 @@ jobs:
         run: node tests/avatar-runtime-hardening-smoke.cjs
       - name: Run catalog animation bridge regression tests
         run: node tests/avatar-catalog-animation-bridge-smoke.cjs
+      - name: Run procedural Teen World scene construction regression tests
+        run: node tests/avatar-room-worlds-runtime-smoke.cjs
