@@ -11,9 +11,13 @@ assert.equal(embeddedAvatarHtml, html, "standalone and embedded avatar pages mus
 assert.ok(html.includes('<script src="MCSAvatarCatalogAnimationBridge.js"></script>'), "avatar page must load the catalog animation bridge");
 const bodyDeformer = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSBodyProportionDeformer.js"), "utf8");
 assert.ok(html.includes('<script src="MCSBodyProportionDeformer.js"></script>'), "avatar page must load the localized body proportion deformer");
-assert.ok(html.includes("deformer.applyHipWidth(B.pelvis, hipAmt, shape.hip)"), "hip width must deform the pelvis mesh rather than the full leg hierarchy");
+assert.ok(html.includes("deformer.applyHipFit(B.hipFit, hipAmt, shape.hip)"), "hip width must use a dedicated pelvis fit group rather than scaling the leg hierarchy");
 assert.ok(html.includes("deformer.applyGlutes(B.pelvis, gluteAmt)"), "glute control must deform posterior pelvis geometry");
+assert.ok(html.includes("deformer.applyGluteFit(B.glutesFit, gluteAmt)"), "hip-attached garments must follow glute sizing");
 assert.ok(html.includes("deformer.applyWaist(B.torsoMesh, waistAmt)"), "waist control must deform the torso profile");
+assert.ok(html.includes("deformer.applyWaistFit(B.waistFit, waistAmt)"), "torso-attached garments must follow waist sizing");
+assert.ok(html.includes('bone === "hips" && bones.glutesFit'), "hip garments must attach to the hip fit group");
+assert.ok(html.includes('bone === "torso" && bones.waistFitContent'), "torso garments must attach to the waist fit group");
 assert.ok(!html.includes("B.glutesNode") && !html.includes("B.waistNode"), "body proportion controls must not target empty hierarchy nodes");
 assert.match(bodyDeformer, /computeVertexNormals/, "body deformer must refresh vertex normals after geometry changes");
 assert.match(bodyDeformer, /__mcsProportionBase/, "body deformer must cache base geometry to prevent cumulative drift");
