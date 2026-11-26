@@ -14,6 +14,30 @@ vm.runInNewContext(source, { window, Math, Number, Object });
 const deformer = window.MCSBodyProportionDeformer;
 assert.ok(deformer, "body proportion deformer must expose its public API");
 
+function makeGroup(scale) {
+  return { userData: {}, scale: { x: scale.x, y: scale.y, z: scale.z } };
+}
+
+const hipFit = makeGroup({ x: 1, y: 1, z: 1 });
+assert.equal(deformer.applyHipFit(hipFit, 1, 1.1), true);
+assertClose(hipFit.scale.x, 1.1 * 1.14, "hip fit group must widen hip-attached garments");
+assertClose(hipFit.scale.y, 1, "hip fit group must preserve garment height");
+assertClose(hipFit.scale.z, (0.90 + 0.12 * 1.1) * 1.06, "hip fit group must adjust garment depth");
+
+const glutesFit = makeGroup({ x: 1, y: 1, z: 1 });
+assert.equal(deformer.applyGluteFit(glutesFit, 1), true);
+assertClose(glutesFit.scale.z, 1.1, "glute fit group must adjust hip-attached garment depth");
+assert.equal(deformer.applyGluteFit(glutesFit, 0.5), true);
+assertClose(glutesFit.scale.z, 1, "glute fit group must restore its neutral scale without drift");
+
+const waistFit = makeGroup({ x: 1, y: 1, z: 1 });
+assert.equal(deformer.applyWaistFit(waistFit, 0), true);
+assertClose(waistFit.scale.x, 0.92, "waist fit group must narrow torso-attached garments");
+assertClose(waistFit.scale.z, 0.92, "waist fit group must preserve matching front/back fit");
+assert.equal(deformer.applyWaistFit(waistFit, 0.5), true);
+assertClose(waistFit.scale.x, 1, "waist fit group must return to neutral without drift");
+assert.equal(deformer.resetGroup(waistFit), true);
+
 function assertClose(actual, expected, message) {
   assert.ok(Math.abs(actual - expected) < 1e-6, message + ": expected " + expected + ", received " + actual);
 }
