@@ -12,6 +12,10 @@ assert.ok(html.includes('<script src="MCSAvatarCatalogAnimationBridge.js"></scri
 const bodyDeformer = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSBodyProportionDeformer.js"), "utf8");
 assert.ok(html.includes('<script src="MCSBodyProportionDeformer.js"></script>'), "avatar page must load the localized body proportion deformer");
 assert.ok(html.includes("deformer.applyHipFit(B.hipFit, hipAmt, shape.hip)"), "hip width must use a dedicated pelvis fit group rather than scaling the leg hierarchy");
+assert.ok(html.includes("const hipFit = new THREE.Group(); hips.add(hipFit); B.hipFit = hipFit;"), "pelvis fit group must be a child of the animated hip bone");
+assert.ok(html.includes('hipFit.add(reg(pelvis, "legsUpper"))'), "pelvis geometry must live inside the hip fit group");
+assert.ok(html.includes("waistFitContent.add(this.bones.torsoMesh)"), "torso mesh must use the waist pivot group");
+
 assert.ok(html.includes("deformer.applyGlutes(B.pelvis, gluteAmt)"), "glute control must deform posterior pelvis geometry");
 assert.ok(html.includes("deformer.applyGluteFit(B.glutesFit, gluteAmt)"), "hip-attached garments must follow glute sizing");
 assert.ok(html.includes("deformer.applyWaist(B.torsoMesh, waistAmt)"), "waist control must deform the torso profile");
