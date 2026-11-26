@@ -23,6 +23,7 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - [ ] Add facial morph targets and expression controls.
 - [ ] Improve skin, eyes, teeth, brows, and hair geometry/materials.
 - [ ] Validate diverse body proportions, skin tones, hairstyles, and saved looks.
+- [x] Apply localized hip-width, posterior glute, and waist-profile deformation to the actual pelvis/torso meshes; cache base geometry and verify non-cumulative updates.
 - [ ] Connect the production Avatar Animation Lab to the shared 3D avatar rig, skeleton, animation clips, and saved character data; current production implementation is CSS/SVG stage animation rather than skeletal 3D animation.
 - [ ] Improve clothing fit, layered garments, shoes, accessories, and body-zone culling.
 - [ ] Rebuild the hoodie fit review against the latest avatar version; verify front/rear/left/right and animated poses, and close measured waist coverage gaps before acceptance.
@@ -79,6 +80,9 @@ This is the execution checklist for the cross-project 3D quality cycle. Work is 
 - [ ] Add compatibility/version migration tests for existing saved looks and older catalog records.
 
 ## Run log
+
+- 2026-11-26: Added runtime-mocked construction/reduced-motion coverage for all five procedural Teen World rooms and localized hip/glute/waist mesh deformation. Verified standalone/embedded parity, non-cumulative geometry updates, and normal/bounds refresh. Avatar 3D, Fashion Studio, and security workflows passed on PR27; current preview builds are READY. No production deployment. Commit: `e97e93a6`.
+
 - 2026-11-10: Initial baseline established. Confirmed GLTFLoader was not loaded or injected despite loader support. Implementation started on `fix/pbr-default-full-avatar-materials`.
 
 - 2026-11-10: Continued execution. Added GLTF URL allowlisting and request lifecycle guards; added source-level regression assertions. Added runtime-mocked GLTF loader tests and a dedicated GitHub Actions workflow; actual binary GLB fixtures and browser/device validation remain open. Added asset provenance, manifest, resource budgets, accessibility/loading, visual regression, device profiling, CI scanning, and backwards-compatibility requirements. Commits: `471e79d`, `17ea8c3`.
