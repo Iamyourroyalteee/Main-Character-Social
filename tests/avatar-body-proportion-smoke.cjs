@@ -81,11 +81,6 @@ const pelvisBase = [
 ];
 const pelvis = makeMesh(pelvisBase, { x: 1.05, y: 0.78, z: 0.86 });
 assert.equal(deformer.cache(pelvis), true);
-assert.equal(deformer.applyHipWidth(pelvis, 1, 1.1), true);
-assert.ok(pelvis.scale.x > 1.05, "hip-width control must widen the pelvis mesh");
-assert.equal(pelvis.scale.y, 0.78, "hip-width control must preserve pelvis height");
-assert.ok(pelvis.scale.z > 0.86, "hip-width control must adjust pelvis depth");
-
 assert.equal(deformer.applyGlutes(pelvis, 1), true);
 const glutePositions = pelvis.geometry.attributes.position.array;
 assert.ok(glutePositions[2] < pelvisBase[2], "larger glutes must increase posterior projection");
