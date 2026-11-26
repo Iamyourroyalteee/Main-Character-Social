@@ -14,7 +14,7 @@ assert.ok(html.includes('<script src="MCSBodyProportionDeformer.js"></script>'),
 assert.ok(html.includes("deformer.applyHipWidth(B.pelvis, hipAmt, shape.hip)"), "hip width must deform the pelvis mesh rather than the full leg hierarchy");
 assert.ok(html.includes("deformer.applyGlutes(B.pelvis, gluteAmt)"), "glute control must deform posterior pelvis geometry");
 assert.ok(html.includes("deformer.applyWaist(B.torsoMesh, waistAmt)"), "waist control must deform the torso profile");
-assert.doesNotMatch(html, /B\\.glutesNode|B\\.waistNode/, "body proportion controls must not target empty hierarchy nodes");
+assert.ok(!html.includes("B.glutesNode") && !html.includes("B.waistNode"), "body proportion controls must not target empty hierarchy nodes");
 assert.match(bodyDeformer, /computeVertexNormals/, "body deformer must refresh vertex normals after geometry changes");
 assert.match(bodyDeformer, /__mcsProportionBase/, "body deformer must cache base geometry to prevent cumulative drift");
 assert.ok(html.includes("window.__mcsCatalogAnimationBridge.update(dt)"), "the main render loop must advance imported catalog animation mixers");
