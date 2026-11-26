@@ -9,6 +9,7 @@ on:
       - "tests/avatar-runtime-hardening-smoke.cjs"
       - "tests/avatar-catalog-animation-bridge-smoke.cjs"
       - "tests/avatar-room-worlds-runtime-smoke.cjs"
+      - "tests/avatar-body-proportion-smoke.cjs"
       - ".github/workflows/avatar-3d-smoke.yml"
   push:
     branches:
@@ -41,3 +42,5 @@ jobs:
         run: node tests/avatar-catalog-animation-bridge-smoke.cjs
       - name: Run procedural Teen World scene construction regression tests
         run: node tests/avatar-room-worlds-runtime-smoke.cjs
+      - name: Run avatar body proportion deformation regression tests
+        run: node tests/avatar-body-proportion-smoke.cjs
