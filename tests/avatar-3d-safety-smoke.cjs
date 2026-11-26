@@ -9,6 +9,14 @@ assert.doesNotMatch(html, /user-scalable=no|maximum-scale=1/, "avatar UI must no
 const embeddedAvatarHtml = fs.readFileSync(path.join(__dirname, "../src/avatar-3d/index.html"), "utf8");
 assert.equal(embeddedAvatarHtml, html, "standalone and embedded avatar pages must stay byte-for-byte synchronized");
 assert.ok(html.includes('<script src="MCSAvatarCatalogAnimationBridge.js"></script>'), "avatar page must load the catalog animation bridge");
+const bodyDeformer = fs.readFileSync(path.join(__dirname, "../avatar-3d/MCSBodyProportionDeformer.js"), "utf8");
+assert.ok(html.includes('<script src="MCSBodyProportionDeformer.js"></script>'), "avatar page must load the localized body proportion deformer");
+assert.ok(html.includes("deformer.applyHipWidth(B.pelvis, hipAmt, shape.hip)"), "hip width must deform the pelvis mesh rather than the full leg hierarchy");
+assert.ok(html.includes("deformer.applyGlutes(B.pelvis, gluteAmt)"), "glute control must deform posterior pelvis geometry");
+assert.ok(html.includes("deformer.applyWaist(B.torsoMesh, waistAmt)"), "waist control must deform the torso profile");
+assert.doesNotMatch(html, /B\\.glutesNode|B\\.waistNode/, "body proportion controls must not target empty hierarchy nodes");
+assert.match(bodyDeformer, /computeVertexNormals/, "body deformer must refresh vertex normals after geometry changes");
+assert.match(bodyDeformer, /__mcsProportionBase/, "body deformer must cache base geometry to prevent cumulative drift");
 assert.ok(html.includes("window.__mcsCatalogAnimationBridge.update(dt)"), "the main render loop must advance imported catalog animation mixers");
 assert.ok(html.includes("previewCatalogAsset:"), "the avatar integration must expose a catalog preview loader");
 assert.ok(html.includes("@media (prefers-reduced-motion: reduce)"), "avatar CSS must respect reduced-motion preferences");
@@ -42,6 +50,7 @@ for (const file of [
   "MCSAvatarAnimationRuntime.js",
   "MCSRoomWorlds.js",
   "MCSAvatarCatalogAnimationBridge.js",
+  "MCSBodyProportionDeformer.js",
   "MCSCameraSetup.js",
   "MCSStudioLighting.js",
   "assets/manifest.json",
