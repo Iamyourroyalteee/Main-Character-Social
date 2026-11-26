@@ -65,6 +65,57 @@
     return !!stateFor(mesh);
   }
 
+  function groupStateFor(group){
+    if(!group || !group.scale) return null;
+    if(!group.userData || typeof group.userData !== "object") group.userData = {};
+    let state = group.userData.__mcsProportionScaleBase;
+    if(!state){
+      state = { x: group.scale.x, y: group.scale.y, z: group.scale.z };
+      group.userData.__mcsProportionScaleBase = state;
+    }
+    return state;
+  }
+
+  function applyHipFit(group, amount, presetHip){
+    const state = groupStateFor(group);
+    if(!state) return false;
+    const value = clamp01(amount);
+    const preset = clamp(presetHip, 0.75, 1.25);
+    group.scale.x = state.x * preset * (0.86 + 0.28 * value);
+    group.scale.y = state.y;
+    group.scale.z = state.z * (0.90 + 0.12 * preset) * (0.94 + 0.12 * value);
+    return true;
+  }
+
+  function applyGluteFit(group, amount){
+    const state = groupStateFor(group);
+    if(!state) return false;
+    const value = 0.90 + 0.20 * clamp01(amount);
+    group.scale.x = state.x;
+    group.scale.y = state.y;
+    group.scale.z = state.z * value;
+    return true;
+  }
+
+  function applyWaistFit(group, amount){
+    const state = groupStateFor(group);
+    if(!state) return false;
+    const value = 0.92 + 0.16 * clamp01(amount);
+    group.scale.x = state.x * value;
+    group.scale.y = state.y;
+    group.scale.z = state.z * value;
+    return true;
+  }
+
+  function resetGroup(group){
+    const state = groupStateFor(group);
+    if(!state) return false;
+    group.scale.x = state.x;
+    group.scale.y = state.y;
+    group.scale.z = state.z;
+    return true;
+  }
+
   function applyHipWidth(mesh, amount, presetHip){
     const state = stateFor(mesh);
     if(!state) return false;
@@ -111,6 +162,10 @@
   root.MCSBodyProportionDeformer = {
     cache,
     applyHipWidth,
+    applyHipFit,
+    applyGluteFit,
+    applyWaistFit,
+    resetGroup,
     applyGlutes,
     applyWaist,
     reset
