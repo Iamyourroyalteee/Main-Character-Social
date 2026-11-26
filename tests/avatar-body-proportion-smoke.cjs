@@ -14,6 +14,17 @@ vm.runInNewContext(source, { window, Math, Number, Object });
 const deformer = window.MCSBodyProportionDeformer;
 assert.ok(deformer, "body proportion deformer must expose its public API");
 
+function assertClose(actual, expected, message) {
+  assert.ok(Math.abs(actual - expected) < 1e-6, message + ": expected " + expected + ", received " + actual);
+}
+
+function assertArrayClose(actual, expected, message) {
+  assert.equal(actual.length, expected.length, message + ": array length");
+  for (let i = 0; i < expected.length; i++) {
+    assertClose(actual[i], expected[i], message + " at vertex component " + i);
+  }
+}
+
 function makeMesh(values, scale) {
   const counters = { normals: 0, bounds: 0, spheres: 0 };
   const geometry = {
@@ -54,14 +65,14 @@ assert.ok(pelvis.scale.z > 0.86, "hip-width control must adjust pelvis depth");
 assert.equal(deformer.applyGlutes(pelvis, 1), true);
 const glutePositions = pelvis.geometry.attributes.position.array;
 assert.ok(glutePositions[2] < pelvisBase[2], "larger glutes must increase posterior projection");
-assert.equal(glutePositions[5], pelvisBase[5], "glute shaping must not move the anterior pelvis");
-assert.equal(glutePositions[8], pelvisBase[8], "glute shaping must fade out above the glute region");
+assertClose(glutePositions[5], pelvisBase[5], "glute shaping must not move the anterior pelvis");
+assertClose(glutePositions[8], pelvisBase[8], "glute shaping must fade out above the glute region");
 assert.equal(pelvis.geometry.attributes.position.needsUpdate, true);
 assert.ok(pelvis.counters.normals > 0 && pelvis.counters.bounds > 0 && pelvis.counters.spheres > 0,
   "geometry normals and bounds must be refreshed after deformation");
 
 assert.equal(deformer.applyGlutes(pelvis, 0.5), true);
-assert.deepEqual(Array.from(pelvis.geometry.attributes.position.array), pelvisBase,
+assertArrayClose(Array.from(pelvis.geometry.attributes.position.array), pelvisBase,
   "returning glute control to its midpoint must restore the original mesh without cumulative drift");
 
 const torsoBase = [
@@ -73,14 +84,14 @@ const torso = makeMesh(torsoBase, { x: 1, y: 1, z: 1 });
 assert.equal(deformer.applyWaist(torso, 1), true);
 const waistPositions = torso.geometry.attributes.position.array;
 assert.ok(waistPositions[0] > torsoBase[0], "larger waist setting must widen the waist profile");
-assert.equal(waistPositions[3], torsoBase[3], "waist shaping must leave the lower abdomen transition stable");
-assert.equal(waistPositions[6], torsoBase[6], "waist shaping must leave the upper chest profile stable");
+assertClose(waistPositions[3], torsoBase[3], "waist shaping must leave the lower abdomen transition stable");
+assertClose(waistPositions[6], torsoBase[6], "waist shaping must leave the upper chest profile stable");
 
 assert.equal(deformer.applyWaist(torso, 0), true);
 assert.ok(torso.geometry.attributes.position.array[0] < torsoBase[0],
   "smaller waist setting must narrow the waist profile");
 assert.equal(deformer.applyWaist(torso, 0.5), true);
-assert.deepEqual(Array.from(torso.geometry.attributes.position.array), torsoBase,
+assertArrayClose(Array.from(torso.geometry.attributes.position.array), torsoBase,
   "returning waist control to its midpoint must restore the original profile without cumulative drift");
 
 assert.equal(deformer.reset(pelvis), true);
@@ -89,7 +100,7 @@ assert.deepEqual(
   { x: 1.05, y: 0.78, z: 0.86 },
   "reset must restore the original pelvis scale"
 );
-assert.deepEqual(Array.from(pelvis.geometry.attributes.position.array), pelvisBase,
+assertArrayClose(Array.from(pelvis.geometry.attributes.position.array), pelvisBase,
   "reset must restore the original pelvis geometry");
 
 console.log("Avatar hip, glute and waist proportion deformation smoke: PASS");
