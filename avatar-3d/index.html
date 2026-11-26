@@ -452,6 +452,7 @@
 <script src="MCSAvatarAnimationRuntime.js"></script>
 <script src="MCSAvatarCatalogAnimationBridge.js"></script>
 <script src="MCSRoomWorlds.js"></script>
+<script src="MCSBodyProportionDeformer.js"></script>
 <script>
 "use strict";
 /* =====================================================================
@@ -2388,10 +2389,8 @@ class AvatarWardrobe {
   }
 }
 
-/* --- Body scalers (IMVU trick): parameters are SCALE MATRICES on
-   hierarchy nodes — hips widen, torso reshapes, bust/chest scaler
-   nodes swell the garment forms. Garments parented to those nodes
-   inherit the reshaping for free; nothing is ever rebuilt. --- */
+/* --- Body scalers: preset hierarchy scaling plus localized, non-cumulative
+   pelvis/torso geometry deformation for hip width, glutes and waist. --- */
 function applyBodyScalers(avatar){
   const body = avatar.body, B = avatar.bones;
   const shape = shapeById(body.shape);
@@ -2410,17 +2409,26 @@ function applyBodyScalers(avatar){
     }
     sm.color.set(body.skin);
   }
-  /* M2A-body: hips width + glutes size + waist width (user proportion controls).
-     Ranges are conservative and proportionate; the teen band clamps them
-     (see clampBodyForBand). Garments parented to these nodes follow. */
+  /* M2A-body: hip width, glute projection and waist contour are applied to
+     the actual pelvis/torso meshes; the teen band clamps values first. */
   const hipAmt  = (body.hips == null ? 0.5 : body.hips);
   const gluteAmt= (body.glutes == null ? 0.5 : body.glutes);
   const waistAmt= (body.waist == null ? 0.5 : body.waist);
-  const hipX = shape.hip * (0.86 + 0.28*hipAmt);            /* 0.86x .. 1.14x of preset */
-  const hipZ = (0.90 + 0.12*shape.hip) * (0.94 + 0.12*hipAmt);
-  B.hips.scale.set(hipX, 1, hipZ);
-  if (B.glutesNode) B.glutesNode.scale.set(0.7 + 0.6*gluteAmt, 0.7 + 0.6*gluteAmt, 0.7 + 0.9*gluteAmt);
-  if (B.waistNode) B.waistNode.scale.set(0.86 + 0.28*waistAmt, 1, 0.88 + 0.24*waistAmt);
+  const deformer = window.MCSBodyProportionDeformer;
+  /* Keep the leg hierarchy independent: hip width applies to the pelvis mesh only. */
+  B.hips.scale.set(1, 1, 1);
+  if (deformer) {
+    deformer.applyHipWidth(B.pelvis, hipAmt, shape.hip);
+    deformer.applyGlutes(B.pelvis, gluteAmt);
+    deformer.applyWaist(B.torsoMesh, waistAmt);
+  } else {
+    /* Conservative fallback if the optional deformer script cannot load. */
+    B.pelvis.scale.set(
+      1.05 * shape.hip * (0.86 + 0.28 * hipAmt),
+      0.78,
+      0.86 * (0.90 + 0.12 * shape.hip) * (0.94 + 0.12 * hipAmt)
+    );
+  }
   const sx = shape.shoulder*0.62 + shape.waist*0.38;
   const sz = 0.92 + 0.10*shape.waist + (body.presentation === "masc" ? body.chest*0.08 : body.bust*0.05);
   B.torso.scale.set(sx, 1, sz);
@@ -2443,9 +2451,6 @@ class Avatar {
     this.root = b.root; this.bones = b.bones; this.zones = b.zones; this.skinMat = b.skinMat;
     /* bust / chest scaler nodes inside the torso */
     const bustNode = new THREE.Group(); bustNode.position.set(0, 0.44, 0); this.bones.torso.add(bustNode);
-  /* M2A-body: waist + glutes scaler nodes (same hierarchy-scaler trick) */
-  const waistNode = new THREE.Group(); waistNode.position.set(0, 0.18, 0); this.bones.torso.add(waistNode); this.bones.waistNode = waistNode;
-  const glutesNode = new THREE.Group(); glutesNode.position.set(0, -0.06, -0.06); this.bones.hips.add(glutesNode); this.bones.glutesNode = glutesNode;
     const chestNode = new THREE.Group(); chestNode.position.set(0, 0.44, 0); this.bones.torso.add(chestNode);
     this.bones.bustNode = bustNode; this.bones.chestNode = chestNode;
     /* named sockets */
