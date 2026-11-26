@@ -6,7 +6,7 @@ const vm = require("node:vm");
 
 const html = fs.readFileSync(path.join(__dirname, "../src/index.html"), "utf8");
 const avatarRoot = path.join(__dirname, "../src/avatar-3d");
-const avatarFiles = ["index.html","MCSAvatarLoader.js","MCSCameraSetup.js","MCSGlamMaterialFactory.js","MCSStudioLighting.js","MCSAvatarAnimationRuntime.js","assets/manifest.json"];
+const avatarFiles = ["index.html","MCSAvatarLoader.js","MCSCameraSetup.js","MCSGlamMaterialFactory.js","MCSStudioLighting.js","MCSAvatarAnimationRuntime.js","MCSRoomWorlds.js","assets/manifest.json"];
 for (const file of avatarFiles) assert.ok(fs.existsSync(path.join(avatarRoot,file)), "main-app deployment must include avatar asset: " + file);
 const embeddedAvatar = fs.readFileSync(path.join(avatarRoot,"index.html"),"utf8");
 for (const script of ["MCSStudioLighting.js","MCSGlamMaterialFactory.js","MCSCameraSetup.js","MCSAvatarLoader.js","MCSAvatarAnimationRuntime.js"]) assert.ok(embeddedAvatar.includes(script), "embedded avatar runtime must reference " + script);
