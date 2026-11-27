@@ -90,7 +90,8 @@
   function applyGluteFit(group, amount){
     const state = groupStateFor(group);
     if(!state) return false;
-    const value = 0.90 + 0.20 * clamp01(amount);
+    /* Match the body's posterior depth envelope so hip garments do not lag behind it. */
+    const value = 0.82 + 0.36 * clamp01(amount);
     group.scale.x = state.x;
     group.scale.y = state.y;
     group.scale.z = state.z * value;
@@ -100,7 +101,8 @@
   function applyWaistFit(group, amount){
     const state = groupStateFor(group);
     if(!state) return false;
-    const value = 0.92 + 0.16 * clamp01(amount);
+    /* Match the body's waist-radius envelope at the fitted profile. */
+    const value = 0.86 + 0.28 * clamp01(amount);
     group.scale.x = state.x * value;
     group.scale.y = state.y;
     group.scale.z = state.z * value;

@@ -9,6 +9,16 @@ const source = fs.readFileSync(
   path.join(__dirname, "../avatar-3d/MCSBodyProportionDeformer.js"),
   "utf8"
 );
+const embeddedSource = fs.readFileSync(
+  path.join(__dirname, "../src/avatar-3d/MCSBodyProportionDeformer.js"),
+  "utf8"
+);
+const rootAvatarHtml = fs.readFileSync(path.join(__dirname, "../avatar-3d/index.html"), "utf8");
+const embeddedAvatarHtml = fs.readFileSync(path.join(__dirname, "../src/avatar-3d/index.html"), "utf8");
+assert.equal(embeddedSource, source, "standalone and embedded body deformers must remain byte-for-byte synchronized");
+assert.equal(embeddedAvatarHtml, rootAvatarHtml, "standalone and embedded avatar pages must remain byte-for-byte synchronized");
+assert.match(rootAvatarHtml, /B\.glutesFit\.scale\.set\(1, 1, 0\.82 \+ 0\.36 \* gluteAmt\)/, "fallback glute garment fit must match body deformation range");
+assert.match(rootAvatarHtml, /B\.waistFit\.scale\.set\(0\.86 \+ 0\.28 \* waistAmt, 1, 0\.86 \+ 0\.28 \* waistAmt\)/, "fallback waist garment fit must match body deformation range");
 const window = {};
 vm.runInNewContext(source, { window, Math, Number, Object });
 const deformer = window.MCSBodyProportionDeformer;
@@ -26,14 +36,21 @@ assertClose(hipFit.scale.z, (0.90 + 0.12 * 1.1) * 1.06, "hip fit group must adju
 
 const glutesFit = makeGroup({ x: 1, y: 1, z: 1 });
 assert.equal(deformer.applyGluteFit(glutesFit, 1), true);
-assertClose(glutesFit.scale.z, 1.1, "glute fit group must adjust hip-attached garment depth");
+assertClose(glutesFit.scale.z, 1.18, "glute fit group must match the body's maximum posterior depth deformation");
+assert.equal(deformer.applyGluteFit(glutesFit, 0), true);
+assertClose(glutesFit.scale.z, 0.82, "glute fit group must match the body's minimum posterior depth deformation");
+assert.equal(deformer.applyGluteFit(glutesFit, 1), true);
 assert.equal(deformer.applyGluteFit(glutesFit, 0.5), true);
 assertClose(glutesFit.scale.z, 1, "glute fit group must restore its neutral scale without drift");
 
 const waistFit = makeGroup({ x: 1, y: 1, z: 1 });
 assert.equal(deformer.applyWaistFit(waistFit, 0), true);
-assertClose(waistFit.scale.x, 0.92, "waist fit group must narrow torso-attached garments");
-assertClose(waistFit.scale.z, 0.92, "waist fit group must preserve matching front/back fit");
+assertClose(waistFit.scale.x, 0.86, "waist fit group must match the body's minimum waist-radius deformation");
+assertClose(waistFit.scale.z, 0.86, "waist fit group must preserve matching front/back fit");
+assert.equal(deformer.applyWaistFit(waistFit, 1), true);
+assertClose(waistFit.scale.x, 1.14, "waist fit group must match the body's maximum waist-radius deformation");
+assertClose(waistFit.scale.z, 1.14, "waist fit group must preserve matching front/back fit");
+assert.equal(deformer.applyWaistFit(waistFit, 0), true);
 assert.equal(deformer.applyWaistFit(waistFit, 0.5), true);
 assertClose(waistFit.scale.x, 1, "waist fit group must return to neutral without drift");
 assert.equal(deformer.resetGroup(waistFit), true);
@@ -84,6 +101,9 @@ assert.equal(deformer.cache(pelvis), true);
 assert.equal(deformer.applyGlutes(pelvis, 1), true);
 const glutePositions = pelvis.geometry.attributes.position.array;
 assert.ok(glutePositions[2] < pelvisBase[2], "larger glutes must increase posterior projection");
+deformer.applyGluteFit(glutesFit, 1);
+assertClose(glutePositions[2] / pelvisBase[2], glutesFit.scale.z,
+  "garment glute fit must match the body's posterior deformation at the glute profile");
 assertClose(glutePositions[5], pelvisBase[5], "glute shaping must not move the anterior pelvis");
 assertClose(glutePositions[8], pelvisBase[8], "glute shaping must fade out above the glute region");
 assert.equal(pelvis.geometry.attributes.position.needsUpdate, true);
@@ -103,6 +123,9 @@ const torso = makeMesh(torsoBase, { x: 1, y: 1, z: 1 });
 assert.equal(deformer.applyWaist(torso, 1), true);
 const waistPositions = torso.geometry.attributes.position.array;
 assert.ok(waistPositions[0] > torsoBase[0], "larger waist setting must widen the waist profile");
+deformer.applyWaistFit(waistFit, 1);
+assertClose(waistPositions[0] / torsoBase[0], waistFit.scale.x,
+  "garment waist fit must match the body's radial deformation at the waist profile");
 assertClose(waistPositions[3], torsoBase[3], "waist shaping must leave the lower abdomen transition stable");
 assertClose(waistPositions[6], torsoBase[6], "waist shaping must leave the upper chest profile stable");
 

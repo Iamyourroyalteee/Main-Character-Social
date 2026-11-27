@@ -2433,8 +2433,8 @@ function applyBodyScalers(avatar){
   } else {
     B.hipFit.scale.set(shape.hip * (0.86 + 0.28 * hipAmt), 1,
       (0.90 + 0.12 * shape.hip) * (0.94 + 0.12 * hipAmt));
-    B.glutesFit.scale.set(1, 1, 0.90 + 0.20 * gluteAmt);
-    B.waistFit.scale.set(0.92 + 0.16 * waistAmt, 1, 0.92 + 0.16 * waistAmt);
+    B.glutesFit.scale.set(1, 1, 0.82 + 0.36 * gluteAmt);
+    B.waistFit.scale.set(0.86 + 0.28 * waistAmt, 1, 0.86 + 0.28 * waistAmt);
   }
   const sx = shape.shoulder*0.62 + shape.waist*0.38;
   const sz = 0.92 + 0.10*shape.waist + (body.presentation === "masc" ? body.chest*0.08 : body.bust*0.05);
