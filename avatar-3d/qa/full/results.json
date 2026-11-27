@@ -1,0 +1,206 @@
+{
+  "suites": {
+    "S1-viewport-matrix": "PASS",
+    "S2-catalog": "PASS",
+    "S3-equip-all": "PASS",
+    "S4-hats-sockets": "PASS",
+    "S5-rooms": "PASS",
+    "S6-save-export": "PASS",
+    "S7-emotes": "PASS",
+    "S8-touch-motion": "PASS"
+  },
+  "defects": [],
+  "env": {
+    "date": "2026-11-09"
+  },
+  "s1": {
+    "mobile": {
+      "hasMCS": true,
+      "items": 66,
+      "room": "main",
+      "player": true,
+      "friend": true,
+      "adult": true,
+      "loader": "none",
+      "canvas": true,
+      "errors": [],
+      "width": 390
+    },
+    "tablet": {
+      "hasMCS": true,
+      "items": 66,
+      "room": "main",
+      "player": true,
+      "friend": true,
+      "adult": true,
+      "loader": "none",
+      "canvas": true,
+      "errors": [],
+      "width": 768
+    },
+    "desktop": {
+      "hasMCS": true,
+      "items": 66,
+      "room": "main",
+      "player": true,
+      "friend": true,
+      "adult": true,
+      "loader": "none",
+      "canvas": true,
+      "errors": [],
+      "width": 1440
+    }
+  },
+  "s2_state": {
+    "panel": true,
+    "slotBtns": [
+      "Save look",
+      "Export PNG",
+      "Island World",
+      "Main Room",
+      "After Dark Lounge",
+      "Rooms\u2026",
+      "\u2936 Leave Room",
+      "",
+      "Island WorldA sunny island to explore \u2014 beach, palms, lookout point.Enter \u2192",
+      "Main RoomThe gold-lit social floor \u2014 meet friends, wave, dance.Enter \u2192",
+      "After Dark LoungeNeon lounge for the 18+ crowd. Grown-up vibes only.Enter \u2192",
+      "Wave",
+      "Dance",
+      "Pose",
+      "Feminine",
+      "Masculine",
+      "Fluid",
+      "Adult (18+)",
+      "Teen",
+      "Body",
+      "Face",
+      "Hair",
+      "Tops",
+      "Bottoms",
+      "Outfits",
+      "Shoes",
+      "Hats & Extras",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "Slim"
+    ],
+    "premiumCount": 15,
+    "adultCount": 8,
+    "adultProfile": true
+  },
+  "s2_teen": {
+    "adult": false,
+    "visible": 58
+  },
+  "s3": {
+    "tried": 66,
+    "failed": [],
+    "slots": {
+      "hair": 10,
+      "hat": 6,
+      "glasses": 3,
+      "accessory": 3,
+      "prop": 4,
+      "top": 12,
+      "bottom": 10,
+      "outfit": 8,
+      "shoes": 10
+    }
+  },
+  "s4": {
+    "tucked": [
+      {
+        "id": "hair-waves",
+        "hat_compatible": true,
+        "hasTucked": true
+      },
+      {
+        "id": "hair-curly",
+        "hat_compatible": true,
+        "hasTucked": true
+      },
+      {
+        "id": "hair-braids",
+        "hat_compatible": true,
+        "hasTucked": true
+      }
+    ],
+    "hats": [
+      {
+        "id": "hat-bonnet",
+        "socket": "hat"
+      },
+      {
+        "id": "hat-cap",
+        "socket": "hat"
+      },
+      {
+        "id": "hat-crown",
+        "socket": "hat"
+      },
+      {
+        "id": "hat-bucket",
+        "socket": "hat"
+      }
+    ],
+    "sockets": [
+      {
+        "id": "prop-handbag",
+        "socket": "rightHand"
+      },
+      {
+        "id": "prop-cup",
+        "socket": "rightHand"
+      }
+    ],
+    "errors": []
+  },
+  "s5": {
+    "main": "main",
+    "lounge": "lounge",
+    "back": "main",
+    "teenLounge": "main",
+    "teenEquip": null
+  },
+  "s6": {
+    "hasNormalize": true,
+    "png": {
+      "w": 390,
+      "h": 357,
+      "preview": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYYAAAFlCAYAAA",
+      "len": 106594
+    }
+  },
+  "s6_saveLook": true,
+  "s7": {
+    "list": [
+      "wave",
+      "dance",
+      "pose"
+    ],
+    "fired": [
+      "wave",
+      "dance",
+      "pose"
+    ],
+    "failed": []
+  },
+  "s8_reduced_motion": {
+    "hasMCS": true,
+    "items": 66,
+    "canvas": true,
+    "loader": "none"
+  },
+  "console_errors": []
+}

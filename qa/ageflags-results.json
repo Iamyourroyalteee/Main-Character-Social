@@ -1,0 +1,79 @@
+{
+ "cases": {
+  "forgedBandAdult": {
+   "minor": true,
+   "under16": true,
+   "ageUnknown": true
+  },
+  "forgedAdultDob": {
+   "minor": true,
+   "under16": false,
+   "ageUnknown": false
+  },
+  "forgedYoungAdultDob": {
+   "minor": true,
+   "under16": false,
+   "ageUnknown": false
+  },
+  "missingDob": {
+   "minor": true,
+   "under16": true,
+   "ageUnknown": true
+  },
+  "invalidDob": {
+   "minor": true,
+   "under16": true,
+   "ageUnknown": true
+  },
+  "fakeCalDob": {
+   "minor": true,
+   "under16": true,
+   "ageUnknown": true
+  },
+  "partialDob": {
+   "minor": true,
+   "under16": true,
+   "ageUnknown": true
+  },
+  "bandTeen": {
+   "minor": true,
+   "under16": false,
+   "ageUnknown": false
+  },
+  "bandUnder16": {
+   "minor": true,
+   "under16": true,
+   "ageUnknown": false
+  },
+  "bandJunk": {
+   "minor": true,
+   "under16": true,
+   "ageUnknown": true
+  },
+  "noProfile": {
+   "minor": true,
+   "under16": true,
+   "ageUnknown": true
+  },
+  "teenDobGranular": {
+   "minor": true,
+   "under16": true,
+   "ageUnknown": false
+  },
+  "under16DobGranular": {
+   "minor": true,
+   "under16": true,
+   "ageUnknown": false
+  }
+ },
+ "fails": {},
+ "allMinor": true,
+ "granularity": {
+  "teenDobGranular_under16True": true,
+  "under16DobGranular_under16True": true,
+  "bandJunkUnknown": true,
+  "bandTeen_under16False": true
+ },
+ "errors": [],
+ "granularityAllPass": true
+}
